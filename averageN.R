@@ -8,16 +8,17 @@ cdr = chinese_drama_ratings
 
 # Calculate the results
 nrows = nrow(cdr)
+ncols = ncol(cdr)
 prediction = cdr
 # We cannot predict these entries
 prediction[1:n,] = NA
-prediction[!is.na(prediction)] = 0
-for(i in 1:n)
+for(r in (n+1):nrows)
 {
-  prediction[(n+1):nrows,] = prediction[(n+1):nrows,] + cdr[i:(nrows-n+i-1),]
-  # prediction[(n+1):nrows,] = (cdr[1:(nrows-n),] + cdr[2:(nrows-(n-1)),])/2
+  for(c in 1:ncols)
+  {
+    prediction[r,c] = mean(cdr[(r-n):(r-1),c])
+  }
 }
-prediction = prediction/n
 
 # Compute MAPE
 diff = cdr - prediction
