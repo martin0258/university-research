@@ -2,7 +2,8 @@
 n = 5
 
 # Read input data
-chinese_drama_ratings = read.csv("~/Projects//BitBucket/SET//Chinese_Weekday_Drama.csv")
+file = "~/Projects//BitBucket/SET//Chinese_Weekday_Drama.csv"
+chinese_drama_ratings = read.csv(file, fileEncoding="utf-8")
 cdr = chinese_drama_ratings
 
 # Calculate the results
