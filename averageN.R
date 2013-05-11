@@ -1,34 +1,33 @@
-avgN = function(n=5,...){
-  # n: can be 1,2,3,... (note that 5 is the best for cdr)
+avgN = function(n=5,file,...){
+  # n: can be 1,2,3,... (note that 5 is the best for data)
   
   # Read input data
-  file = "~/Projects//BitBucket/SET//Chinese_Weekday_Drama.csv"
-  chinese_drama_ratings = read.csv(file, fileEncoding="utf-8")
-  cdr = chinese_drama_ratings
+  data = read.csv(file, fileEncoding="utf-8")
   
   # Calculate the results
-  nrows = nrow(cdr)
-  ncols = ncol(cdr)
-  prediction = cdr
+  nrows = nrow(data)
+  ncols = ncol(data)
+  prediction = data
   # We cannot predict these entries
   prediction[1:n,] = NA
   for(r in (n+1):nrows)
   {
     for(c in 1:ncols)
     {
-      prediction[r,c] = mean(cdr[(r-n):(r-1),c])
+      prediction[r,c] = mean(data[(r-n):(r-1),c])
     }
   }
   
   # Compute MAPE
-  diff = cdr - prediction
+  diff = data - prediction
   absdiff = abs(diff)
-  absp = absdiff/cdr
+  absp = absdiff/data
   mapes = colMeans(absp,na.rm=TRUE)
   mape = mean(mapes)
   
   # Print MAPE
   print(mapes)
   cat("\nAvgN: ",n)
-  cat("\nMAPE:", mape)
+  cat("\nMAPE:", mape, "\n")
+  return(mape)
 }
