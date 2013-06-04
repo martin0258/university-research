@@ -8,11 +8,12 @@ data <- read.csv(file, fileEncoding="utf-8")
 
 # Prepare data structures
 prediction <- data
-prediction[1,] <- NA
+prediction[1:2,] <- NA
 prediction[!is.na(prediction)] <- 0
-prediction[2,] <- data[1,]
 bestOrder <- prediction
-bestOrder[2,] <- NA
+
+# Error Info
+errInfo <- c()
 
 for(drama in 1:ncol(data))
 {
@@ -23,7 +24,21 @@ for(drama in 1:ncol(data))
   {
     tbestOrder <- 0
     trainingTS <- ts(data[drama][1:(episode-1),1])
-    arModel <- ar(trainingTS, method="yw", na.action=na.exclude)
+    
+    # Error handling for methods other than yw
+    arModel <- tryCatch({
+      ar(trainingTS, method="mle", na.action=na.exclude)
+    }, error = function(err) {
+      return(err)
+    })
+    # Error occurs. No prediction.
+    if(inherits(arModel,"error"))
+    {
+      errInfo <- rbind(errInfo, c(drama=colnames(data[drama]), episode=episode, error=paste(arModel)))
+      bestOrder[episode,drama] <- NA
+      prediction[episode,drama] <- NA
+      next
+    }
     # Use the bestN and minMAPE found to predict this episode
     bestOrder[episode,drama] <- arModel$order
     prediction[episode,drama] <- predict(arModel,trainingTS)$pred[1]
@@ -35,4 +50,5 @@ absp <- abs(prediction-data)/data
 mapes <- colMeans(absp, na.rm=TRUE)
 totalMAPE <- mean(mapes)
 print(mapes)
-cat("\ntotalMAPE: ", totalMAPE)
+cat("\ntotalMAPE: ", totalMAPE, "\n")
+print(errInfo)
