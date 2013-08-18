@@ -1,4 +1,4 @@
-dynamicAvgN = function(file,ratio=0.5){
+dynamicAvgN = function(file, ratio=0.5){
   # Summary: This script calculates the best N for each episode of each drama
   # file: The ratings file (e.g., Chinese_Weekday_Drama.csv)
   # ratio: Control the the largest N (ratio*episode) to search. 
@@ -58,8 +58,6 @@ dynamicAvgN = function(file,ratio=0.5){
   # Calculate total MAPE
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
-  totalMAPE <- mean(mapes)
-  print(mapes)
-  cat("\ntotalMAPE: ", totalMAPE, "\n")
-  return(totalMAPE)
+  cat( sprintf("ratio = %f\n", ratio) )
+  return( mapes )
 }

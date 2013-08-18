@@ -1,5 +1,5 @@
-avgN = function(n=5,file,...){
-  # n: can be 1,2,3,... (note that 5 is the best for data)
+avgN = function(file, n=5,...){
+  # n: can be any positive integer (e.g, 1, 2, 3, etc). The default value 5 is an empirical good number
   
   # Read input data
   data = read.csv(file, fileEncoding="utf-8")
@@ -23,11 +23,7 @@ avgN = function(n=5,file,...){
   absdiff = abs(diff)
   absp = absdiff/data
   mapes = colMeans(absp,na.rm=TRUE)
-  mape = mean(mapes)
   
-  # Print MAPE
-  print(mapes)
-  cat("\nAvgN: ",n)
-  cat("\nMAPE:", mape, "\n")
-  return(mape)
+  cat( sprintf("AvgN: %d\n", n) )
+  return(mapes)
 }
