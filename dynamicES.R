@@ -42,6 +42,12 @@ dynamicES = function( file, useBeta=FALSE, useGamma=FALSE) {
       }
       # Testing phase
       prediction[episode,drama] <- predict( esModel, n.ahead=1 )[1]
+      
+      # Replace missing values with the forecast
+      if( is.na( data[ drama ][ episode, 1 ] ) )
+      {
+        data[ drama ][ episode, 1 ] <- prediction[ episode, drama ]
+      }
     }
   }
   
@@ -49,5 +55,6 @@ dynamicES = function( file, useBeta=FALSE, useGamma=FALSE) {
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
   cat( errInfo )
+  print( prediction )
   return( mapes )
 }
