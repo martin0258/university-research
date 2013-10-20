@@ -44,16 +44,16 @@ decomposeTS = function( file ) {
     
     # Plot decomposition
     folder <- "images/"
-    filename <- paste("stl_", name, ".jpg", sep="")
+    filename <- paste("stl_", name, ".png", sep="")
     fullPath <- paste(folder, filename, sep="")
-    jpeg(file = fullPath)
+    png(file = fullPath, width=825, height=576)
     plot(fit, main=paste("STL of ", name))
     dev.off()
     
     # Plot original data , trend-cycle, and seasonal adjustment
-    filename <- paste("trend_seasadj_", name, ".jpg", sep="")
+    filename <- paste("trend_seasadj_", name, ".png", sep="")
     fullPath <- paste(folder, filename, sep="")
-    jpeg(file = fullPath)
+    png(file = fullPath, width=825, height=576)
     plot(ts(series), main=name, col="grey")
     lines(fit$time.series[,"trend"], col="red")
     lines(seasadj(fit), col="blue")
