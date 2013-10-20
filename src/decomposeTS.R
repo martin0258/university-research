@@ -54,7 +54,7 @@ decomposeTS = function( file ) {
     filename <- paste("trend_seasadj_", name, ".png", sep="")
     fullPath <- paste(folder, filename, sep="")
     png(file = fullPath, width=825, height=576)
-    plot(ts(series), main=name, col="grey")
+    plot(ts(series), main=name, xlab="Episode", ylab="Ratings", col="grey")
     lines(fit$time.series[,"trend"], col="red")
     lines(seasadj(fit), col="blue")
     legend("topleft", legend=c("data", "trend", "seasadj"), fill=c("grey", "red", "blue"))
