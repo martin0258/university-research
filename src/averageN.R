@@ -1,5 +1,15 @@
 avgN = function(file, n=5,...){
-  # n: can be any positive integer (e.g, 1, 2, 3, etc). The default value 5 is an empirical good number
+  # Train/predict with an average model for each period of each series.
+  # It simple average ratings of preivous N episodes as the forecast.
+  #
+  # Args:
+  #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #   n: number of previous N episodes. The default is 5 (an empirical setting).
+  #
+  # Returns:
+  #   A list of two objects.
+  #     One is the MAPE of forecast for each series.
+  #     Another is the forecast for each time period of each series.
   
   # Read input data
   data = read.csv(file, fileEncoding="utf-8")
@@ -25,5 +35,6 @@ avgN = function(file, n=5,...){
   mapes = colMeans(absp,na.rm=TRUE)
   
   cat( sprintf("AvgN: %d\n", n) )
+  return( list(mape=mapes, forecast=prediction) )
   return(mapes)
 }

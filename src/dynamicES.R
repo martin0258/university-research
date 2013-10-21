@@ -1,6 +1,16 @@
-dynamicES = function( file, useBeta=FALSE, useGamma=FALSE) {
-  # Summary: This script trains a Exponential smoothing for every time period.
-  # file: the ratings file (e.g., Chinese_Weekday_Drama.csv)
+dynamicES = function(file, useBeta=FALSE, useGamma=FALSE) {
+  # Train/predict with a Exponential Smoothing for each period of each series.
+  #
+  # Args:
+  #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #   useBeta: A boolean indicating whether to model trend
+  #   useGamma: A boolean indicating whether to model seasonality.
+  #
+  # Returns:
+  #   A list of two objects.
+  #     One is the MAPE of forecast for each series.
+  #     Another is the forecast for each time period of each series.
+
   if( useBeta ) { useBeta <- NULL }
   if( useGamma ) { useGamma <- NULL }
   
@@ -26,7 +36,7 @@ dynamicES = function( file, useBeta=FALSE, useGamma=FALSE) {
       # Training phase
       # Error handling for training a HoltWinters model
       esModel <- tryCatch({
-        HoltWinters( trainingTS, beta=useBeta, gamma=useGamma)
+        HoltWinters(trainingTS, beta=useBeta, gamma=useGamma)
       }, error = function(err) {
         return(err)
       })
@@ -54,7 +64,6 @@ dynamicES = function( file, useBeta=FALSE, useGamma=FALSE) {
   # Calculate total MAPE
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
-  cat( errInfo )
-  print( prediction )
-  return( mapes )
+  cat( sprintf("useBeta=%s, useGamma=%s\n", useBeta, useGamma) )
+  return( list(mape=mapes, forecast=prediction, error=errInfo) )
 }

@@ -1,7 +1,16 @@
 dynamicAvgN = function(file, ratio=0.5){
-  # Summary: This script calculates the best N for each episode of each drama
-  # file: The ratings file (e.g., Chinese_Weekday_Drama.csv)
-  # ratio: Control the the largest N (ratio*episode) to search. 
+  # Train/predict with an average model for each period of each series.
+  # It simple average ratings of preivous N episodes as the forecast.
+  # We calculate the best N for each period for each drama based on min MAPE of previous periods.
+  #
+  # Args:
+  #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #   ratio: A numeric between 0 and 1 that controls the the largest N (ratio*episode) to search. 
+  #
+  # Returns:
+  #   A list of two objects.
+  #     One is the MAPE of forecast for each series.
+  #     Another is the forecast for each time period of each series.
   
   # Read input data
   data <- read.csv(file, fileEncoding="utf-8")
@@ -17,7 +26,7 @@ dynamicAvgN = function(file, ratio=0.5){
   minMAPE[2:3,] <- NA
   
   # Start running the algorithm
-  for(drama in 1:ncol(data))
+  for(drama in names(data))
   {
     nepisode <- max(which(!is.na(data[drama])))
     # Predict from the 3rd episdoe for each drama
@@ -59,5 +68,5 @@ dynamicAvgN = function(file, ratio=0.5){
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
   cat( sprintf("ratio = %f\n", ratio) )
-  return( mapes )
+  return( list(mape=mapes, forecast=prediction) )
 }

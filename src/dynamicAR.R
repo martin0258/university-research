@@ -1,7 +1,14 @@
 dynamicAR = function( file, fitMethod = "yule-walker" ) {
-  # Summary: This script trains a AR model for every time period.
-  # file: the ratings file (e.g., Chinese_Weekday_Drama.csv)
-  # fitMethod: the fit method used in function ar {stats}
+  # Train/predict with an AR model for each period of each series.
+  #
+  # Args:
+  #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #   fitMethod: the fit method used in function ar {stats}
+  #
+  # Returns:
+  #   A list of two objects.
+  #     One is the MAPE of forecast for each series.
+  #     Another is the forecast for each time period of each series.
   
   # Read input data
   data <- read.csv(file, fileEncoding="utf-8")
@@ -48,7 +55,6 @@ dynamicAR = function( file, fitMethod = "yule-walker" ) {
   # Calculate total MAPE
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
-  cat( errInfo )
   cat( sprintf("Fit method = %s\n", fitMethod) )
-  return( mapes )
+  return( list(mape=mapes, forecast=prediction, error=errInfo) )
 }

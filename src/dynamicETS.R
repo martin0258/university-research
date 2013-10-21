@@ -1,7 +1,13 @@
 dynamicETS = function( file ) {
-  # Summary: This script trains a exponential smoothing state space model for every time period.
-  # Dependency: ets {forecast}
-  # file: the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  # Train/predict with a Exponential Smoothing State Space Model for each period of each series.
+  #
+  # Args:
+  #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #
+  # Returns:
+  #   A list of two objects.
+  #     One is the MAPE of forecast for each series.
+  #     Another is the forecast for each time period of each series.
   library("forecast")  
   
   # Read input data
@@ -59,8 +65,7 @@ dynamicETS = function( file ) {
   # Calculate total MAPE
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
-  cat( errInfo )
-  print( prediction )
-  print( end - start)
-  return( mapes )
+  cat("[Time Spent]\n")
+  print( end - start )
+  return( list(mape=mapes, forecast=prediction, error=errInfo) )
 }

@@ -1,7 +1,14 @@
-dynamicARMIA = function( file ) {
-  # Summary: This script trains a ARIMA model for every time period.
-  # file: the ratings file (e.g., Chinese_Weekday_Drama.csv)
+dynamicARIMA = function( file ) {
+  # Train/predict with an ARIMA model for each period of each series.
   # We use the automated forecasting of ARIMA in the forecast pacakage.
+  #
+  # Args:
+  #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #
+  # Returns:
+  #   A list of two objects.
+  #     One is the MAPE of forecast for each series.
+  #     Another is the forecast for each time period of each series.
   library("forecast")
   
   # Read input data
@@ -63,6 +70,5 @@ dynamicARMIA = function( file ) {
   # Calculate total MAPE
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
-  cat( errInfo )
-  return( mapes )
+  return( list(mape=mapes, forecast=prediction, error=errInfo) )
 }
