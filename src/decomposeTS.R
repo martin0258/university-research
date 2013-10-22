@@ -57,7 +57,8 @@ decomposeTS = function( file ) {
     plot(ts(series), main=name, xlab="Episode", ylab="Ratings", col="grey")
     lines(fit$time.series[,"trend"], col="red")
     lines(seasadj(fit), col="blue")
-    legend("topleft", legend=c("data", "trend", "seasadj"), fill=c("grey", "red", "blue"))
+    legend("topleft", legend=c("data", "trend", "seasadj"), fill=c("grey", "red", "blue"),
+           bty="n")
     dev.off()
   }
   
