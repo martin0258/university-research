@@ -11,22 +11,26 @@ adaboostR2 = function( x, y, itr=100, learner="nnet" ) {
 
   # hard-coding 
   # use nnet as the base learner
+  baseLearner <- "nnet"
+  library(nnet)
 
   # initialize return values
-  models <- vector()
-  weights <- vector()
+  models <- list()
+  weights <- list()
   
   # set initial data weights
-  numCases <- nrow(data)
+  numCases <- nrow(data.frame(y))
   dw <- rep(1/numCases, numCases) 
   
+  inputItr <- itr
   for(i in 1:itr)
   {
     # train weak hypothesis by calling base learner
     model <- nnet(x, y,
                   weights = dw,
                   size = ncol(x),
-                  linout = TRUE)
+                  linout = TRUE,
+                  trace = FALSE)
 
     # calculate the adjusted error for each case
     prediction <- predict(model, x)
@@ -36,7 +40,7 @@ adaboostR2 = function( x, y, itr=100, learner="nnet" ) {
     totalError <- sum(dw * adjustedErrors)
     if(totalError >= 0.5)
     {
-      itr <- itr - 1
+      itr <- i - 1
       break
     }
   
@@ -46,10 +50,13 @@ adaboostR2 = function( x, y, itr=100, learner="nnet" ) {
     dw <- dw / sum(dw)  # normalization
     
     # store return values
-    models <- c(models, model)
-    weights <- c(weights, log(1/beta))
+    models[[length(models)+1]] <- model
+    weights[[length(weights)+1]] <- log(1/beta)
   }
+  cat(sprintf("input itr: %d\nactual itr: %d", inputItr, itr))
   
   # the final hypothesis is weighted median (what does it mean?)
-  return (list(models, weights))
+  return (list(models = models, 
+               weights = weights, 
+               len = itr, baseLearner = baseLearner))
 }
