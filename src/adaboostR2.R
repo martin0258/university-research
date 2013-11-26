@@ -1,4 +1,4 @@
-adaboostR2 = function( x, y, itr=100, learner="nnet" ) {
+adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   # Summary: adaboostR2 fits an adaboost model for regression (Drucker, 1997)
   
   # Parameter
@@ -11,7 +11,6 @@ adaboostR2 = function( x, y, itr=100, learner="nnet" ) {
 
   # hard-coding 
   # use nnet as the base learner
-  baseLearner <- "nnet"
   library(nnet)
 
   # initialize return values
@@ -55,8 +54,71 @@ adaboostR2 = function( x, y, itr=100, learner="nnet" ) {
   }
   cat(sprintf("input itr: %d\nactual itr: %d", inputItr, itr))
   
-  # the final hypothesis is weighted median (what does it mean?)
   return (list(models = models, 
                weights = weights, 
                len = itr, baseLearner = baseLearner))
 }
+
+adaboostR2.predict = function( model, newData ) {
+  # Summary: given new data, return prediction (weighted median) of an adaboost R2 model
+  
+  # Parameter
+  #   model   : the trained adaboostR2 model
+  #   newData : the inputs of testing data in the form of (x1, x2, ..., xN)
+  # Return
+  #   the numeric prediction
+
+  # build a prediction matrix: (row = cases, col = predictors)
+  predictions <- vector()
+  wmPredictions <- vector()
+  for(i in 1:model$len)
+  {
+    predictions <- cbind(predictions,
+                        predict(model$models[[i]], newData))
+  }
+  # get weighted median for each case
+  for(i in 1:nrow(data.frame(newData)))
+  {
+    wmPrediction <- weighted.median(predictions[i,], model$weights)
+    wmPredictions <- c(wmPredictions, wmPrediction)
+  }
+  return (wmPredictions)
+}
+
+weighted.median = function( x, weights ) {
+  # Summary: computed weighted median
+  #  
+  # Parameter
+  #   x       : a numeric vector containing the values whose median is to be computed
+  #   y       : a numeric vector containing the weights
+  #
+  # Return
+  #   the weighted median
+  weights <- unlist(weights)
+  cases <- vector()
+  for(i in 1:length(x))
+  {
+    cases <- rbind(cases, c(x[i], weights[i]))
+  }
+  df <- data.frame(cases)
+  names(df) <- c("x", "weights")
+  threshold <- sum(df$weights) / 2
+  dfOrdered <- df[order(x),]
+  weightSum <- 0
+  for(i in 1:length(x))
+  {
+    weightSum <- weightSum + dfOrdered$weights[i]
+    if(weightSum >= threshold)
+    {
+      return (dfOrdered$x[i])
+    }
+  }
+}
+
+# Example:
+# cwd <- read.csv("data/Chinese_Weekday_Drama.csv")
+# d <- windowing(cwd[,4], 4)
+# trainEndIndex <- floor(nrow(d)/2)
+# testStartIndex <- trainEndIndex + 1
+# model <- adaboostR2.train(d[1:trainEndIndex,1:3], d[1:trainEndIndex,4])
+# predictions <- adaboostR2.predict(model, d[testStartIndex:nrow(d),1:3])
