@@ -10,8 +10,9 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   #   A list of base learners along with their weights to combine
 
   # hard-coding 
-  # use nnet as the base learner
-  library(nnet)
+  # library(nnet)  # use nnet as the base learner
+  # use linear regression as the base learner (case weights done by sample()
+  baseLearner <- "linear regression"
 
   # initialize return values
   models <- list()
@@ -21,19 +22,28 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   numCases <- nrow(data.frame(y))
   dw <- rep(1/numCases, numCases) 
   
+  # form a data frame from x, y for linear regresion
+  data <- data.frame(cbind(x, y))
+  colnames(data)[ncol(data)] <- "Y"
+  
   inputItr <- itr
   for(i in 1:itr)
   {
     # train weak hypothesis by calling base learner
-    model <- nnet(x, y,
-                  weights = dw,
-                  size = ncol(x),
-                  linout = TRUE,
-                  trace = FALSE)
+#     model <- nnet(x, y,
+#                   weights = dw,
+#                   size = ncol(x),
+#                   linout = TRUE,
+#                   trace = FALSE)
+
+    # resampling with current case weights
+    newIndex <- sample(1:numCases, numCases, replace = TRUE, dw)
+    model <- lm(Y ~ ., data=data[newIndex, ])
 
     # calculate the adjusted error for each case
-    prediction <- predict(model, x)
-    errors <- abs(y - prediction)
+#     prediction <- predict(model, x)
+#     errors <- abs(y - prediction)
+    errors <- abs(residuals(model))
     # TODO: return if all errors are zero (which probably is impossible)
     adjustedErrors <- errors / max(errors)
     totalError <- sum(dw * adjustedErrors)
@@ -71,8 +81,14 @@ adaboostR2.predict = function( model, newData ) {
   # build a prediction matrix: (row = cases, col = predictors)
   predictions <- vector()
   wmPredictions <- vector()
+  
+  # form a data frame from newData for linear regresion model to predict
+  newData <- data.frame(newData)
+
   for(i in 1:model$len)
-  {
+  { 
+    ## Make column names align with model (assume the 1st element is intercept)
+    colnames(newData) <- names(coefficients(model$models[[i]]))[-1]
     predictions <- cbind(predictions,
                         predict(model$models[[i]], newData))
   }
@@ -116,7 +132,7 @@ weighted.median = function( x, weights ) {
 }
 
 # Example:
-# cwd <- read.csv("data/Chinese_Weekday_Drama.csv")
+# cwd <- read.csv("data/Chinese_Weekday_Drama.csv", fileEncoding="utf-8")
 # d <- windowing(cwd[,4], 4)
 # trainEndIndex <- floor(nrow(d)/2)
 # testStartIndex <- trainEndIndex + 1
