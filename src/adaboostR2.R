@@ -23,7 +23,13 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   dw <- rep(1/numCases, numCases) 
   
   # form a data frame from x, y for linear regresion
-  data <- data.frame(cbind(x, y))
+  dataBind <- cbind(x, y)
+  if(numCases == 1)
+  { 
+    dataBind <- c(x, y) 
+    dataBind <- matrix(dataBind, nrow = 1)
+  }
+  data <- data.frame(dataBind)
   colnames(data)[ncol(data)] <- "Y"
   
   inputItr <- itr
@@ -37,18 +43,33 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
 #                   trace = FALSE)
 
     # resampling with current case weights
-    newIndex <- sample(1:numCases, numCases, replace = TRUE, dw)
+    # we increase number of sampling cases to make the distribution stable
+    baseNumCases <- 100
+    samplingMultipier <- ifelse(numCases < baseNumCases, baseNumCases / numCases, 1)
+    newIndex <- sample(1:numCases, numCases * samplingMultipier, replace = TRUE, dw)
     model <- lm(Y ~ ., data=data[newIndex, ])
 
     # calculate the adjusted error for each case
 #     prediction <- predict(model, x)
 #     errors <- abs(y - prediction)
     errors <- abs(residuals(model))
-    # TODO: return if all errors are zero (which probably is impossible)
+    if(max(errors) == 0)
+    {
+      # return if all errors are zero (which probably is impossible)
+      # store return values
+      models[[length(models)+1]] <- model
+      weights[[length(weights)+1]] <- 1
+      itr <- i
+      cat(sprintf("Break at iteration %d because all errors are zero.\n", i))
+      break
+    }
     adjustedErrors <- errors / max(errors)
+    # TODO: remove duplicate instances when counting errors
+    # TODO: align errors with nexIndex
     totalError <- sum(dw * adjustedErrors)
     if(totalError >= 0.5)
     {
+      cat(sprintf("Break at iteration %d because total error >= 0.5\n", i))
       itr <- i - 1
       break
     }
@@ -62,7 +83,7 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
     models[[length(models)+1]] <- model
     weights[[length(weights)+1]] <- log(1/beta)
   }
-  cat(sprintf("input itr: %d\nactual itr: %d", inputItr, itr))
+  cat(sprintf("input itr: %d\nactual itr: %d\n", inputItr, itr))
   
   return (list(models = models, 
                weights = weights, 
@@ -83,17 +104,23 @@ adaboostR2.predict = function( model, newData ) {
   wmPredictions <- vector()
   
   # form a data frame from newData for linear regresion model to predict
-  newData <- data.frame(newData)
+  data <- data.frame(newData)
+  numPredictors <- length(model$models[[1]]$coefficients) - 1
+  if(ncol(data) != numPredictors)
+  {
+    data <- matrix(newData, nrow = 1)
+    data <- data.frame(data)
+  }
 
   for(i in 1:model$len)
   { 
     ## Make column names align with model (assume the 1st element is intercept)
-    colnames(newData) <- names(coefficients(model$models[[i]]))[-1]
+    colnames(data) <- names(coefficients(model$models[[i]]))[-1]
     predictions <- cbind(predictions,
-                        predict(model$models[[i]], newData))
+                        predict(model$models[[i]], data))
   }
   # get weighted median for each case
-  for(i in 1:nrow(data.frame(newData)))
+  for(i in 1:nrow(data.frame(data)))
   {
     wmPrediction <- weighted.median(predictions[i,], model$weights)
     wmPredictions <- c(wmPredictions, wmPrediction)
