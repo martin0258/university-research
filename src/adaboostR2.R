@@ -1,5 +1,6 @@
-adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
+adaboostR2.train = function( x, y, itr = 100, baseLearner = "lm" ) {
   # Summary: adaboostR2 fits an adaboost model for regression (Drucker, 1997)
+  # Note: The base learner used is hard-coded as lm which supports case weights.
   
   # Parameter
   #   x       : the inputs of training data in the form of (x1, x2, ..., xN)
@@ -8,11 +9,6 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   #   learner : any base learner that fits a model for regression
   # Return
   #   A list of base learners along with their weights to combine
-
-  # hard-coding 
-  # library(nnet)  # use nnet as the base learner
-  # use linear regression as the base learner (case weights done by sample()
-  baseLearner <- "linear regression"
 
   # initialize return values
   models <- list()
@@ -36,22 +32,9 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   for(i in 1:itr)
   {
     # train weak hypothesis by calling base learner
-#     model <- nnet(x, y,
-#                   weights = dw,
-#                   size = ncol(x),
-#                   linout = TRUE,
-#                   trace = FALSE)
-
-    # resampling with current case weights
-    # we increase number of sampling cases to make the distribution stable
-    baseNumCases <- 100
-    samplingMultipier <- ifelse(numCases < baseNumCases, baseNumCases / numCases, 1)
-    newIndex <- sample(1:numCases, numCases * samplingMultipier, replace = TRUE, dw)
-    model <- lm(Y ~ ., data=data[newIndex, ])
+    model <- lm(Y ~ ., data = data, weights = dw)
 
     # calculate the adjusted error for each case
-#     prediction <- predict(model, x)
-#     errors <- abs(y - prediction)
     errors <- abs(residuals(model))
     if(max(errors) == 0)
     {
@@ -64,11 +47,16 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
       break
     }
     adjustedErrors <- errors / max(errors)
-    # TODO: remove duplicate instances when counting errors
-    # TODO: align errors with nexIndex
     totalError <- sum(dw * adjustedErrors)
     if(totalError >= 0.5)
     {
+      if(i == 1)
+      {
+        # Issue: similar small errors problem?
+        # Workaround: use the trained model
+        models[[length(models)+1]] <- model
+        weights[[length(weights)+1]] <- 1
+      }
       cat(sprintf("Break at iteration %d because total error >= 0.5\n", i))
       itr <- i - 1
       break
@@ -87,7 +75,7 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "nnet" ) {
   
   return (list(models = models, 
                weights = weights, 
-               len = itr, baseLearner = baseLearner))
+               len = length(models), baseLearner = baseLearner))
 }
 
 adaboostR2.predict = function( model, newData ) {
@@ -103,7 +91,7 @@ adaboostR2.predict = function( model, newData ) {
   predictions <- vector()
   wmPredictions <- vector()
   
-  # form a data frame from newData for linear regresion model to predict
+  # form a data frame from newData for linear regression model to predict
   data <- data.frame(newData)
   numPredictors <- length(model$models[[1]]$coefficients) - 1
   if(ncol(data) != numPredictors)
