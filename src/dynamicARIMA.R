@@ -23,6 +23,9 @@ dynamicARIMA = function( file ) {
   # Error Info
   errInfo <- c()
   
+  models <- list()
+  orders <- prediction
+  
   for(drama in 1:ncol(data))
   {
     nepisode <- max(which(!is.na(data[drama])))
@@ -47,6 +50,7 @@ dynamicARIMA = function( file ) {
         prediction[episode,drama] <- NA
         next
       }
+
       # Error handling for predict.ARIMA
       pred <- tryCatch({
         predict(arModel, n.ahead=1)$pred[1]
@@ -60,9 +64,11 @@ dynamicARIMA = function( file ) {
                                     episode=episode,
                                     error=paste(pred)))
         prediction[episode,drama] <- NA
+        orders[episode,drama] <- NA
       }else
       {
         prediction[episode,drama] <- pred
+        orders[episode,drama] <- paste(arModel$arma, collapse='')
       }
     }
   }
@@ -70,5 +76,5 @@ dynamicARIMA = function( file ) {
   # Calculate total MAPE
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
-  return( list(mape=mapes, forecast=prediction, error=errInfo) )
+  return( list(mape=mapes, forecast=prediction, error=errInfo, orders=orders) )
 }
