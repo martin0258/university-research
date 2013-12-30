@@ -1,4 +1,4 @@
-dynamicAR = function( file, fitMethod = "yule-walker" ) {
+dynamicAR = function( file, fitMethod = "yule-walker", maxOrder = NULL ) {
   # Train/predict with an AR model for each period of each series.
   #
   # Args:
@@ -34,7 +34,12 @@ dynamicAR = function( file, fitMethod = "yule-walker" ) {
       
       # Error handling for methods other than yw
       arModel <- tryCatch({
-        ar(trainingTS, method=fitMethod, na.action=na.exclude)
+        if(is.null(maxOrder))
+        {
+          ar(trainingTS, method=fitMethod, na.action=na.exclude)
+        }else{
+          ar(trainingTS, aic=FALSE, order.max = maxOrder, method=fitMethod, na.action=na.exclude)
+        }
       }, error = function(err) {
         return(err)
       })
@@ -56,5 +61,6 @@ dynamicAR = function( file, fitMethod = "yule-walker" ) {
   absp <- abs(prediction-data)/data
   mapes <- colMeans(absp, na.rm=TRUE)
   cat( sprintf("Fit method = %s\n", fitMethod) )
+  cat( sprintf("Max order = %d\n", maxOrder) )
   return( list(mape=mapes, forecast=prediction, error=errInfo) )
 }
