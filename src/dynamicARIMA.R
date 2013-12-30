@@ -1,14 +1,16 @@
-dynamicARIMA = function( file ) {
+dynamicARIMA = function( file, features=NULL ) {
   # Train/predict with an ARIMA model for each period of each series.
   # We use the automated forecasting of ARIMA in the forecast pacakage.
   #
   # Args:
   #   file: The name of the ratings file (e.g., Chinese_Weekday_Drama.csv)
+  #   feature: a feature list or matrix that will become the value of "xreg" when fitting arima
   #
   # Returns:
-  #   A list of two objects.
-  #     One is the MAPE of forecast for each series.
-  #     Another is the forecast for each time period of each series.
+  #   A list of three objects.
+  #     1. MAPE of forecast for each series.
+  #     2. Forecast for each time period of each series.
+  #     3. Order information
   library("forecast")
   
   # Read input data
@@ -26,19 +28,32 @@ dynamicARIMA = function( file ) {
   models <- list()
   orders <- prediction
   
+  dramaNames <- names(data)
   for(drama in 1:ncol(data))
   {
+    dramaName <- dramaNames[drama]
     nepisode <- max(which(!is.na(data[drama])))
     # Predict from the 3rd episdoe for each drama
     # Because We have no way to predict the 1st, and can only guess the 1st for the 2nd
     for(episode in 3:nepisode)
     {
       tbestOrder <- 0
-      trainingTS <- ts(data[drama][1:(episode-1),1])
+      trainEpisodes <- 1:(episode-1)
+      trainTS <- ts(data[drama][trainEpisodes,1])
+      
+      if(is.null(features))
+      {
+        trainFeatures <- NULL
+        testFeatures <- NULL
+      }else{
+        thisFeatures <- subset(features, Drama == dramaName & Episode <= episode)[,c(-1, -2)]
+        trainFeatures <- thisFeatures[-nrow(thisFeatures),]
+        testFeatures <- thisFeatures[nrow(thisFeatures),]
+      }
       
       # Error handling for methods other than yw
       arModel <- tryCatch({
-        auto.arima(trainingTS)
+        auto.arima(trainTS, xreg = trainFeatures)
       }, error = function(err) {
         return(err)
       })
@@ -53,7 +68,7 @@ dynamicARIMA = function( file ) {
 
       # Error handling for predict.ARIMA
       pred <- tryCatch({
-        predict(arModel, n.ahead=1)$pred[1]
+        predict(arModel, n.ahead=1, newxreg=testFeatures)$pred[1]
       }, error = function(err) {
         return(err)
       })
