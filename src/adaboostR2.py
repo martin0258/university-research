@@ -17,13 +17,47 @@ print(__doc__)
 import numpy as np
 import pandas as pd
 
+
 # Perform time series windowing transformation with numpy.vstack
-def windowing(arr, window_len = 3):
-  num_cases = len(arr.values) + window_len - 1
-  return arr
+def windowing(arr, window_len):
+  num_cases = len(arr) - window_len + 1
+  cases = [arr[i:(i + window_len)] for i in range(num_cases)]
+  return np.array(cases)
+
+
+def train_predict_plot(X, y):
+  rng = np.random.RandomState(1)
+  # Fit regression model
+  from sklearn.tree import DecisionTreeRegressor
+  from sklearn.ensemble import AdaBoostRegressor
+
+  clf_1 = DecisionTreeRegressor(max_depth=4)
+
+  clf_2 = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4),
+                            n_estimators=300, random_state=rng)
+
+  clf_1.fit(X, y)
+  clf_2.fit(X, y)
+
+  # Predict
+  y_1 = clf_1.predict(X)
+  y_2 = clf_2.predict(X)
+
+  # Plot the results
+  import pylab as pl
+
+  pl.figure()
+  pl.scatter(X, y, c="k", label="training samples")
+  pl.plot(X, y_1, c="g", label="n_estimators=1", linewidth=2)
+  pl.plot(X, y_2, c="r", label="n_estimators=300", linewidth=2)
+  pl.xlabel("data")
+  pl.ylabel("target")
+  pl.title("Boosted Decision Tree Regression")
+  pl.legend()
+  pl.show()
+
 
 # Read the dataset
-import os
 from os.path import expanduser
 home = expanduser("~")
 
@@ -34,40 +68,11 @@ rating_filepath = data_folder + rating_filename
 
 data = pd.read_csv(rating_filepath)
 for col in data.columns:
-  print "training %s..." % col
+  # Decode before printing for window cmd
   ratings = data[col].values
-  w_ratings = windowing(ratings)
-  print "predicting %s..." % col
-
-#rng = np.random.RandomState(1)
-#X = np.linspace(0, 6, 100)[:, np.newaxis]
-#y = np.sin(X).ravel() + np.sin(6 * X).ravel() + rng.normal(0, 0.1, X.shape[0])
-
-## Fit regression model
-#from sklearn.tree import DecisionTreeRegressor
-#from sklearn.ensemble import AdaBoostRegressor
-
-#clf_1 = DecisionTreeRegressor(max_depth=4)
-
-#clf_2 = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4),
-                          #n_estimators=300, random_state=rng)
-
-#clf_1.fit(X, y)
-#clf_2.fit(X, y)
-
-## Predict
-#y_1 = clf_1.predict(X)
-#y_2 = clf_2.predict(X)
-
-## Plot the results
-#import pylab as pl
-
-#pl.figure()
-#pl.scatter(X, y, c="k", label="training samples")
-#pl.plot(X, y_1, c="g", label="n_estimators=1", linewidth=2)
-#pl.plot(X, y_2, c="r", label="n_estimators=300", linewidth=2)
-#pl.xlabel("data")
-#pl.ylabel("target")
-#pl.title("Boosted Decision Tree Regression")
-#pl.legend()
-#pl.show()
+  w_ratings = windowing(ratings, 4)
+  X = w_ratings[:, :-1]
+  y = w_ratings[:, -1:]
+  print "training %s..." % col.decode("utf-8"),
+  train_predict_plot(X, y)
+  print "done"
