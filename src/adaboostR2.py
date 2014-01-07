@@ -43,19 +43,26 @@ def train_predict_plot(X, y):
   y_1 = clf_1.predict(X)
   y_2 = clf_2.predict(X)
 
+  # Print MAPE
+  print "n_estimator1 MAPE: ", mape(y, y_1)
+  print "n_estimator300 MAPE:", mape(y, y_2)
+
   # Plot the results
   import pylab as pl
 
   pl.figure()
-  pl.scatter(X, y, c="k", label="training samples")
-  pl.plot(X, y_1, c="g", label="n_estimators=1", linewidth=2)
-  pl.plot(X, y_2, c="r", label="n_estimators=300", linewidth=2)
+  pl.plot(y, c="k", label="training samples")
+  pl.plot(y_1, c="g", label="n_estimators=1", linewidth=2)
+  pl.plot(y_2, c="r", label="n_estimators=300", linewidth=2)
   pl.xlabel("data")
   pl.ylabel("target")
   pl.title("Boosted Decision Tree Regression")
   pl.legend()
   pl.show()
 
+
+def mape(actual, forecast):
+  return np.mean(abs(actual - forecast) / actual) * 100
 
 # Read the dataset
 from os.path import expanduser
@@ -72,7 +79,7 @@ for col in data.columns:
   ratings = data[col].values
   w_ratings = windowing(ratings, 4)
   X = w_ratings[:, :-1]
-  y = w_ratings[:, -1:]
+  y = w_ratings[:, -1:].ravel()
   print "training %s..." % col.decode("utf-8"),
   train_predict_plot(X, y)
   print "done"
