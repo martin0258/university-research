@@ -1,85 +1,100 @@
-"""
-======================================
-Decision Tree Regression with AdaBoost
-======================================
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+# vim:fenc=utf-8
 
-A decision tree is boosted using the AdaBoost.R2 [1] algorithm on a 1D
-sinusoidal dataset with a small amount of Gaussian noise.
-299 boosts (300 decision trees) is compared with a single decision tree
-regressor. As the number of boosts is increased the regressor can fit more
-detail.
-
-.. [1] H. Drucker, "Improving Regressors using Boosting Techniques", 1997.
-
-"""
-print(__doc__)
+from os.path import expanduser
+from math import ceil
 
 import numpy as np
 import pandas as pd
+import pylab as pl
+import matplotlib
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.preprocessing import Imputer
 
 
-# Perform time series windowing transformation with numpy.vstack
 def windowing(arr, window_len):
-  num_cases = len(arr) - window_len + 1
-  cases = [arr[i:(i + window_len)] for i in range(num_cases)]
-  return np.array(cases)
-
-
-def train_predict_plot(X, y):
-  rng = np.random.RandomState(1)
-  # Fit regression model
-  from sklearn.tree import DecisionTreeRegressor
-  from sklearn.ensemble import AdaBoostRegressor
-
-  clf_1 = DecisionTreeRegressor(max_depth=4)
-
-  clf_2 = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4),
-                            n_estimators=300, random_state=rng)
-
-  clf_1.fit(X, y)
-  clf_2.fit(X, y)
-
-  # Predict
-  y_1 = clf_1.predict(X)
-  y_2 = clf_2.predict(X)
-
-  # Print MAPE
-  print "n_estimator1 MAPE: ", mape(y, y_1)
-  print "n_estimator300 MAPE:", mape(y, y_2)
-
-  # Plot the results
-  import pylab as pl
-
-  pl.figure()
-  pl.plot(y, c="k", label="training samples")
-  pl.plot(y_1, c="g", label="n_estimators=1", linewidth=2)
-  pl.plot(y_2, c="r", label="n_estimators=300", linewidth=2)
-  pl.xlabel("data")
-  pl.ylabel("target")
-  pl.title("Boosted Decision Tree Regression")
-  pl.legend()
-  pl.show()
+    """Perform time series windowing transformation."""
+    num_cases = len(arr) - window_len + 1
+    cases = [arr[i:(i + window_len)] for i in range(num_cases)]
+    return np.array(cases)
 
 
 def mape(actual, forecast):
-  return np.mean(abs(actual - forecast) / actual) * 100
+    """Return MAPE."""
+    return np.mean(abs(actual - forecast) / actual) * 100
 
-# Read the dataset
-from os.path import expanduser
-home = expanduser("~")
 
-# TODO: remove hard code
-data_folder = home + "/Projects/BitBucket/set/data/"
-rating_filename = "Idol_Drama_Ratings.csv"
-rating_filepath = data_folder + rating_filename
+if __name__ == '__main__':
+    # TODO: remove hard code
+    home = expanduser("~")
+    data_folder = home + "/Projects/BitBucket/set/data/"
+    rating_filename = "Idol_Drama_Ratings.csv"
+    rating_filepath = data_folder + rating_filename
 
-data = pd.read_csv(rating_filepath)
-for col in data.columns:
-  # Decode before printing for window cmd
-  ratings = data[col].values
-  w_ratings = windowing(ratings, 4)
-  X = w_ratings[:, :-1]
-  y = w_ratings[:, -1:].ravel()
-  print "training %s..." % col.decode("utf-8"),
-  train_predict_plot(X, y)
-  print "done"
+    # Read the dataset
+    data = pd.read_csv(rating_filepath)
+
+    rng = np.random.RandomState(1)
+
+    actual_ratings = []
+    base_forecasts = []
+    ada_forecasts = []
+    drama_names = []
+    for col in data.columns:
+        # Decode before printing for window cmd
+        ratings = data[col].values
+        w_ratings = windowing(ratings, 4)
+
+        # Deal with missing values
+        imp = Imputer(missing_values='NaN', strategy='mean', axis=0)
+        new_w_ratings = imp.fit_transform(w_ratings)
+
+        X = new_w_ratings[:, :-1]
+        y = new_w_ratings[:, -1:].ravel()
+
+        actual_ratings.append(y)
+        drama_name = col.decode("utf-8")
+        drama_names.append(drama_name)
+        print drama_name, ':',
+
+        clf_1 = DecisionTreeRegressor(max_depth=4)
+        clf_2 = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4),
+                                  n_estimators=300, random_state=rng)
+        print "training...",
+        clf_1.fit(X, y)
+        clf_2.fit(X, y)
+
+        print "predicting...",
+        y_1 = clf_1.predict(X)
+        y_2 = clf_2.predict(X)
+        base_forecasts.append(y_1)
+        ada_forecasts.append(y_2)
+
+        print "done!\n",
+        # End of for
+
+    # Plot result
+    ncols = 4
+    nfigures = len(actual_ratings)
+    nrows = ceil(float(nfigures) / ncols)
+    fig = pl.figure()
+    title = 'AdaBoost.R2 with Decision Tree Regression\n' + \
+            '(X-axis=Episode; Y-axis=Ratings)'
+    pl.suptitle(title)
+    for i in range(nfigures):
+        mapes = 'MAPE\nitr_1: %.2f\nitr_300: %.2f' % \
+                (mape(actual_ratings[i], base_forecasts[i]),
+                 mape(actual_ratings[i], ada_forecasts[i]))
+        ax = fig.add_subplot(nrows, ncols, i + 1)
+        ax.set_title(drama_names[i], fontname='WenQuanYi Zen Hei')
+        ax.text(1, 1, mapes, bbox=dict(facecolor='white', alpha=0.5),
+                horizontalalignment='right', verticalalignment='top',
+                transform=ax.transAxes)
+        ax.plot(actual_ratings[i], label="x")
+        ax.plot(base_forecasts[i], label="itr=1")
+        ax.plot(ada_forecasts[i], label="itr=300")
+        ax.legend(loc='lower right', fontsize='small',
+                  framealpha=0.5, shadow=True, fancybox=True)
+    pl.show()
