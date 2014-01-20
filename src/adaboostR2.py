@@ -13,17 +13,8 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.preprocessing import Imputer
 
-
-def windowing(arr, window_len):
-    """Perform time series windowing transformation."""
-    num_cases = len(arr) - window_len + 1
-    cases = [arr[i:(i + window_len)] for i in range(num_cases)]
-    return np.array(cases)
-
-
-def mape(actual, forecast):
-    """Return MAPE."""
-    return np.mean(abs(actual - forecast) / actual) * 100
+from lib.windowing import windowing
+from lib.mape import mape
 
 
 if __name__ == '__main__':
