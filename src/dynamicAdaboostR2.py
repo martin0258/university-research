@@ -47,7 +47,8 @@ if __name__ == '__main__':
 
             train_x = new_w_ratings[:test_index, :-1]
             train_y = new_w_ratings[:test_index, -1:].ravel()
-            test_x = new_w_ratings[test_index, :-1]
+            # Must use a 2-dim array for AdaBoostRegressor.predict()
+            test_x = np.array([new_w_ratings[test_index, :-1]])
 
             drama_name = col.decode("utf-8")
             print drama_name, ':',
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 
             print "testing episode %d..." % test_episode,
             y_1 = clf_1.predict(test_x)
-            y_2 = clf_2.predict(test_x)  # FIXME (unresolved bug)
+            y_2 = clf_2.predict(test_x)
 
             print "done!\n",
         # End of for
