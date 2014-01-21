@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # vim:fenc=utf-8
 
-from os.path import expanduser
 from pprint import pprint
+import argparse
 
 import numpy as np
 import pandas as pd
@@ -27,12 +27,12 @@ def adaboost_r2():
 
 
 if __name__ == '__main__':
-    # TODO: remove hard code
-    home = expanduser("~")
-    data_folder = home + "/Projects/BitBucket/set/data/"
-    rating_filename = "Idol_Drama_Ratings.csv"
-    rating_filepath = data_folder + rating_filename
-    window_len = 4
+    parser = argparse.ArgumentParser()
+    parser.add_argument('rating_file', help='rating file path', type=str)
+    parser.add_argument('window_len', help='window length', type=int)
+    args = parser.parse_args()
+    rating_filepath = args.rating_file
+    window_len = args.window_len
 
     # Read the dataset
     data = pd.read_csv(rating_filepath)
