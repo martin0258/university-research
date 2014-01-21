@@ -3,18 +3,17 @@
 # vim:fenc=utf-8
 
 from os.path import expanduser
-from math import ceil
+from pprint import pprint
 
 import numpy as np
 import pandas as pd
-import pylab as pl
-import matplotlib
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.preprocessing import Imputer
 
 from lib.windowing import windowing
-from lib.mape import mape
+from lib.mape import mapes
+from lib.plot import plot_result
 
 
 def decision_tree():
@@ -37,6 +36,9 @@ if __name__ == '__main__':
 
     # Read the dataset
     data = pd.read_csv(rating_filepath)
+
+    forecast_1 = data.mask(np.isnan(data) == False)
+    forecast_2 = data.mask(np.isnan(data) == False)
 
     # Loop through each drama
     for col in data.columns:
@@ -66,13 +68,20 @@ if __name__ == '__main__':
             model_1 = decision_tree()
             model_2 = adaboost_r2()
 
-            print "training...",
+            print "fitting...",
             model_1.fit(train_x, train_y)
             model_2.fit(train_x, train_y)
 
-            print "testing episode %d..." % test_episode,
-            y_1 = model_1.predict(test_x)
-            y_2 = model_2.predict(test_x)
+            print "predicting episode %d..." % test_episode,
+            f_1 = model_1.predict(test_x)
+            f_2 = model_2.predict(test_x)
+            forecast_1[col][test_episode - 1] = f_1
+            forecast_2[col][test_episode - 1] = f_2
 
-            print "done!\n",
+            print "done!"
         # End of for
+    # End of for
+
+    color_mapping = plot_result(data, forecast_1, forecast_2)
+    print color_mapping
+    pprint(mapes(data, forecast_1, forecast_2))
