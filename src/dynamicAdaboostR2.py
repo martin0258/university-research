@@ -83,5 +83,11 @@ if __name__ == '__main__':
     # End of for
 
     color_mapping = plot_result(data, forecast_1, forecast_2)
-    print color_mapping
-    pprint(mapes(data, forecast_1, forecast_2))
+    MAPEs = mapes(data, forecast_1, forecast_2)
+    print ''
+    print 'Color mapping used in plot: ', color_mapping
+    print ''
+    print '# | Name | Base MAPE | Boosting MAPE'
+    for i in range(1, len(data.columns) + 1):
+        name = data.columns[i - 1].decode('utf-8')
+        print '%d | %s | %.2f | %.2f' % (i, name, MAPEs[i][0], MAPEs[i][1])
