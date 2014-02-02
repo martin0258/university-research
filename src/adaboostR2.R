@@ -1,4 +1,4 @@
-adaboostR2.train = function( x, y, itr = 100, baseLearner = "lm" ) {
+adaboostR2 = function( x, y, itr = 50, baseLearner = "lm" ) {
   # Summary: adaboostR2 fits an adaboost model for regression (Drucker, 1997)
   # Note: The base learner used is hard-coded as lm which supports case weights.
   
@@ -8,7 +8,12 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "lm" ) {
   #   itr     : the number of iterations (i.e., the number of weak learners)
   #   learner : any base learner that fits a model for regression
   # Return
-  #   A list of base learners along with their weights to combine
+  #   An object of class "adaboostR2".
+  #   The object contains the following components:
+  #     - models, predictors trained at each iteration
+  #     - weights, weights for predictors
+  #     - len, number of predictors
+  #     - baseLearner, the base learning algorithm
 
   # initialize return values
   models <- list()
@@ -73,12 +78,14 @@ adaboostR2.train = function( x, y, itr = 100, baseLearner = "lm" ) {
   }
   cat(sprintf("input itr: %d\nactual itr: %d\n", inputItr, itr))
   
-  return (list(models = models, 
+  finalModel <- list(models = models, 
                weights = weights, 
-               len = length(models), baseLearner = baseLearner))
+               len = length(models), baseLearner = baseLearner)
+  class(finalModel) <- "adaboostR2"
+  return (finalModel)
 }
 
-adaboostR2.predict = function( model, newData ) {
+predict.adaboostR2 = function( object, newData, ... ) {
   # Summary: given new data, return prediction (weighted median) of an adaboost R2 model
   
   # Parameter
@@ -93,24 +100,24 @@ adaboostR2.predict = function( model, newData ) {
   
   # form a data frame from newData for linear regression model to predict
   data <- data.frame(newData)
-  numPredictors <- length(model$models[[1]]$coefficients) - 1
+  numPredictors <- length(object$models[[1]]$coefficients) - 1
   if(ncol(data) != numPredictors)
   {
     data <- matrix(newData, nrow = 1)
     data <- data.frame(data)
   }
 
-  for(i in 1:model$len)
+  for(i in 1:object$len)
   { 
     ## Make column names align with model (assume the 1st element is intercept)
-    colnames(data) <- names(coefficients(model$models[[i]]))[-1]
+    colnames(data) <- names(coefficients(object$models[[i]]))[-1]
     predictions <- cbind(predictions,
-                        predict(model$models[[i]], data))
+                        predict(object$models[[i]], data))
   }
   # get weighted median for each case
   for(i in 1:nrow(data.frame(data)))
   {
-    wmPrediction <- weighted.median(predictions[i,], model$weights)
+    wmPrediction <- weighted.median(predictions[i,], object$weights)
     wmPredictions <- c(wmPredictions, wmPrediction)
   }
   return (wmPredictions)
@@ -145,11 +152,3 @@ weighted.median = function( x, weights ) {
     }
   }
 }
-
-# Example:
-# cwd <- read.csv("data/Chinese_Weekday_Drama.csv", fileEncoding="utf-8")
-# d <- windowing(cwd[,4], 4)
-# trainEndIndex <- floor(nrow(d)/2)
-# testStartIndex <- trainEndIndex + 1
-# model <- adaboostR2.train(d[1:trainEndIndex,1:3], d[1:trainEndIndex,4])
-# predictions <- adaboostR2.predict(model, d[testStartIndex:nrow(d),1:3])
