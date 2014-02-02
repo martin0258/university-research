@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=9" >
+
+<title>AdaBoost.R2 (Drucker, 1997)</title>
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 12px;
+   margin: 8px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 { 
+   font-size:2.2em; 
+}
+
+h2 { 
+   font-size:1.8em; 
+}
+
+h3 { 
+   font-size:1.4em; 
+}
+
+h4 { 
+   font-size:1.0em; 
+}
+
+h5 { 
+   font-size:0.9em; 
+}
+
+h6 { 
+   font-size:0.8em; 
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre {	
+   margin-top: 0;
+   max-width: 95%;
+   border: 1px solid #ccc;
+   white-space: pre-wrap;
+}
+
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code.r, code.cpp {
+   background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * { 
+      background: transparent !important; 
+      color: black !important; 
+      filter:none !important; 
+      -ms-filter: none !important; 
+   }
+
+   body { 
+      font-size:12pt; 
+      max-width:100%; 
+   }
+       
+   a, a:visited { 
+      text-decoration: underline; 
+   }
+
+   hr { 
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote { 
+      padding-right: 1em; 
+      page-break-inside: avoid; 
+   }
+
+   tr, img { 
+      page-break-inside: avoid; 
+   }
+
+   img { 
+      max-width: 100% !important; 
+   }
+
+   @page :left { 
+      margin: 15mm 20mm 15mm 10mm; 
+   }
+     
+   @page :right { 
+      margin: 15mm 10mm 15mm 20mm; 
+   }
+
+   p, h2, h3 { 
+      orphans: 3; widows: 3; 
+   }
+
+   h2, h3 { 
+      page-break-after: avoid; 
+   }
+}
+
+</style>
+
+
+
+<!-- MathJax scripts -->
+<script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+
+</head>
+
+<body>
+<h1>AdaBoost.R2 (Drucker, 1997)</h1>
+
+<h3>Input</h3>
+
+<ul>
+<li><strong>training data</strong>: D = \( (x_1, y_1),...,(x_n, y_n) \) where \( x_i \in X, y_i \in R \)</li>
+<li><strong>maximum number of iterations</strong>: N</li>
+<li><strong>a base learning algorithm</strong>: learner</li>
+<li><strong>loss function</strong>: linear, square, or exponential</li>
+</ul>
+
+<h3>Precondition</h3>
+
+<ul>
+<li>The base learning algorithm supports training with weights on data.</li>
+</ul>
+
+<h3>Process</h3>
+
+<p>First, initialize equal weight on each training sample, i.e., \( w_i^1 = 1/n \) for i = 1,&hellip;,n.</p>
+
+<p>For t = 1,&hellip;,N:</p>
+
+<ol>
+<li>Call learner with the training data D and the weight vector \( w^t \), and get a hypothesis \( h_t \).</li>
+<li>Calculate a loss \( L_i \) for each training sample:<br/>
+\( D_t = max | h_t(x_i) - y_i | \) for i = 1,&hellip;,n<br/>
+Based on choice of loss function:<br/>
+  \( L_i = | h_t(x_i) - y_i | / D_t \) (linear)<br/>
+  \( L_i = | h_t(x_i) - y_i |^2 / D_t^2 \) (square)<br/>
+  \( L_i = 1 - exp[ - | h_t(x_i) - y_i | / D_t] \) (exponential)</li>
+<li>Calculate an average loss:<br/>
+\( \bar{L} = \sum_{i=1}^n L_i*w_i^t \)</li>
+<li>If \( \bar{L} \geq 0.5 \), stop and set N = t - 1.</li>
+<li>Caculate a measure of predictor confidence:<br/>
+\( \beta_t = \bar{L} / (1-\bar{L}) \)</li>
+<li>Update the weight vector:<br/>
+\( w_i^{t+1} = w_i^t * \beta_t^{1-L_i} \)</li>
+</ol>
+
+<h3>Output</h3>
+
+<p>The final hypothesis \( h(x) \) is the weighted median of \( h_t(x) \) for t=1,&hellip;,N<br/>
+,using \( ln(1/\beta_t) \) as the weight for hypothesis \( h_t \).</p>
+
+</body>
+
+</html>
+
