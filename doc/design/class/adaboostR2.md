@@ -19,10 +19,10 @@ adaboostR2
 
 ### Operation
 ```
-+ adaboostR2(x, y, num_predictors, base_predictor, base_predictor_params, loss_function, learning_rate)
-+ predict.adaboostR2(object, x)
-+ summary.adaboostR2(object)
-- adaboostR2._weighted_median(x, weights)
-- adaboostR2._fit(x, y)
-- adaboostR2._boost(x, y, sample_weights)
++ adaboostR2(x, y, num_predictors, base_predictor, base_predictor_params, loss_function, learning_rate) : object
++ predict.adaboostR2(object, x) : predictions
++ summary.adaboostR2(object) : object_summary
+- adaboostR2._weighted_median(x, weights) : weighted_median
+- adaboostR2._fit(x, y) : object
+- adaboostR2._boost(x, y, sample_weights) : (sample_weights, predictor_weight, predictor_error)
 ```
