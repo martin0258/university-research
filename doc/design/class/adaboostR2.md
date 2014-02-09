@@ -24,3 +24,11 @@ adaboostR2
 + summary.adaboostR2(object) : object_summary
 - adaboostR2._weighted_median(x, weights) : weighted_median
 ```
+
+### Decision
+#### Q: Types of base predictor to support?
+For now, we only support the following packages that support training with data weights by default:
+- [rpart](http://cran.r-project.org/web/packages/rpart/index.html)
+- [lm](http://stat.ethz.ch/R-manual/R-patched/library/stats/html/lm.html)
+
+Idealy, any algorithm can be used by resampling (futher improvement).
