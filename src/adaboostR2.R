@@ -1,13 +1,13 @@
-adaboostR2 = function( x, y, num_predictors = 50,
+adaboostR2 = function( formula, data, num_predictors = 50,
                        loss_function = c('linear', 'square', 'exponential'),
                        base_predictor, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
   #  
   # Arguments:
-  #   x: The matrix or data frame of inputs for training data.
+  #   formula: An object of class "formula".
   #
-  #   y: The matrix or data frame of targets for training data.
+  #   data: An data frame containing the variables in the model.
   #
   #   num_predictors: 
   #     The maximum number of estimators at which boosting is terminated. 
@@ -39,24 +39,15 @@ adaboostR2 = function( x, y, num_predictors = 50,
   predictor_weights <- list()
   
   # set initial data weights
-  num_cases <- nrow(data.frame(y))
+  num_cases <- nrow(data)
   data_weights <- rep(1 / num_cases, num_cases)
   
-  # form a data frame from x, y
-  data_bind <- cbind(x, y)
-  if(num_cases == 1)
-  { 
-    data_bind <- c(x, y) 
-    data_bind <- matrix(data_bind, nrow = 1)
-  }
-  data <- data.frame(data_bind)
-  colnames(data)[ncol(data)] <- "Y"
-  
   inputItr <- num_predictors
+  form <- as.formula(formula, env=environment())
   for(i in 1:num_predictors)
   {
     # train a weak hypothesis of base predictor
-    predictor <- base_predictor(Y ~ ., data = data, weights = data_weights, ...)
+    predictor <- base_predictor(form, data, weights=data_weights, ...)
 
     # calculate the adjusted error for each case
     errors <- abs(residuals(predictor))
@@ -102,40 +93,33 @@ adaboostR2 = function( x, y, num_predictors = 50,
   return (final_predictor)
 }
 
-predict.adaboostR2 = function( object, x ) {
-  # Returns predictions for x.
+predict.adaboostR2 = function( object, new_data ) {
+  # Returns predictions for new data.
   
   # Arguments:
   #   object: The adaboostR2 predictor.
   #
-  #   x: The matrix or data frame of inputs for training data.
+  #   new_data: The matrix or data frame of inputs for training data.
   #
-  # Returns: The predictions for x.
+  # Returns: The predictions for new data.
 
   # build a prediction matrix: (row = cases, col = predictors)
   predictions <- vector()
   final_predictions <- vector()
   
-  # form a data frame from x
-  data <- data.frame(x)
-  num_estimators <- length(object$predictors[[1]]$coefficients) - 1
-  if(ncol(data) != num_estimators)
-  {
-    data <- matrix(x, nrow = 1)
-    data <- data.frame(data)
-  }
 
+#     data <- matrix(x, nrow = 1)
+#     data <- data.frame(data)
+#   }
   for(i in 1:object$num_predictors)
   { 
-    # Make column names align with model (assume the 1st element is intercept)
-    colnames(data) <- names(coefficients(object$predictors[[i]]))[-1]
     predictions <- cbind(predictions,
-                        predict(object$predictors[[i]], data))
+                        predict(object$predictors[[i]], new_data))
   }
 
   # get weighted median for each case
   weighted_median <- adaboostR2._weighted_median
-  for(i in 1:nrow(data.frame(data)))
+  for(i in 1:nrow(new_data))
   {
     final_prediction <- weighted_median(predictions[i, ], 
                                     object$predictor_weights)
