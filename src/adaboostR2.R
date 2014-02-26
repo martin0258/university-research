@@ -31,64 +31,66 @@ adaboostR2 = function( formula, data, num_predictors = 50,
   #   An object of class "adaboostR2".
   #   The object contains the following components:
   #     - predictors: predictors trained at each iteration
-  #     - predictor_weights: weights for predictors
+  #     - predictor_weights: weight of each predictor
   #     - num_predictors: number of predictors
+  #     - avg_losses: average loss of each predictor
 
   # initialize return values
   predictors <- list()
   predictor_weights <- list()
+  avg_losses <- list()
   
   # set initial data weights
   num_cases <- nrow(data)
   data_weights <- rep(1 / num_cases, num_cases)
   
-  inputItr <- num_predictors
   form <- as.formula(formula, env=environment())
   for(i in 1:num_predictors)
   {
     # train a weak hypothesis of base predictor
     predictor <- base_predictor(form, data, weights=data_weights, ...)
 
-    # calculate the adjusted error for each case
+    # calculate the average loss
     errors <- abs(residuals(predictor))
-    if(max(errors) == 0)
-    {
-      # return if all errors are zero (which probably is impossible)
-      # store return values
-      predictors[[length(predictors) + 1]] <- predictor
-      predictor_weights[[length(predictor_weights) + 1]] <- 1
-      cat(sprintf("Break at iteration %d because all errors are zero.\n", i))
+    errors <- errors / max(errors)
+    avg_loss <- sum(data_weights * errors)
+    avg_losses[[i]] <- avg_loss
+
+    if(avg_loss == 0) {
+      # early termination:
+      #   if the fit is perfect, store the predictor info and stop
+      predictors[[i]] <- predictor
+      predictor_weights[[i]] <- 1
+      msg <- "Early terminaion because fit at iteration %d is perfect."
+      cat('\n', sprintf(msg, i))
       break
     }
-    adjustedErrors <- errors / max(errors)
-    totalError <- sum(data_weights * adjustedErrors)
-    if(totalError >= 0.5)
-    {
-      if(i == 1)
-      {
-        # Issue: similar small errors problem?
-        # Workaround: use the trained model
-        predictors[[length(predictors) + 1]] <- predictor
-        predictor_weights[[length(predictor_weights) + 1]] <- 1
-      }
-      cat(sprintf("Break at iteration %d because total error >= 0.5\n", i))
+    else if(avg_loss >= 0.5) {
+      # early termination:
+      #   stop if the fit is too "terrible"
+      #   TODO: fix the case of similar small errors
+      msg <- "Early termination at iteration %d because avg loss >= 0.5"
+      cat('\n', sprintf(msg, i))
       break
     }
-  
-    # update data weights
-    beta <- totalError / (1 - totalError)
-    data_weights <- data_weights * beta ^ (1 - adjustedErrors)
-    data_weights <- data_weights / sum(data_weights)
-    
-    # store return values
-    predictors[[length(predictors) + 1]] <- predictor
-    predictor_weights[[length(predictor_weights) + 1]] <- log(1 / beta)
+    else {
+      # update data weights
+      beta_confidence <- avg_loss / (1 - avg_loss)
+      data_weights <- data_weights * beta_confidence ^ (1 - errors)
+      # normalize
+      data_weights <- data_weights / sum(data_weights)
+
+      # store the predictor info
+      predictors[[i]] <- predictor
+      predictor_weights[[i]] <- log(1 / beta_confidence)
+    }
   }
   
   final_predictor <- list(predictors = predictors,
                      predictor_weights = predictor_weights, 
                      num_predictors = length(predictors),
-                     input_num_predictors = num_predictors)
+                     input_num_predictors = num_predictors,
+                     avg_losses = avg_losses)
   class(final_predictor) <- "adaboostR2"
   return (final_predictor)
 }
@@ -103,26 +105,29 @@ predict.adaboostR2 = function( object, new_data ) {
   #
   # Returns: The predictions for new data.
 
+  if(object$num_predictors == 0) {
+    cat('\n', 'No prediction because there is no base predictor.', '\n')
+    return (rep(as.numeric(NA), nrow(new_data)))
+  }
+  # the newline is for beautifying testthat output
+  cat('\n')
+
   # build a prediction matrix: (row = cases, col = predictors)
   predictions <- vector()
   final_predictions <- vector()
   
-
-#     data <- matrix(x, nrow = 1)
-#     data <- data.frame(data)
-#   }
-  for(i in 1:object$num_predictors)
+  for(predictor in object$predictors)
   { 
-    predictions <- cbind(predictions,
-                        predict(object$predictors[[i]], new_data))
+    prediction <- predict(predictor, new_data)
+    predictions <- cbind(predictions, prediction)
   }
 
-  # get weighted median for each case
+  # for each case, get the weighted median as the final prediction
   weighted_median <- adaboostR2._weighted_median
   for(i in 1:nrow(new_data))
   {
     final_prediction <- weighted_median(predictions[i, ], 
-                                    object$predictor_weights)
+                                        object$predictor_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
   return (final_predictions)
