@@ -1,4 +1,5 @@
 adaboostR2 = function( formula, data, num_predictors = 50,
+                       learning_rate = 1,
                        loss_function = c('linear', 'square', 'exponential'),
                        base_predictor, ... ) {
   # Fits and returns an adaboost model for regression.
@@ -13,6 +14,11 @@ adaboostR2 = function( formula, data, num_predictors = 50,
   #     The maximum number of estimators at which boosting is terminated. 
   #     In case of perfect fit, the learning procedure is stopped early.
   #     Default 50.
+  #
+  #   learning_rate:
+  #     It shrinks the contribution of each predictor by learning_rate.
+  #     There is a trade-off between learning_rate and num_predictors.
+  #     Defaul 1.
   #
   #   loss_function:
   #     The loss function to use when updating the weights 
@@ -47,6 +53,11 @@ adaboostR2 = function( formula, data, num_predictors = 50,
   form <- as.formula(formula, env=environment())
   for(i in 1:num_predictors)
   {
+    # Alternative:
+    #   instead of training with data_weights,
+    #   we can do weighted sampling of the training set with replacement,
+    #   and fit on the bootstrapped sample and obtain a prediction.
+
     # train a weak hypothesis of base predictor
     predictor <- base_predictor(form, data, weights=data_weights, ...)
 
@@ -76,13 +87,13 @@ adaboostR2 = function( formula, data, num_predictors = 50,
     else {
       # update data weights
       beta_confidence <- avg_loss / (1 - avg_loss)
-      data_weights <- data_weights * beta_confidence ^ (1 - errors)
+      data_weights <- data_weights * beta_confidence ^ ((1 - errors) * learning_rate)
       # normalize
       data_weights <- data_weights / sum(data_weights)
 
       # store the predictor info
       predictors[[i]] <- predictor
-      predictor_weights[[i]] <- log(1 / beta_confidence)
+      predictor_weights[[i]] <- learning_rate * log(1 / beta_confidence)
     }
   }
   
