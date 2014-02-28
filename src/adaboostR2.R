@@ -1,5 +1,6 @@
 adaboostR2 = function( formula, data, num_predictors = 50,
                        learning_rate = 1,
+                       weighted_sampling = TRUE,
                        loss_function = c('linear', 'square', 'exponential'),
                        base_predictor, ... ) {
   # Fits and returns an adaboost model for regression.
@@ -53,16 +54,23 @@ adaboostR2 = function( formula, data, num_predictors = 50,
   form <- as.formula(formula, env=environment())
   for(i in 1:num_predictors)
   {
-    # Alternative:
-    #   instead of training with data_weights,
-    #   we can do weighted sampling of the training set with replacement,
-    #   and fit on the bootstrapped sample and obtain a prediction.
-
     # train a weak hypothesis of base predictor
-    predictor <- base_predictor(form, data, weights=data_weights, ...)
+    if(weighted_sampling) {
+      # instead of training with data_weights,
+      # we can do weighted sampling of the training set with replacement,
+      # and fit on the bootstrapped sample and obtain a prediction.
+      bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
+      predictor <- base_predictor(form, data[bootstrap_idx, ], ...)
+    }else {
+      predictor <- base_predictor(form, data, weights=data_weights, ...)
+    }
 
+    prediction <- predict(predictor, data)
+    # get dependent variable name from formula
+    # what if there are multiple responses?
+    response <- all.vars(form[[2]])
     # calculate the average loss
-    errors <- abs(residuals(predictor))
+    errors <- abs(prediction - data[response])
     errors <- errors / max(errors)
     avg_loss <- sum(data_weights * errors)
     avg_losses[[i]] <- avg_loss

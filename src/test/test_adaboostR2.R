@@ -19,8 +19,10 @@ test.x <- rbind(c(-1, -1),
 test.y <- c(-1, 1, 1)
 train_data <- data.frame(x=train.x, y=train.y)
 test_data <- data.frame(x=test.x)
+seed <- 0
 
 test_that("adaboostR2 with lm", {
+  set.seed(seed)
   fit <- adaboostR2("y~.", train_data,
                     base_predictor=lm)
   prediction <- predict(fit, test_data)
@@ -29,6 +31,7 @@ test_that("adaboostR2 with lm", {
 
 test_that("adaboostR2 with rpart", {
   library(rpart)
+  set.seed(seed)
   fit <- adaboostR2("y~.", train_data,
                     base_predictor=rpart, method="anova")
   prediction <- predict(fit, test_data)
@@ -37,6 +40,7 @@ test_that("adaboostR2 with rpart", {
 
 test_that("adaboostR2 with nnet", {
   library(nnet)
+  set.seed(seed)
   num_features <- ncol(train_data) - 1
   fit <- adaboostR2("y~.", train_data,
                     base_predictor=nnet,
