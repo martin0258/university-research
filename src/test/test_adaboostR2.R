@@ -18,7 +18,7 @@ test.x <- rbind(c(-1, -1),
                 c(3, 2))
 test.y <- c(-1, 1, 1)
 train_data <- data.frame(x=train.x, y=train.y)
-test_data <- data.frame(x=test.x)
+test_data <- data.frame(x=test.x, y=test.y)
 seed <- 0
 
 test_that("adaboostR2 with lm", {

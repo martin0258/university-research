@@ -1,7 +1,7 @@
 adaboostR2 = function( formula, data, num_predictors = 50,
                        learning_rate = 1,
                        weighted_sampling = TRUE,
-                       loss_function = c('linear', 'square', 'exponential'),
+                       loss = 'linear',
                        base_predictor, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
@@ -69,13 +69,9 @@ adaboostR2 = function( formula, data, num_predictors = 50,
     # get dependent variable name from formula
     # what if there are multiple responses?
     response <- all.vars(form[[2]])
-    # calculate the average loss
     errors <- abs(prediction - data[response])
-    errors <- errors / max(errors)
-    avg_loss <- sum(data_weights * errors)
-    avg_losses[[i]] <- avg_loss
-
-    if(avg_loss == 0) {
+    errors_max <- max(errors)
+    if(errors_max == 0) {
       # early termination:
       #   if the fit is perfect, store the predictor info and stop
       predictors[[i]] <- predictor
@@ -84,7 +80,18 @@ adaboostR2 = function( formula, data, num_predictors = 50,
       cat('\n', sprintf(msg, i))
       break
     }
-    else if(avg_loss >= 0.5) {
+    errors <- errors / errors_max
+    
+    if(loss == 'square') {
+      errors <- errors ^ 2
+    }else if(loss == 'exponential') {
+      errors <- 1 - exp(- errors)
+    }
+    
+    avg_loss <- sum(data_weights * errors)
+    avg_losses[[i]] <- avg_loss
+
+    if(avg_loss >= 0.5) {
       # early termination:
       #   stop if the fit is too "terrible"
       #   TODO: fix the case of similar small errors
@@ -172,7 +179,11 @@ adaboostR2._weighted_median = function( x, weights ) {
   #
   # Returns:
   #   The weighted median.
+  
+  # use its w.median to check our implementation
+  library(cwhmisc)
 
+  result <- NA
   weights <- unlist(weights)
   cases <- vector()
   for(i in 1:length(x))
@@ -189,7 +200,11 @@ adaboostR2._weighted_median = function( x, weights ) {
     weight_sum <- weight_sum + df_ordered$weights[i]
     if(weight_sum >= threshold)
     {
-      return (df_ordered$x[i])
+      result <- df_ordered$x[i]
+      break
     }
   }
+  expected_result <- w.median(x, weights)
+  stopifnot(result == expected_result)
+  return (result)
 }
