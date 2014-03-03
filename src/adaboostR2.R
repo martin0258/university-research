@@ -1,8 +1,11 @@
-adaboostR2 = function( formula, data, num_predictors = 50,
+library(nnet)
+
+adaboostR2 = function( formula, data,
+                       num_predictors = 50,
                        learning_rate = 1,
                        weighted_sampling = TRUE,
                        loss = 'linear',
-                       base_predictor, ... ) {
+                       base_predictor = nnet, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
   #  
@@ -70,7 +73,7 @@ adaboostR2 = function( formula, data, num_predictors = 50,
     # what if there are multiple responses?
     response <- all.vars(form[[2]])
     errors <- abs(prediction - data[response])
-    errors_max <- max(errors)
+    errors_max <- max(errors, na.rm = TRUE)
     if(errors_max == 0) {
       # early termination:
       #   if the fit is perfect, store the predictor info and stop
@@ -88,7 +91,7 @@ adaboostR2 = function( formula, data, num_predictors = 50,
       errors <- 1 - exp(- errors)
     }
     
-    avg_loss <- sum(data_weights * errors)
+    avg_loss <- sum(data_weights * errors, na.rm = TRUE)
     avg_losses[[i]] <- avg_loss
 
     if(avg_loss >= 0.5) {
