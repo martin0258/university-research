@@ -37,10 +37,10 @@ All 7 alogrithms are based on boosting algorithms for regression:
 8 algorithms (AdaBoost.R2 + 7 new algoritms) are evaluated on 7 problems:
 
 1. UCI Repository
-  - Concrete Strength
-  - Housing
-  - Auto MPG
-  - Automobile
+  - [Concrete Strength](http://archive.ics.uci.edu/ml/datasets/Concrete+Compressive+Strength)
+  - [Housing](http://archive.ics.uci.edu/ml/datasets/Housing)
+  - [Auto MPG](http://archive.ics.uci.edu/ml/datasets/Auto+MPG)
+  - [Automobile](http://archive.ics.uci.edu/ml/datasets/Automobile)
 2. Friedman #1
 3. Multiagent Systems
   - TAC SCM
