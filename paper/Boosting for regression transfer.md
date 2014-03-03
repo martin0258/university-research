@@ -29,9 +29,9 @@ All 7 alogrithms are based on boosting algorithms for regression:
 ## Experiments
 
 ### Algorithm Implementation
-WEKA 3.4 is used for the base learners:
-- M5P
-- NN
+[WEKA 3.4](http://sourceforge.net/projects/weka/files/weka-3-4/3.4/) is used for the base learners:
+- M5P (class M5P)
+- NN (class MLPRegressor)
 
 ### [Data](http://www.cs.utexas.edu/~TacTex/transfer_data.html)
 8 algorithms (AdaBoost.R2 + 7 new algoritms) are evaluated on 7 problems:
