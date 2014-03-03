@@ -1,73 +1,95 @@
 library(testthat)
 context("Test AdaBoost.R2")
 source("../adaboostR2.R")
+library(pracma)
 
 # Precondition: 
 #   - The current working directory must be the root of the project.
 
-# Toy sample
-train.x <- rbind(c(-2, -1),
-           c(-1, -1),
-           c(-1, -2),
-           c(1, 1),
-           c(1, 2),
-           c(2, 1))
-train.y <- c(-1, -1, -1, 1, 1, 1)
-test.x <- rbind(c(-1, -1),
-                c(2, 2),
-                c(3, 2))
-test.y <- c(-1, 1, 1)
-train_data <- data.frame(x=train.x, y=train.y)
-test_data <- data.frame(x=test.x, y=test.y)
 seed <- 0
 
-# UCI Concrete Compressive Length Data
-file_url <- "http://goo.gl/TQBoqt"
-file_name <- "Concrete_Data.xls"
-if(!file.exists(file_name)) {
-  download.file(file_url, file_name, mode="wb")
+uci_test <- function(file_prefix, predictor, ...) {
+  folder <- '../../data/transfer data/'
+  files <- paste(folder, file_prefix, seq(1, 3), '.arff', sep='')
+  response <- 'my_res'
+
+  # read and preprocess data
+  library(foreign)
+  uci_data <- list()
+  for(file in files) {
+    data <- read.arff(file)
+
+    # ignore cases having missing values
+    data <- na.omit(data)
+
+    idx <- length(uci_data) + 1
+    names(data)[ncol(data)] <- response
+    uci_data[[idx]] <- data
+  }
+
+  # run 3 experiments (with different target sets)
+  for(i in 1:length(uci_data)) {
+    # prepare training data
+    uci_train_data <- vector()
+    train_data_idx <- 1:length(uci_data)
+    train_data_idx <- train_data_idx[- i]
+    for(j in train_data_idx) {
+      uci_train_data <- rbind(uci_train_data, uci_data[[j]])
+    }
+
+    # prepare testing data
+    uci_test_data <- uci_data[[i]]
+    num_test_cases <- nrow(uci_test_data)
+    num_features <- ncol(uci_data[[i]]) - 1
+    formula <- as.formula(sprintf('%s ~ .', response))
+    fit <- predictor(formula, uci_train_data, ...)
+    prediction <- predict(fit, uci_test_data)
+    errors <- rmserr(prediction, uci_test_data[[response]])
+    cat(' RMSE: ', errors$rmse, '\n')
+  }
 }
-library(XLConnect)
-work_book <- loadWorkbook(file_name)
-concrete_data <- readWorksheet(work_book, sheet=1)
-# assume the last column is the dependent variable
-names(concrete_data)[ncol(concrete_data)] <- 'y'
 
-test_that("adaboostR2 with lm", {
+test_that('UCI Conrete Length data', {
+  file_prefix <- 'new-concrete'
   set.seed(seed)
-  fit <- adaboostR2("y~.", train_data,
-                    base_predictor=lm)
-  prediction <- predict(fit, test_data)
-  expect_that(prediction, equals(test.y))
+  cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
+  cat(sprintf('-- Model: nnet -----------------------'), '\n')
+  # TODO: avoid declaring duplicate parameters
+  uci_test(file_prefix, nnet, size=7, linout=T, trace=F)
+  cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
+  uci_test(file_prefix, adaboostR2, size=7, linout=T, trace=F)
 })
 
-test_that("adaboostR2 with rpart", {
-  library(rpart)
+test_that('UCI Housing data', {
+  file_prefix <- 'new-housing'
   set.seed(seed)
-  fit <- adaboostR2("y~.", train_data,
-                    base_predictor=rpart, method="anova")
-  prediction <- predict(fit, test_data)
-  expect_that(prediction, equals(test.y))
+  cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
+  cat(sprintf('-- Model: nnet -----------------------'), '\n')
+  # TODO: avoid declaring duplicate parameters
+  uci_test(file_prefix, nnet, size=12, linout=T, trace=F)
+  cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
+  uci_test(file_prefix, adaboostR2, size=12, linout=T, trace=F)
 })
 
-test_that("adaboostR2 with nnet", {
-  library(nnet)
+test_that('UCI Auto MPG data', {
+  file_prefix <- 'new-autompg'
   set.seed(seed)
-  num_features <- ncol(train_data) - 1
-  fit <- adaboostR2("y~.", train_data,
-                    base_predictor=nnet,
-                    size=num_features, linout=TRUE, trace=FALSE)
-  prediction <- predict(fit, test_data)
-  expect_that(prediction, equals(test.y))
+  cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
+  cat(sprintf('-- Model: nnet -----------------------'), '\n')
+  # TODO: avoid declaring duplicate parameters
+  uci_test(file_prefix, nnet, size=6, linout=T, trace=F)
+  cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
+  uci_test(file_prefix, adaboostR2, size=6, linout=T, trace=F)
 })
 
-test_that("adaboost R2 with nnet on UCI Concrete Data", {
-  library(nnet)
-  set.seed(seed)
-  num_features <- ncol(concrete_data) - 1
-  fit <- adaboostR2("y~.", concrete_data,
-                    base_predictor=nnet,
-                    size=num_features, linout=TRUE, trace=FALSE)
-  prediction <- predict(fit, concrete_data)
-  expect_that(prediction, equals(concrete_data[['y']]))
-})
+# TODO: fix error "factor c has new levels chevrolet, honda"
+# test_that('UCI Automobile data', {
+#   file_prefix <- 'new-imports'
+#   set.seed(seed)
+#   cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
+#   cat(sprintf('-- Model: nnet -----------------------'), '\n')
+#   # TODO: avoid declaring duplicate parameters
+#   uci_test(file_prefix, nnet, size=24, linout=T, trace=F, MaxNWts=2000)
+#   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
+#   uci_test(file_prefix, adaboostR2, size=24, linout=T, trace=F, MaxNWts=2000)
+# })
