@@ -47,8 +47,8 @@ uci_test <- function(file_prefix, predictor, ...) {
     test_prediction <- predict(fit, uci_test_data)
     test_errors <- rmserr(test_prediction, uci_test_data[[response]])
     train_errors <- rmserr(train_prediction, uci_train_data[[response]])
-    cat(' Training RMSE: ', train_errors$rmse, '\n')
-    cat(' Testing  RMSE: ', test_errors$rmse, '\n')
+    cat(' Training RMSE: ', round(train_errors$rmse, 2), '\n')
+    cat(' Testing  RMSE: ', round(test_errors$rmse, 2), '\n')
   }
 }
 
