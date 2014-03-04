@@ -43,9 +43,12 @@ uci_test <- function(file_prefix, predictor, ...) {
     num_features <- ncol(uci_data[[i]]) - 1
     formula <- as.formula(sprintf('%s ~ .', response))
     fit <- predictor(formula, uci_train_data, ...)
-    prediction <- predict(fit, uci_test_data)
-    errors <- rmserr(prediction, uci_test_data[[response]])
-    cat(' RMSE: ', errors$rmse, '\n')
+    train_prediction <- predict(fit, uci_train_data)
+    test_prediction <- predict(fit, uci_test_data)
+    test_errors <- rmserr(test_prediction, uci_test_data[[response]])
+    train_errors <- rmserr(train_prediction, uci_train_data[[response]])
+    cat(' Training RMSE: ', train_errors$rmse, '\n')
+    cat(' Testing  RMSE: ', test_errors$rmse, '\n')
   }
 }
 
