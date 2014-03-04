@@ -1,6 +1,6 @@
 library(nnet)
 
-adaboostR2 = function( formula, data,
+adaboostR2 <- function( formula, data,
                        num_predictors = 50,
                        learning_rate = 1,
                        weighted_sampling = TRUE,
@@ -124,7 +124,7 @@ adaboostR2 = function( formula, data,
   return (final_predictor)
 }
 
-predict.adaboostR2 = function( object, new_data ) {
+predict.adaboostR2 <- function( object, new_data ) {
   # Returns predictions for new data.
   
   # Arguments:
@@ -162,7 +162,7 @@ predict.adaboostR2 = function( object, new_data ) {
   return (final_predictions)
 }
 
-summary.adaboostR2 = function( object ) {
+summary.adaboostR2 <- function( object ) {
   # Summary method for class "adaboostR2".
   #
   # Arguments:
@@ -172,7 +172,7 @@ summary.adaboostR2 = function( object ) {
                input_num_predictors = object$input_num_predictors))
 }
 
-adaboostR2._weighted_median = function( x, weights ) {
+adaboostR2._weighted_median <- function( x, weights ) {
   # Computes weighted median.
   #  
   # Arguments:
