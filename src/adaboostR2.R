@@ -1,10 +1,12 @@
 library(nnet)
+library(Defaults)
 
 adaboostR2 <- function( formula, data,
                        num_predictors = 50,
                        learning_rate = 1,
                        weighted_sampling = TRUE,
                        loss = 'linear',
+                       verbose = FALSE,
                        base_predictor = nnet, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
@@ -44,6 +46,13 @@ adaboostR2 <- function( formula, data,
   #     - predictor_weights: weight of each predictor
   #     - num_predictors: number of predictors
   #     - avg_losses: average loss of each predictor
+  if(!verbose) {
+    # this only works for linux
+    # for windows we need to use NUL or nul
+    setDefaults(cat, file='/dev/null')
+  }else {
+    setDefaults(cat, file='')
+  }
 
   # initialize return values
   predictors <- list()
@@ -121,10 +130,11 @@ adaboostR2 <- function( formula, data,
                      input_num_predictors = num_predictors,
                      avg_losses = avg_losses)
   class(final_predictor) <- "adaboostR2"
+  setDefaults(cat, file='')
   return (final_predictor)
 }
 
-predict.adaboostR2 <- function( object, new_data ) {
+predict.adaboostR2 <- function( object, new_data, verbose=F ) {
   # Returns predictions for new data.
   
   # Arguments:
@@ -133,6 +143,12 @@ predict.adaboostR2 <- function( object, new_data ) {
   #   new_data: The matrix or data frame of inputs for training data.
   #
   # Returns: The predictions for new data.
+  if(!verbose) {
+    # this only works for linux
+    setDefaults(cat, file='/dev/null')
+  }else {
+    setDefaults(cat, file='')
+  }
 
   if(object$num_predictors == 0) {
     cat('\n', 'No prediction because there is no base predictor.', '\n')
@@ -159,6 +175,7 @@ predict.adaboostR2 <- function( object, new_data ) {
                                         object$predictor_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
+  setDefaults(cat, file='')
   return (final_predictions)
 }
 
