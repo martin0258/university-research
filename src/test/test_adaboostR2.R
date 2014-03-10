@@ -28,6 +28,8 @@ uci_test <- function(file_prefix, predictor, ...) {
   }
 
   # run 3 experiments (with different target sets)
+  training_rmse <- vector()
+  testing_rmse <- vector()
   for(i in 1:length(uci_data)) {
     # prepare training data
     uci_train_data <- vector()
@@ -37,8 +39,13 @@ uci_test <- function(file_prefix, predictor, ...) {
       uci_train_data <- rbind(uci_train_data, uci_data[[j]])
     }
 
+    # add training instances from target data set
+    num_training_from_target <- 25
+    uci_train_data <- rbind(uci_train_data,
+                            uci_data[[i]][1:num_training_from_target, ])
+
     # prepare testing data
-    uci_test_data <- uci_data[[i]]
+    uci_test_data <- uci_data[[i]][-1:-num_training_from_target, ]
     num_test_cases <- nrow(uci_test_data)
     num_features <- ncol(uci_data[[i]]) - 1
     formula <- as.formula(sprintf('%s ~ .', response))
@@ -47,9 +54,11 @@ uci_test <- function(file_prefix, predictor, ...) {
     test_prediction <- predict(fit, uci_test_data)
     test_errors <- rmserr(test_prediction, uci_test_data[[response]])
     train_errors <- rmserr(train_prediction, uci_train_data[[response]])
-    cat(' Training RMSE: ', round(train_errors$rmse, 2), '\n')
-    cat(' Testing  RMSE: ', round(test_errors$rmse, 2), '\n')
+    training_rmse <- c(training_rmse, round(train_errors$rmse, 2))
+    testing_rmse <- c(testing_rmse, round(test_errors$rmse, 2))
   }
+  cat(' Training RMSE: ', paste(training_rmse, collapse=' | '), '\n')
+  cat(' Testing  RMSE: ', paste(testing_rmse, collapse=' | '), '\n')
 }
 
 test_that('UCI Conrete Length data', {
