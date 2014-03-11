@@ -19,6 +19,10 @@ new-autompg3  | D9
 2   | Testing    | nnet | 16.93 | 14.8 | 22.18 | 9.84 | 6.69 | 9.23 | 8.81 | 6.53 | 12.41
 3   | Training   | AdaBoost.R2 + nnet | 17.08 | 17.44 | 14.42 | 6.11 | 6.87 | 4 | 7.67 | 8.28 | 6.37
 4   | Testing    | AdaBoost.R2 + nnet | 16.9 | 15.03 | 21.52 | 6.33 | 5.86 | 8.58 | 9.13 | 6.76 | 11.2
+5   | Training   | nnet | 9.08 | 9.76 | 8.21
+6   | Testing    | nnet | **11.11** | **9.97** | **13.77**
+7   | Training   | AdaBoost.R2 + nnet | 12.33 | 12.07 | 9.5
+8   | Testing    | AdaBoost.R2 + nnet | 16.41 | 11.65 | 15.84
 
 ### Setting
 #### 1,2
@@ -29,3 +33,13 @@ Parameter:
 #### 3,4
 Note:
 - Terminated early at iteration `7, 12, 12, 6, 9, 6, 15, 11, 8` because average loss >= 0.5.
+
+#### 5,6
+Parameter: 
+- 1 hidden layer
+- # of hidden units equals to # of input features
+- rang=0.1; decay=1e-1; maxit=100
+
+#### 7,8
+Note:
+- Terminated early at iteration `10,13,19` because average loss >= 0.5.
