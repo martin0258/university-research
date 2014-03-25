@@ -19,10 +19,10 @@ new-autompg3  | D9
 2   | Testing    | nnet | 16.93 | 14.8 | 22.18 | 9.84 | 6.69 | 9.23 | 8.81 | 6.53 | 12.41
 3   | Training   | AdaBoost.R2 + nnet | 17.08 | 17.44 | 14.42 | 6.11 | 6.87 | 4 | 7.67 | 8.28 | 6.37
 4   | Testing    | AdaBoost.R2 + nnet | 16.9 | 15.03 | 21.52 | 6.33 | 5.86 | 8.58 | 9.13 | 6.76 | 11.2
-5   | Training   | nnet | 9.08 | 9.76 | 8.21
-6   | Testing    | nnet | **11.11** | **9.97** | **13.77**
-7   | Training   | AdaBoost.R2 + nnet | 12.33 | 12.07 | 9.5
-8   | Testing    | AdaBoost.R2 + nnet | 16.41 | 11.65 | 15.84
+5   | Training   | nnet | 9.08 | 9.76 | 8.21 | 5.47 | 5.14 | 7.01 | 7.66 | 4.18 | 3.14
+6   | Testing    | nnet | **11.11** | **9.97** | **13.77** | 7.11 | **4.73** | 9.29 | 8.81 | **3.06** | 9.32
+7   | Training   | AdaBoost.R2 + nnet | 12.33 | 12.07 | 9.5 | 4 | 4.17 | 3.11 | 4.22 | 4.23 | 2.67
+8   | Testing    | AdaBoost.R2 + nnet | 16.41 | 11.65 | 15.84 | **5.46** | 4.77 | **8.2** | **6** | 3.92 | **7.24**
 
 ### Setting
 #### 1,2
@@ -42,4 +42,4 @@ Parameter:
 
 #### 7,8
 Note:
-- Terminated early at iteration `10,13,19` because average loss >= 0.5.
+- Terminated early at iteration `10, 13, 19, 17, 29, 39, 7, 15, 12` because average loss >= 0.5.
