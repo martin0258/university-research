@@ -1,13 +1,13 @@
 @relation Concrete_Data3-weka.filters.unsupervised.attribute.Remove-R1
 
-@attribute ' b' numeric
-@attribute ' c' numeric
-@attribute ' d' numeric
-@attribute ' e' numeric
-@attribute ' f' numeric
-@attribute ' g' numeric
-@attribute ' h' numeric
-@attribute ' i' numeric
+@attribute b numeric
+@attribute c numeric
+@attribute d numeric
+@attribute e numeric
+@attribute f numeric
+@attribute g numeric
+@attribute h numeric
+@attribute i numeric
 
 @data
 %
