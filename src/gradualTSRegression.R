@@ -99,8 +99,12 @@ library(nnet)
 setwd("~/Projects/GitHub/ntu-research/data/")
 data <- read.csv("Chinese_Drama_Ratings_AnotherFormat.csv")
 dramas <- split(data, factor(data[, "Drama"]))
+results <- list()
 for (idx in 1:length(dramas)) {
-  result <- gradualTSRegression(dramas[[idx]][, "Ratings"],
+  dramaName <- names(dramas)[idx]
+  colnames(dramas[[idx]])[3] <- dramaName
+  result <- gradualTSRegression(dramas[[idx]][dramaName],
                                 predictor = nnet, size= 3, linout=T, trace=F,
                                 rang=0.1, decay=1e-1, maxit=100)
+  results[[idx]] <- result
 }
