@@ -1,15 +1,21 @@
-windowing = function( data, windowLen ) {
-  # Summary: transform a time-series data into a set of cases for regression analysis
+windowing <- function(x, windowLen) {
+  # Summary: Transform a time series data into a set of cases.
   # Reference: Autoregressive Tree Models for Time-Series Analysis (C. Meek, 2002)
+  #
+  # Arguments:
+  #   x: A numeric vector or time series.
+  #   windowLen: The length of windowing transformation (must be an integer >= 2).
+  #
+  # Returns:
+  #   A list of cases in matrix format
   
-  # Parameter
-  #   data      : the time series data
-  #   windowLen : an integer >= 2
-  # Return
-  #   A list of cases
+  # Check precondition
+  if (!(windowLen >= 2)) {
+    stop("The value of windowLen must be an integer >= 2.")
+  }
   
-  tsData <- ts(data)
-  cases <- vector()
+  tsData <- ts(x)
+  cases <- c()
   
   numCases <- length(tsData) - windowLen + 1
   for(i in 1:numCases)
