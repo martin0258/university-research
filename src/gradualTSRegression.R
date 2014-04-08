@@ -43,7 +43,7 @@ gradualTSRegression <- function(x,
   start <- proc.time()
 
   # Form regression data from time series
-  #source("windowing.R")
+  #source("lib/windowing.R")
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
   names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
@@ -78,7 +78,7 @@ gradualTSRegression <- function(x,
     predictTest <- predict(model, wData[testIndex, ])
     
     # Evaluate
-    #source("mape.R")
+    #source("lib/mape.R")
     trainError <- mape(predictTrain, wData[trainIndex, "Y"])
     testError <- mape(predictTest, wData[testIndex, "Y"])
     result[testPeriod, "Prediction"] <- predictTest
@@ -96,15 +96,38 @@ gradualTSRegression <- function(x,
 
 # Usage example on SET ratings data
 library(nnet)
-setwd("~/Projects/GitHub/ntu-research/data/")
-data <- read.csv("Chinese_Drama_Ratings_AnotherFormat.csv")
+set.seed(0)
+setwd("~/Projects/GitHub/ntu-research/")
+source("src/lib/windowing.R")
+source("src/lib/mape.R")
+source("src/adaboostR2.R")
+data <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv")
 dramas <- split(data, factor(data[, "Drama"]))
 results <- list()
 for (idx in 1:length(dramas)) {
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
+  # Model: nnet
   result <- gradualTSRegression(dramas[[idx]][dramaName],
-                                predictor = nnet, size= 3, linout=T, trace=F,
+                                predictor=nnet, size=3, linout=T, trace=F,
                                 rang=0.1, decay=1e-1, maxit=100)
+  # Model: nnet + adaboostR2
+  result2 <- gradualTSRegression(dramas[[idx]][dramaName],
+                                 predictor=adaboostR2, base_predictor=nnet,
+                                 size=3, linout=T, trace=F,
+                                 rang=0.1, decay=1e-1, maxit=100)
   results[[idx]] <- result
+
+  # Plot result
+  plot(ts(result["TestError"]), main=dramaName, xlab="Episode", ylab="MAPE", col="red")
+  lines(ts(result["TrainError"]), col="darkred")
+  lines(ts(result2["TestError"]), col="blue")
+  lines(ts(result2["TrainError"]), col="darkblue")
+  result_mape <- mape(result["Prediction"], result[dramaName])
+  result2_mape <- mape(result2["Prediction"], result[dramaName])
+  result_mape_display <- sprintf("nnet: %.3f", result_mape)
+  result2_mape_display <- sprintf("nnet+adaboostR2: %.3f", result2_mape)
+  legend("topleft", legend=c(result_mape_display, result2_mape_display,
+                             "red: nnet", "blue: nnet+adaboostR2",
+                             "dark: train error"), cex=0.7)
 }
