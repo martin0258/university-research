@@ -7,6 +7,8 @@ import numpy as np
 
 def mape(actual, forecast):
     """Return MAPE."""
+    actual = np.array(actual)
+    forecast = np.array(forecast)
     return np.mean(np.abs(actual - forecast) / actual) * 100
 
 
