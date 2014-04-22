@@ -1,130 +1,209 @@
-adaboostR2.train = function( x, y, itr = 100, baseLearner = "lm" ) {
-  # Summary: adaboostR2 fits an adaboost model for regression (Drucker, 1997)
-  # Note: The base learner used is hard-coded as lm which supports case weights.
-  
-  # Parameter
-  #   x       : the inputs of training data in the form of (x1, x2, ..., xN)
-  #   y       : the targets of training data in the form of (y1, y2, ..., yM)
-  #   itr     : the number of iterations (i.e., the number of weak learners)
-  #   learner : any base learner that fits a model for regression
-  # Return
-  #   A list of base learners along with their weights to combine
+library(nnet)
+library(Defaults)
+
+adaboostR2 <- function( formula, data,
+                       num_predictors = 50,
+                       learning_rate = 1,
+                       weighted_sampling = TRUE,
+                       loss = 'linear',
+                       verbose = FALSE,
+                       base_predictor = nnet, ... ) {
+  # Fits and returns an adaboost model for regression.
+  # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
+  #  
+  # Arguments:
+  #   formula: An object of class "formula".
+  #
+  #   data: An data frame containing the variables in the model.
+  #
+  #   num_predictors: 
+  #     The maximum number of estimators at which boosting is terminated. 
+  #     In case of perfect fit, the learning procedure is stopped early.
+  #     Default 50.
+  #
+  #   learning_rate:
+  #     It shrinks the contribution of each predictor by learning_rate.
+  #     There is a trade-off between learning_rate and num_predictors.
+  #     Defaul 1.
+  #
+  #   loss_function:
+  #     The loss function to use when updating the weights 
+  #     after each boosting iteration. Must be one of the strings in the
+  #     default argument.
+  #     Default 'linear'.
+  #
+  #   base_predictor: 
+  #     The function of base estimator from which the boosted ensemble is built.
+  #     Support for sample weighting is required. That is, the function must be
+  #     in the form function( formula, data, weights, ... ).
+  #
+  #   ...: The other arguments passed to base_predictor.
+  #
+  # Returns:
+  #   An object of class "adaboostR2".
+  #   The object contains the following components:
+  #     - predictors: predictors trained at each iteration
+  #     - predictor_weights: weight of each predictor
+  #     - num_predictors: number of predictors
+  #     - avg_losses: average loss of each predictor
+  if(!verbose) {
+    # this only works for linux
+    # for windows we need to use NUL or nul
+    setDefaults(cat, file='/dev/null')
+  }else {
+    setDefaults(cat, file='')
+  }
 
   # initialize return values
-  models <- list()
-  weights <- list()
+  predictors <- list()
+  predictor_weights <- list()
+  avg_losses <- list()
   
   # set initial data weights
-  numCases <- nrow(data.frame(y))
-  dw <- rep(1/numCases, numCases) 
+  num_cases <- nrow(data)
+  data_weights <- rep(1 / num_cases, num_cases)
   
-  # form a data frame from x, y for linear regresion
-  dataBind <- cbind(x, y)
-  if(numCases == 1)
-  { 
-    dataBind <- c(x, y) 
-    dataBind <- matrix(dataBind, nrow = 1)
-  }
-  data <- data.frame(dataBind)
-  colnames(data)[ncol(data)] <- "Y"
-  
-  inputItr <- itr
-  for(i in 1:itr)
+  form <- as.formula(formula, env=environment())
+  for(i in 1:num_predictors)
   {
-    # train weak hypothesis by calling base learner
-    model <- lm(Y ~ ., data = data, weights = dw)
+    # train a weak hypothesis of base predictor
+    if(weighted_sampling) {
+      # instead of training with data_weights,
+      # we can do weighted sampling of the training set with replacement,
+      # and fit on the bootstrapped sample and obtain a prediction.
+      bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
+      predictor <- base_predictor(form, data[bootstrap_idx, ], ...)
+    }else {
+      predictor <- base_predictor(form, data, weights=data_weights, ...)
+    }
 
-    # calculate the adjusted error for each case
-    errors <- abs(residuals(model))
-    if(max(errors) == 0)
-    {
-      # return if all errors are zero (which probably is impossible)
-      # store return values
-      models[[length(models)+1]] <- model
-      weights[[length(weights)+1]] <- 1
-      itr <- i
-      cat(sprintf("Break at iteration %d because all errors are zero.\n", i))
+    prediction <- predict(predictor, data)
+    # get dependent variable name from formula
+    # what if there are multiple responses?
+    response <- all.vars(form[[2]])
+    errors <- abs(prediction - data[response])
+    errors_max <- max(errors, na.rm = TRUE)
+    if(errors_max == 0) {
+      # early termination:
+      #   if the fit is perfect, store the predictor info and stop
+      predictors[[i]] <- predictor
+      predictor_weights[[i]] <- 1
+      msg <- "Early terminaion because fit at iteration %d is perfect."
+      cat('\n', sprintf(msg, i))
       break
     }
-    adjustedErrors <- errors / max(errors)
-    totalError <- sum(dw * adjustedErrors)
-    if(totalError >= 0.5)
-    {
-      if(i == 1)
-      {
-        # Issue: similar small errors problem?
-        # Workaround: use the trained model
-        models[[length(models)+1]] <- model
-        weights[[length(weights)+1]] <- 1
-      }
-      cat(sprintf("Break at iteration %d because total error >= 0.5\n", i))
-      itr <- i - 1
-      break
-    }
-  
-    # update data weights
-    beta <- totalError / (1 - totalError)
-    dw <- dw * beta ^ (1 - adjustedErrors)
-    dw <- dw / sum(dw)  # normalization
+    errors <- errors / errors_max
     
-    # store return values
-    models[[length(models)+1]] <- model
-    weights[[length(weights)+1]] <- log(1/beta)
+    if(loss == 'square') {
+      errors <- errors ^ 2
+    }else if(loss == 'exponential') {
+      errors <- 1 - exp(- errors)
+    }
+    
+    avg_loss <- sum(data_weights * errors, na.rm = TRUE)
+    avg_losses[[i]] <- avg_loss
+
+    if(avg_loss >= 0.5) {
+      # early termination:
+      #   stop if the fit is too "terrible"
+      #   TODO: fix the case of similar small errors
+      msg <- "Early termination at iteration %d because avg loss >= 0.5"
+      cat('\n', sprintf(msg, i))
+      break
+    }
+    else {
+      # update data weights
+      beta_confidence <- avg_loss / (1 - avg_loss)
+      data_weights <- data_weights * beta_confidence ^ ((1 - errors) * learning_rate)
+      # normalize
+      data_weights <- data_weights / sum(data_weights)
+
+      # store the predictor info
+      predictors[[i]] <- predictor
+      predictor_weights[[i]] <- learning_rate * log(1 / beta_confidence)
+    }
   }
-  cat(sprintf("input itr: %d\nactual itr: %d\n", inputItr, itr))
   
-  return (list(models = models, 
-               weights = weights, 
-               len = length(models), baseLearner = baseLearner))
+  final_predictor <- list(predictors = predictors,
+                     predictor_weights = predictor_weights, 
+                     num_predictors = length(predictors),
+                     input_num_predictors = num_predictors,
+                     avg_losses = avg_losses)
+  class(final_predictor) <- "adaboostR2"
+  setDefaults(cat, file='')
+  return (final_predictor)
 }
 
-adaboostR2.predict = function( model, newData ) {
-  # Summary: given new data, return prediction (weighted median) of an adaboost R2 model
+predict.adaboostR2 <- function( object, new_data, verbose=F ) {
+  # Returns predictions for new data.
   
-  # Parameter
-  #   model   : the trained adaboostR2 model
-  #   newData : the inputs of testing data in the form of (x1, x2, ..., xN)
-  # Return
-  #   the numeric prediction
+  # Arguments:
+  #   object: The adaboostR2 predictor.
+  #
+  #   new_data: The matrix or data frame of inputs for training data.
+  #
+  # Returns: The predictions for new data.
+  if(!verbose) {
+    # this only works for linux
+    setDefaults(cat, file='/dev/null')
+  }else {
+    setDefaults(cat, file='')
+  }
+
+  if(object$num_predictors == 0) {
+    cat('\n', 'No prediction because there is no base predictor.', '\n')
+    return (rep(as.numeric(NA), nrow(new_data)))
+  }
+  # the newline is for beautifying testthat output
+  cat('\n')
 
   # build a prediction matrix: (row = cases, col = predictors)
   predictions <- vector()
-  wmPredictions <- vector()
+  final_predictions <- vector()
   
-  # form a data frame from newData for linear regression model to predict
-  data <- data.frame(newData)
-  numPredictors <- length(model$models[[1]]$coefficients) - 1
-  if(ncol(data) != numPredictors)
-  {
-    data <- matrix(newData, nrow = 1)
-    data <- data.frame(data)
+  for(predictor in object$predictors)
+  { 
+    prediction <- predict(predictor, new_data)
+    predictions <- cbind(predictions, prediction)
   }
 
-  for(i in 1:model$len)
-  { 
-    ## Make column names align with model (assume the 1st element is intercept)
-    colnames(data) <- names(coefficients(model$models[[i]]))[-1]
-    predictions <- cbind(predictions,
-                        predict(model$models[[i]], data))
-  }
-  # get weighted median for each case
-  for(i in 1:nrow(data.frame(data)))
+  # for each case, get the weighted median as the final prediction
+  weighted_median <- adaboostR2._weighted_median
+  for(i in 1:nrow(new_data))
   {
-    wmPrediction <- weighted.median(predictions[i,], model$weights)
-    wmPredictions <- c(wmPredictions, wmPrediction)
+    final_prediction <- weighted_median(predictions[i, ], 
+                                        object$predictor_weights)
+    final_predictions <- c(final_predictions, final_prediction)
   }
-  return (wmPredictions)
+  setDefaults(cat, file='')
+  return (final_predictions)
 }
 
-weighted.median = function( x, weights ) {
-  # Summary: computed weighted median
-  #  
-  # Parameter
-  #   x       : a numeric vector containing the values whose median is to be computed
-  #   y       : a numeric vector containing the weights
+summary.adaboostR2 <- function( object ) {
+  # Summary method for class "adaboostR2".
   #
-  # Return
-  #   the weighted median
+  # Arguments:
+  #   object: An object of class "adaboostR2".
+
+  return (list(num_predictors = object$num_predictors,
+               input_num_predictors = object$input_num_predictors))
+}
+
+adaboostR2._weighted_median <- function( x, weights ) {
+  # Computes weighted median.
+  #  
+  # Arguments:
+  #   x: A numeric vector containing the values whose median is to be computed.
+  #
+  #   weights: A numeric vector containing the weights.
+  #
+  # Returns:
+  #   The weighted median.
+  
+  # use its w.median to check our implementation
+  library(cwhmisc)
+
+  result <- NA
   weights <- unlist(weights)
   cases <- vector()
   for(i in 1:length(x))
@@ -134,22 +213,18 @@ weighted.median = function( x, weights ) {
   df <- data.frame(cases)
   names(df) <- c("x", "weights")
   threshold <- sum(df$weights) / 2
-  dfOrdered <- df[order(x),]
-  weightSum <- 0
+  df_ordered <- df[order(x),]
+  weight_sum <- 0
   for(i in 1:length(x))
   {
-    weightSum <- weightSum + dfOrdered$weights[i]
-    if(weightSum >= threshold)
+    weight_sum <- weight_sum + df_ordered$weights[i]
+    if(weight_sum >= threshold)
     {
-      return (dfOrdered$x[i])
+      result <- df_ordered$x[i]
+      break
     }
   }
+  expected_result <- w.median(x, weights)
+  stopifnot(result == expected_result)
+  return (result)
 }
-
-# Example:
-# cwd <- read.csv("data/Chinese_Weekday_Drama.csv", fileEncoding="utf-8")
-# d <- windowing(cwd[,4], 4)
-# trainEndIndex <- floor(nrow(d)/2)
-# testStartIndex <- trainEndIndex + 1
-# model <- adaboostR2.train(d[1:trainEndIndex,1:3], d[1:trainEndIndex,4])
-# predictions <- adaboostR2.predict(model, d[testStartIndex:nrow(d),1:3])
