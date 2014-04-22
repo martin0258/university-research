@@ -7,15 +7,20 @@
 - seed=0
 
 ### Result Summary
-- Performance improvement after adding time period:
-  - 剩女保鏢: `0.84` to `0.81`
-  - 我們發財了: `0.108` to `0.107`
-  - 真愛找麻煩: `0.096` to `0.093`
-  - 美味的想念: `0.098` to `0.097`
-- No performance improvement after adding time period:
-  - 兩個爸爸
-- Performance decrease after after adding time period:
-  - 愛上巧克力: `0.099` to `0.102`
+Drama | Model | Before | After adding time period
+------|-------|--------|--------------------------
+兩個爸爸   | nnet    | 0.086 | 0.065 :+1:
+兩個爸爸   | nnet+R2 | 0.086 | 0.065 :+1:
+剩女保鏢   | neet    | 0.084 | 0.088
+剩女保鏢   | neet+R2 | 0.081 | 0.094
+愛上巧克力 | nnet    | 0.099 | 0.099
+愛上巧克力 | nnet+R2 | 0.102 | 0.104
+我們發財了 | nnet    | 0.108 | 0.114
+我們發財了 | nnet+R2 | 0.107 | 0.110
+真愛找麻煩 | nnet    | 0.096 | 0.088 :+1:
+真愛找麻煩 | nnet+R2 | 0.093 | 0.090 :+1:
+美味的想念 | nnet    | 0.098 | 0.099
+美味的想念 | nnet+R2 | 0.097 | 0.107
 
 ### Result Detail
 ![兩個爸爸_nnet_adaboostR2](ChineseDrama/add-time-period/兩個爸爸_nnet_adaboostR2.png)
