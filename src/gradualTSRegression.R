@@ -49,6 +49,10 @@ gradualTSRegression <- function(x,
   names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
   numCases <- nrow(wData)
   
+  # Add time period as a feature
+  timePeriods <- seq(windowLen, numCases + windowLen - 1)
+  wData <- cbind(timePeriods, wData)
+
   # Train a model for each time period
   for(trainEndIndex in 1:(numCases-1)) {
     trainIndex <- 1:trainEndIndex
