@@ -1,4 +1,5 @@
 gradualTSRegression <- function(x,
+                                source_data = NULL,
                                 windowLen = 4, n.ahead = 1,
                                 predictor = lm, ...) {
   # Forecast time series via windowing transformation and regression.
@@ -46,7 +47,9 @@ gradualTSRegression <- function(x,
   #source("lib/windowing.R")
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
+  source_data <- data.frame(source_data)
   names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
+  names(source_data)[ncol(source_data)] <- "Y"
   numCases <- nrow(wData)
   
   # Add time period as a feature
@@ -62,7 +65,14 @@ gradualTSRegression <- function(x,
     # Training phase
     model <- tryCatch({
       form <- as.formula("Y~.")
-      predictor(form, wData[trainIndex, ], ...)
+      predictor_name <- as.character(substitute(predictor))
+      if (predictor_name == "trAdaboostR2") {
+        predictor(form,
+                  target_data=wData[trainIndex, ],
+                  source_data=source_data, ...)
+      } else {
+        predictor(form, wData[trainIndex, ], ...)
+      }
     }, error = function(err) {
       return(err)
     })
@@ -105,6 +115,7 @@ setwd("~/Projects/GitHub/ntu-research/")
 source("src/lib/windowing.R")
 source("src/lib/mape.R")
 source("src/adaboostR2.R")
+source("src/trAdaboostR2.R")
 data <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv")
 dramas <- split(data, factor(data[, "Drama"]))
 results <- list()
@@ -120,6 +131,35 @@ for (idx in 1:length(dramas)) {
                                  predictor=adaboostR2, base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
+
+  # Combine multiple sources into one data set:
+  #   - Apply windowing transformation to each drama
+  #   - Bind data.
+  window_len <- 4
+  src_indices <- 1:length(dramas)
+  src_indices <- src_indices[-idx]
+  src_data <- c()  # An empty data frame?
+  for (src_idx in src_indices) {
+    src_drama_name <- names(dramas)[src_idx]
+    colnames(dramas[[src_idx]])[3] <- src_drama_name
+    src_drama <- dramas[[src_idx]][src_drama_name]
+    w_data <- windowing(src_drama, window_len)
+
+    # Add time period as a feature
+    num_cases <- nrow(w_data)
+    time_periods <- seq(window_len, num_cases + window_len - 1)
+    w_data <- cbind(time_periods, w_data)
+    src_data <- rbind(w_data, src_data)
+  }
+
+  # Model: nnet + trAdaBoostR2
+  result3 <- gradualTSRegression(dramas[[idx]][dramaName],
+                                 source_data=src_data,
+                                 predictor=trAdaboostR2,
+                                 base_predictor=nnet,
+                                 size=3, linout=T, trace=F,
+                                 rang=0.1, decay=1e-1, maxit=100)
+
   results[[idx]] <- result
 
   # Plot result
