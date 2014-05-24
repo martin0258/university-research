@@ -46,10 +46,14 @@ adaboostR2 <- function( formula, data,
   #     - predictor_weights: weight of each predictor
   #     - num_predictors: number of predictors
   #     - avg_losses: average loss of each predictor
-  if(!verbose) {
-    # this only works for linux
-    # for windows we need to use NUL or nul
-    setDefaults(cat, file='/dev/null')
+  if (!verbose) {
+    if (.Platform$OS.type == "windows") {
+      setDefaults(cat, file='nul')
+    } else {
+      # this only works for linux
+      # for windows we need to use NUL or nul
+      setDefaults(cat, file='/dev/null')
+    }
   }else {
     setDefaults(cat, file='')
   }
@@ -144,8 +148,13 @@ predict.adaboostR2 <- function( object, new_data, verbose=F ) {
   #
   # Returns: The predictions for new data.
   if(!verbose) {
-    # this only works for linux
-    setDefaults(cat, file='/dev/null')
+    if (.Platform$OS.type == "windows") {
+      setDefaults(cat, file='nul')
+    } else {
+      # this only works for linux
+      # for windows we need to use NUL or nul
+      setDefaults(cat, file='/dev/null')
+    }
   }else {
     setDefaults(cat, file='')
   }
@@ -224,7 +233,9 @@ adaboostR2._weighted_median <- function( x, weights ) {
       break
     }
   }
-  expected_result <- w.median(x, weights)
-  stopifnot(result == expected_result)
+
+  # WARNING: The following comparison does not handle NA.
+#   expected_result <- w.median(x, weights)
+#   stopifnot(result == expected_result)
   return (result)
 }
