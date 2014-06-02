@@ -47,13 +47,75 @@ featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
   }
 }
 
+genRatingFeature <- function (previousN = 3) {
+  # Generate ratings features:
+  #   - Ratings of previous N episodes
+  #   - Ratings of 1st episode
+  
+  # Read ratings (working directory must be"ntu-research/data")
+  file <- "Chinese_Drama_Ratings_AnotherFormat.csv"
+  ratings <- read.csv(file, fileEncoding="utf-8")
+  
+  # Group ratings by Drama name
+  group <- factor(ratings[, "Drama"])
+  ratingsByDrama <- split(ratings, group)
+  
+  # Prepare outputs
+  preRatings <- ratingsByDrama
+  firstRatings <- ratingsByDrama
+  
+  # For each drama
+  for (dramaIdx in 1:length(preRatings)) {
+    thisRatings <- preRatings[[dramaIdx]]
+    
+    # Generate previous ratings for each episode
+    for (episode in (previousN + 1):nrow(thisRatings)) {
+      # For each previous episode
+      for (preEpisode in 1:previousN) {
+        colName <- sprintf("PreRating_%d", preEpisode)
+        thisRatings[episode, colName] <- 
+          thisRatings[(episode - preEpisode), "Ratings"]
+      }
+    }
+    preRatings[[dramaIdx]] <- thisRatings
+    
+    # Generate 1st ratings for each episode
+    for (episode in 1:nrow(thisRatings)) {
+      firstRatings[[dramaIdx]][episode, "Ratings_1"] <-
+        thisRatings[1, "Ratings"]
+    }
+  }
+  
+  # Unsplit to do some post-processing
+  preRatings <- unsplit(preRatings, group)
+  firstRatings <- unsplit(firstRatings, group)
+
+  # Post-processing: Remove Ratings column
+  preRatings <- preRatings[, -3]
+  firstRatings <- firstRatings[, -3]
+
+  # Write output to file
+  write.table(preRatings, 
+              "Chinese_Drama_PreRatings.csv",
+              row.names=FALSE,
+              sep=",",
+              fileEncoding="utf-8")
+  write.table(firstRatings, 
+              "Chinese_Drama_1stRatings.csv",
+              row.names=FALSE,
+              sep=",",
+              fileEncoding="utf-8")
+}
+
 # Example:
 # Assume the working directory is "data"
+genRatingFeature()
+source("../src/getFeature.R")
 ratingFile <- "Chinese_Drama_Ratings.csv"
 featureFiles <- c("Chinese_Drama_Opinion.csv",
                   "Chinese_Drama_GoogleTrend.csv",
                   "Chinese_Drama_FB.csv")
 featureSettingFile <- "../featureSetting.csv"
-featureSuffixes <- c('1', '2', '3')
+featureSuffixes <- c('0', '1', '2', '3')
 featureExperiment(ratingFile, featureFiles,
                   featureSettingFile, featureSuffixes)
