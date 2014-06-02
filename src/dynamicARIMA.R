@@ -48,9 +48,9 @@ dynamicARIMA = function( data, features=NULL ) {
       }else{
         thisFeatures <- subset(features, Drama == dramaName & Episode <= episode)[,c(-1, -2)]
         # "xreg" parameter in arima() requires a matrix
-        thisFeatures <- matrix(thisFeatures)
-        trainFeatures <- matrix(thisFeatures[-nrow(thisFeatures),])
-        testFeatures <- matrix(thisFeatures[nrow(thisFeatures),])
+        thisFeatures <- data.matrix(thisFeatures)
+        trainFeatures <- data.matrix(thisFeatures[-nrow(thisFeatures),])
+        testFeatures <- data.matrix(thisFeatures[nrow(thisFeatures),])
       }
       
       # Error handling for methods other than yw
