@@ -48,11 +48,25 @@ dynamicARIMA = function( data, features=NULL ) {
       }else{
         thisFeatures <- subset(features, Drama == dramaName & Episode <= episode)[,c(-1, -2)]
         # "xreg" parameter in arima() requires a matrix
-        thisFeatures <- data.matrix(thisFeatures)
-        trainFeatures <- data.matrix(thisFeatures[-nrow(thisFeatures),])
-        testFeatures <- data.matrix(thisFeatures[nrow(thisFeatures),])
+        thisFeatures <- as.matrix(thisFeatures)
+
+        # Normalize each feature to 0~1
+        for (colIdx in 1:ncol(thisFeatures)) {
+          featureMin <- min(thisFeatures[, colIdx], na.rm=TRUE)
+          featureMax <- max(thisFeatures[, colIdx], na.rm=TRUE)
+          if (featureMin != featureMax) {
+            thisFeatures[, colIdx] <-
+              (thisFeatures[, colIdx] - featureMin) / (featureMax - featureMin)
+          } else {
+            thisFeatures[, colIdx] <- 1
+          }
+        }
+
+        trainFeatures <- thisFeatures[-nrow(thisFeatures),]
+        testFeatures <- matrix(thisFeatures[nrow(thisFeatures),], nrow=1)
       }
       
+
       # Error handling for methods other than yw
       arModel <- tryCatch({
         auto.arima(trainTS, xreg = trainFeatures)

@@ -1,5 +1,6 @@
 featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
-                              featureSuffixes=c('0','1','2','3')) {
+                              featureSuffixes=c('0','1','2','3'),
+                              resultFolder="../result") {
   # Perform feature selection experiments.
   #
   # Args:
@@ -26,8 +27,13 @@ featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
   #  - 4. We get a lot of money
   ratings <- ratings[, c(1, 2, 3, 4)]
 
-  outFileName <- sprintf("Feature_Experiment_%s.csv",
-                         format(Sys.time(), "%Y%m%d%H%M%S"))
+  timestamp <- format(Sys.time(), "%Y%m%d%H%M%S")
+  outFileName <- sprintf("%s/Feature_Experiment_MAPE_%s.csv",
+                         resultFolder,
+                         timestamp)
+  outFileName2 <- sprintf("%s/Feature_Experiment_Forecast_%s.csv",
+                          resultFolder,
+                          timestamp)
   
   # Read settings. Each row is an experiment.
   featureSettings <- read.csv(featureSettingFile, fileEncoding="utf-8")
@@ -59,18 +65,24 @@ featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
     # Run experiment
     result <- dynamicARIMA(ratings, featureUsed)
 
-    # Write result (mape and feature setting) into file
+    # Post-processing result
     resultToWrite <- c(paste(setting, collapse=''), result$mape)
     names(resultToWrite)[1] <- "Setting"
+    forecastResult <- cbind(paste(setting, collapse=''), result$forecast)
+    names(forecastResult)[1] <- "Setting"
+
+    # Write result (mape and feature setting) into file
     if (i == 1) {
       write.table(t(resultToWrite), outFileName, row.names=FALSE, sep=',')
+      write.table(forecastResult, outFileName2, row.names=FALSE, sep=',')
     } else {
       write.table(t(resultToWrite), outFileName, row.names=FALSE, sep=',',
                   append=TRUE,
                   col.names=FALSE)
+      write.table(forecastResult, outFileName2, row.names=FALSE, sep=',',
+                  append=TRUE,
+                  col.names=FALSE)
     }
-    # Uncomment line below to record foreacst values
-    # write.table(result$forecast, fileName, append = TRUE, row.names = FALSE)
     
     end <- proc.time()
     sprintf("Experiment %d finished.\n", i)
