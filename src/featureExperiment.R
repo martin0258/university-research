@@ -1,5 +1,6 @@
 featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
-                              featureSuffixes=c('0','1','2','3')) {
+                              featureSuffixes=c('0','1','2','3'),
+                              resultFolder="../result") {
   # Perform feature selection experiments.
   #
   # Args:
@@ -15,10 +16,30 @@ featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
   featureList <- getFeatures(featureFiles, featureSuffixes)
   features <- featureList$data
   numCases <- nrow(features[[1]])
+  
+  # Read ratings
+  ratings <- read.csv(ratingFile, fileEncoding="utf-8")
 
+  # Only include 4 dramas to do experiment:
+  #  - 1. Inborn Pair
+  #  - 2. Bodyguard
+  #  - 3. Chocolate
+  #  - 4. We get a lot of money
+  ratings <- ratings[, c(1, 2, 3, 4)]
+
+  timestamp <- format(Sys.time(), "%Y%m%d%H%M%S")
+  outFileName <- sprintf("%s/Feature_Experiment_MAPE_%s.csv",
+                         resultFolder,
+                         timestamp)
+  outFileName2 <- sprintf("%s/Feature_Experiment_Forecast_%s.csv",
+                          resultFolder,
+                          timestamp)
+  
   # Read settings. Each row is an experiment.
   featureSettings <- read.csv(featureSettingFile, fileEncoding="utf-8")
-  for (i in 2:nrow(featureSettings)) {
+  for (i in 1:nrow(featureSettings)) {
+    start <- proc.time()
+    
     # Compose the features used at this experiment
     setting <- featureSettings[i, ]
     if (length(setting) != length(features)) {
@@ -36,14 +57,36 @@ featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
     } else {
       featureUsed <- cbind(featureList$selector, featureUsed)
     }
-
+    
+    # Only include features of 4 dramas above
+    featureUsed <-
+      featureUsed[featureUsed$Drama %in% names(ratings), ]
+    
     # Run experiment
-    result <- dynamicARIMA(ratingFile, featureUsed)
+    result <- dynamicARIMA(ratings, featureUsed)
 
-    # Write result into files
-    fileName <- sprintf("%s.csv", paste(setting, collapse=''))
-    write.table(t(result$mape), fileName, row.names = FALSE)
-    write.table(result$forecast, fileName, append = TRUE, row.names = FALSE)
+    # Post-processing result
+    resultToWrite <- c(paste(setting, collapse=''), result$mape)
+    names(resultToWrite)[1] <- "Setting"
+    forecastResult <- cbind(paste(setting, collapse=''), result$forecast)
+    names(forecastResult)[1] <- "Setting"
+
+    # Write result (mape and feature setting) into file
+    if (i == 1) {
+      write.table(t(resultToWrite), outFileName, row.names=FALSE, sep=',')
+      write.table(forecastResult, outFileName2, row.names=FALSE, sep=',')
+    } else {
+      write.table(t(resultToWrite), outFileName, row.names=FALSE, sep=',',
+                  append=TRUE,
+                  col.names=FALSE)
+      write.table(forecastResult, outFileName2, row.names=FALSE, sep=',',
+                  append=TRUE,
+                  col.names=FALSE)
+    }
+    
+    end <- proc.time()
+    cat(sprintf("Experiment %d finished.\n", i))
+    print(end - start)
   }
 }
 
@@ -109,12 +152,16 @@ genRatingFeature <- function (previousN = 3) {
 
 # Example:
 # Assume the working directory is "data"
-genRatingFeature()
+# genRatingFeature()
 source("../src/getFeature.R")
+source("../src/dynamicARIMA.R")
 ratingFile <- "Chinese_Drama_Ratings.csv"
 featureFiles <- c("Chinese_Drama_Opinion.csv",
                   "Chinese_Drama_GoogleTrend.csv",
-                  "Chinese_Drama_FB.csv")
+                  "Chinese_Drama_FB.csv",
+                  "Chinese_Drama_PreRatings.csv",
+                  "Chinese_Drama_1stRatings.csv",
+                  "Chinese_Drama_Day.csv")
 featureSettingFile <- "../featureSetting.csv"
 featureSuffixes <- c('0', '1', '2', '3')
 featureExperiment(ratingFile, featureFiles,
