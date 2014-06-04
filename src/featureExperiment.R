@@ -85,7 +85,7 @@ featureExperiment = function (ratingFile, featureFiles, featureSettingFile,
     }
     
     end <- proc.time()
-    sprintf("Experiment %d finished.\n", i)
+    cat(sprintf("Experiment %d finished.\n", i))
     print(end - start)
   }
 }
