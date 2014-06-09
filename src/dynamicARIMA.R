@@ -1,10 +1,11 @@
-dynamicARIMA = function( data, features=NULL ) {
+dynamicARIMA = function( data, features=NULL, ... ) {
   # Train/predict with an ARIMA model for each period of each series.
   # We use the automated forecasting of ARIMA in the forecast pacakage.
   #
   # Args:
   #   data: a data frame (each column is a time series to be predicted)
   #   feature: a feature list or matrix that will become the value of "xreg" when fitting arima
+  #   ...: The arguments passed to auto.arima().
   #
   # Returns:
   #   A list of three objects.
@@ -65,11 +66,10 @@ dynamicARIMA = function( data, features=NULL ) {
         trainFeatures <- thisFeatures[-nrow(thisFeatures),]
         testFeatures <- matrix(thisFeatures[nrow(thisFeatures),], nrow=1)
       }
-      
 
       # Error handling for methods other than yw
       arModel <- tryCatch({
-        auto.arima(trainTS, xreg = trainFeatures)
+        auto.arima(trainTS, xreg = trainFeatures, ...)
       }, error = function(err) {
         return(err)
       })
