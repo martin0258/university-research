@@ -76,6 +76,8 @@ dynamicARIMA = function( data, features=NULL, ... ) {
       # Error occurs when training. No prediction.
       if(inherits(arModel,"error"))
       {
+        # NOTE: Comment out the following line to debug.
+        #browser()
         errInfo <- rbind(errInfo, c(drama=colnames(data[drama]), episode=episode, error=paste(arModel)))
         bestOrder[episode,drama] <- NA
         prediction[episode,drama] <- NA
@@ -85,8 +87,10 @@ dynamicARIMA = function( data, features=NULL, ... ) {
       # Error handling for predict.ARIMA
       pred <- tryCatch({
         # Add drifting newxreg if needed
-        if ("drift"==colnames(arModel$xreg)[1]) {
-          testFeatures <- cbind(episode, testFeatures)
+        if (!is.null(arModel$xreg)) {
+          if ("drift"==colnames(arModel$xreg)[1]) {
+            testFeatures <- cbind(episode, testFeatures)
+          }
         }
 
         predict(arModel, n.ahead=1, newxreg=testFeatures)$pred[1]
@@ -96,6 +100,8 @@ dynamicARIMA = function( data, features=NULL, ... ) {
       # Error occurs when testing. No prediction.
       if(inherits(pred, "error"))
       {
+        # NOTE: Comment out the following line to debug.
+        #browser()
         errInfo <- rbind(errInfo, c(drama=colnames(data[drama]), 
                                     episode=episode,
                                     error=paste(pred)))
