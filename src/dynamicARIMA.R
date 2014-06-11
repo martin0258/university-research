@@ -1,10 +1,11 @@
-dynamicARIMA = function( data, features=NULL ) {
+dynamicARIMA = function( data, features=NULL, ... ) {
   # Train/predict with an ARIMA model for each period of each series.
   # We use the automated forecasting of ARIMA in the forecast pacakage.
   #
   # Args:
   #   data: a data frame (each column is a time series to be predicted)
   #   feature: a feature list or matrix that will become the value of "xreg" when fitting arima
+  #   ...: The arguments passed to auto.arima().
   #
   # Returns:
   #   A list of three objects.
@@ -65,17 +66,18 @@ dynamicARIMA = function( data, features=NULL ) {
         trainFeatures <- thisFeatures[-nrow(thisFeatures),]
         testFeatures <- matrix(thisFeatures[nrow(thisFeatures),], nrow=1)
       }
-      
 
       # Error handling for methods other than yw
       arModel <- tryCatch({
-        auto.arima(trainTS, xreg = trainFeatures)
+        auto.arima(trainTS, xreg = trainFeatures, ...)
       }, error = function(err) {
         return(err)
       })
       # Error occurs when training. No prediction.
       if(inherits(arModel,"error"))
       {
+        # NOTE: Comment out the following line to debug.
+        #browser()
         errInfo <- rbind(errInfo, c(drama=colnames(data[drama]), episode=episode, error=paste(arModel)))
         bestOrder[episode,drama] <- NA
         prediction[episode,drama] <- NA
@@ -85,8 +87,10 @@ dynamicARIMA = function( data, features=NULL ) {
       # Error handling for predict.ARIMA
       pred <- tryCatch({
         # Add drifting newxreg if needed
-        if ("drift"==colnames(arModel$xreg)[1]) {
-          testFeatures <- cbind(episode, testFeatures)
+        if (!is.null(arModel$xreg)) {
+          if ("drift"==colnames(arModel$xreg)[1]) {
+            testFeatures <- cbind(episode, testFeatures)
+          }
         }
 
         predict(arModel, n.ahead=1, newxreg=testFeatures)$pred[1]
@@ -96,6 +100,8 @@ dynamicARIMA = function( data, features=NULL ) {
       # Error occurs when testing. No prediction.
       if(inherits(pred, "error"))
       {
+        # NOTE: Comment out the following line to debug.
+        #browser()
         errInfo <- rbind(errInfo, c(drama=colnames(data[drama]), 
                                     episode=episode,
                                     error=paste(pred)))
