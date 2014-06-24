@@ -2,6 +2,7 @@ library(nnet)
 library(Defaults)
 
 trAdaboostR2 <- function( formula, source_data, target_data,
+                          val_data = NULL,
                           num_predictors = 50,
                           learning_rate = 1,
                           loss = 'linear',
@@ -21,6 +22,11 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   #
   #   target_data:
   #     A data frame containing the variables in the model.
+  #
+  #   val_data:
+  #     Validation data.
+  #     It is a data frame containing the variables in the model.
+  #     Boosting will stop early if validation error increases.
   #
   #   num_predictors:
   #     The maximum number of estimators (iterations) at which boosting is terminated.
@@ -76,6 +82,10 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   # Cast formula.
   form <- as.formula(formula, env=environment())
 
+  # get dependent variable name from formula
+  # what if there are multiple responses?
+  response <- all.vars(form[[2]])
+
   # Adjust option of printing message.
   if (!verbose) {
     if (.Platform$OS.type == "windows") {
@@ -105,6 +115,9 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   # set initial data weights
   data_weights <- rep(1 / num_cases, num_cases)
 
+  # store validation error at each iteration
+  val_errors <- c()
+
   max_num_itrs <- num_predictors
   for (i in 1:max_num_itrs)
   {
@@ -119,10 +132,24 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       predictor <- base_predictor(form, data, weights=data_weights, ...)
     }
 
+    # predict on validation data (if any)
+    # compared with previous iteration, early stop if validation error increases
+    if (!is.null(val_data)) {
+      val_prediction <- predict(predictor, val_data)
+      val_error <-  mape(val_prediction, val_data[response])
+      val_errors <- c(val_errors, val_error)
+      last_two_errors <- tail(val_errors, 2)
+      if (length(last_two_errors) >= 2 &
+          last_two_errors[2] > last_two_errors[1]) {
+        # early stop
+        msg <- "Early termination at iteration %d because val error increases."
+        cat('\n', sprintf(msg, i))
+        break
+      }
+      pre_val_error <- val_error
+    }
+
     prediction <- predict(predictor, data)
-    # get dependent variable name from formula
-    # what if there are multiple responses?
-    response <- all.vars(form[[2]])
     errors <- abs(prediction - data[response])
     errors_max <- max(errors, na.rm=TRUE)
     if (errors_max == 0) {

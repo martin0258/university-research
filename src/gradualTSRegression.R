@@ -58,9 +58,10 @@ gradualTSRegression <- function(x,
   }
 
   # Train a model for each time period
-  for(trainEndIndex in 1:(numCases-1)) {
+  for(trainEndIndex in 1:(numCases-2)) {
     trainIndex <- 1:trainEndIndex
-    testIndex <- trainEndIndex + 1
+    valIndex <- trainEndIndex + 1
+    testIndex <- trainEndIndex + 2
     testPeriod <- testIndex + windowLen - 1
     
     # Training phase
@@ -69,8 +70,9 @@ gradualTSRegression <- function(x,
       predictor_name <- as.character(substitute(predictor))
       if (predictor_name == "trAdaboostR2") {
         predictor(form,
+                  source_data=source_data,
                   target_data=wData[trainIndex, ],
-                  source_data=source_data, ...)
+                  val_data=wData[valIndex, ], ...)
       } else {
         predictor(form, wData[trainIndex, ], ...)
       }

@@ -1,0 +1,7 @@
+# Result (nnet + AdaBoostR2 + TrAdaBoost)
+![兩個爸爸_nnet_adaboostR2](ChineseDrama/兩個爸爸_nnet_adaboostR2.png)
+![剩女保鏢_nnet_adaboostR2](ChineseDrama/剩女保鏢_nnet_adaboostR2.png)
+![愛上巧克力_nnet_adaboostR2](ChineseDrama/愛上巧克力_nnet_adaboostR2.png)
+![我們發財了_nnet_adaboostR2](ChineseDrama/我們發財了_nnet_adaboostR2.png)
+![真愛找麻煩_nnet_adaboostR2](ChineseDrama/真愛找麻煩_nnet_adaboostR2.png)
+![美味的想念_nnet_adaboostR2](ChineseDrama/美味的想念_nnet_adaboostR2.png)

@@ -22,6 +22,13 @@ results <- list()
 for (idx in 1:length(dramas)) {
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
+
+  # Skip drama whose data is not enough (e.g., "Second Life")
+  # If it is not skipped, gradualTSRegression() will fail.
+  if (nrow(dramas[[idx]][dramaName]) < 6) {
+    next
+  }
+
   # Model: nnet
   result <- gradualTSRegression(dramas[[idx]][dramaName],
                                 predictor=nnet, size=3, linout=T, trace=F,
@@ -57,11 +64,13 @@ for (idx in 1:length(dramas)) {
   result3 <- gradualTSRegression(dramas[[idx]][dramaName],
                                  source_data=src_data,
                                  predictor=trAdaboostR2,
+                                 num_predictors=50,
+                                 verbose=F,
                                  base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
 
-  results[[idx]] <- result
+  results[[idx]] <- result3
 
   # Plot result
   plot(ts(result["TestError"]), main=dramaName, xlab="Episode", ylab="MAPE", col="red")
@@ -76,9 +85,12 @@ for (idx in 1:length(dramas)) {
   result_mape_display <- sprintf("nnet: %.3f", result_mape)
   result2_mape_display <- sprintf("nnet+adaboostR2: %.3f", result2_mape)
   result3_mape_display <- sprintf("nnet+trAdaboostR2: %.3f", result3_mape)
-  legend("topleft", legend=c(result_mape_display, result2_mape_display,
-                             result3_mape_display,
-                             "red: nnet", "blue: nnet+adaboostR2",
-                             "green: nnet+trAdaboostR2",
-                             "dark: train error"), cex=0.7)
+  plot_legend <- c(result_mape_display,
+                   result2_mape_display,
+                   result3_mape_display,
+                   "red: nnet",
+                   "blue: nnet+adaboostR2",
+                   "green: nnet+trAdaboostR2",
+                   "dark: train error")
+  legend("topleft", legend=plot_legend, cex=0.7)
 }
