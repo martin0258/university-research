@@ -9,14 +9,50 @@ source("src/lib/mape.R")
 source("src/adaboostR2.R")
 source("src/trAdaboostR2.R")
 source("src/gradualTSRegression.R")
-data <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv",
-                 fileEncoding="utf-8")
+
+# Read ratings
+ratings <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv",
+                    fileEncoding="utf-8")
+# Final output (ratings & features)
+data <- ratings
+# Read features and combine with ratings
+source("src/getFeature.R")
+featureFiles <- c("data/Chinese_Drama_Opinion.csv",
+                  "data/Chinese_Drama_GoogleTrend.csv",
+                  "data/Chinese_Drama_FB.csv")
+for (featureFile in featureFiles) {
+  feature <- read.csv(featureFile, fileEncoding="utf-8")
+  # left join automatically by common variables
+  data <- merge(data, feature, sort=F, all.x=TRUE)
+}
+
+# sort (for easy view)
+attach(data)
+data <- data[order(Drama, Episode),]
+detach(data)
+
 dramas <- split(data, factor(data[, "Drama"]))
 
-# Data preprocessing: replace missing values by interpolation
+# Handle missing values
+dramas_tmp <- list() # used to keep dramas that have more than one case
 for (idx in 1:length(dramas)) {
+  # Sort by episode and replace missing values of ratings by interpolation
+  attach(dramas[[idx]])
+  dramas[[idx]] <- dramas[[idx]][order(Episode),]
+  detach(dramas[[idx]])
   dramas[[idx]][3] <- na.approx(dramas[[idx]][3])
+
+  # Only keep complete cases (without any missing value)
+  dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]),]
+
+  # Keep dramas that have more than one case
+  if (nrow(dramas[[idx]]) > 0) {
+    new_idx <- length(dramas_tmp) + 1
+    dramas_tmp[[new_idx]] <- dramas[[idx]]
+    names(dramas_tmp)[new_idx] <- names(dramas)[idx]
+  }
 }
+dramas <- dramas_tmp
 
 results <- list()
 for (idx in 1:length(dramas)) {
@@ -29,12 +65,14 @@ for (idx in 1:length(dramas)) {
     next
   }
 
+  target_feature <- dramas[[idx]][, -c(1, 2, 3)]
+
   # Model: nnet
-  result <- gradualTSRegression(dramas[[idx]][dramaName],
+  result <- gradualTSRegression(dramas[[idx]][dramaName], target_feature,
                                 predictor=nnet, size=3, linout=T, trace=F,
                                 rang=0.1, decay=1e-1, maxit=100)
   # Model: nnet + adaboostR2
-  result2 <- gradualTSRegression(dramas[[idx]][dramaName],
+  result2 <- gradualTSRegression(dramas[[idx]][dramaName], target_feature,
                                  predictor=adaboostR2, base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
@@ -47,21 +85,28 @@ for (idx in 1:length(dramas)) {
   src_indices <- src_indices[-idx]
   src_data <- c()  # An empty data frame?
   for (src_idx in src_indices) {
+    # Form windowing data
     src_drama_name <- names(dramas)[src_idx]
     colnames(dramas[[src_idx]])[3] <- src_drama_name
     src_drama <- dramas[[src_idx]][src_drama_name]
     w_data <- windowing(src_drama, window_len)
 
-    # Add time period as a feature
+    # Add time period as a feature into windowing data
     num_cases <- nrow(w_data)
     time_periods <- seq(window_len, num_cases + window_len - 1)
     w_data <- cbind(time_periods, w_data)
+
+    # Add other features into windowing data
+    features <- tail(dramas[[src_idx]][, -c(1, 2, 3)], num_cases)
+    w_data <- cbind(features, w_data)
+
+    # Bind windowing data
     src_data <- rbind(w_data, src_data)
   }
   src_data <- data.frame(src_data)
 
   # Model: nnet + trAdaBoostR2
-  result3 <- gradualTSRegression(dramas[[idx]][dramaName],
+  result3 <- gradualTSRegression(dramas[[idx]][dramaName], target_feature,
                                  source_data=src_data,
                                  predictor=trAdaboostR2,
                                  num_predictors=50,

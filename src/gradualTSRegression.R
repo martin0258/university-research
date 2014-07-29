@@ -1,4 +1,5 @@
 gradualTSRegression <- function(x,
+                                feature = NULL,
                                 source_data = NULL,
                                 windowLen = 4, n.ahead = 1,
                                 predictor = lm, ...) {
@@ -48,6 +49,11 @@ gradualTSRegression <- function(x,
   numCases <- nrow(wData)
   timePeriods <- seq(windowLen, numCases + windowLen - 1)
   wData <- cbind(timePeriods, wData)
+
+  # Bind features from input parameter if any
+  if (!is.null(feature)) {
+    wData <- cbind(tail(feature, numCases), wData)
+  }
 
   # Align column names
   names(wData) <- paste("X", seq(1, ncol(wData)), sep="")
