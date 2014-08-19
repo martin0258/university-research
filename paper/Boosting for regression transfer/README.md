@@ -42,4 +42,7 @@ For your purposes, it may simply be acceptable to take the lowest error from any
 # Build Source
 1. Download [weka v3.4.19](http://sourceforge.net/projects/weka/files/weka-3-4/3.4.19/weka-3-4-19.zip/download)
 2. Extract zip and copy `weka.jar` to the same folder where source code is
-3. Run command: `$javac -cp ./weka.jar TwoStageTrAdaBoostR2.java`
+3. Run command: `$javac -cp weka.jar TwoStageTrAdaBoostR2.java`
+
+# Run Executable
+`$java -cp weka.jar;. TwoStageTrAdaBoostR2 <option>`
