@@ -1,3 +1,14 @@
+# Build Source
+1. Download [weka v3.4.19](http://sourceforge.net/projects/weka/files/weka-3-4/3.4.19/weka-3-4-19.zip/download)
+2. Extract zip and copy `weka.jar` to the same folder where source code is
+3. Run command: `$javac -cp weka.jar TwoStageTrAdaBoostR2.java`
+
+# Run Executable
+**Syntax**: `$java -cp weka.jar;. TwoStageTrAdaBoostR2 <option>`  
+**Example**: `$java -cp weka.jar;. TwoStageTrAdaBoostR2 -W weka.classifiers.trees.M5P -M -R -Ratio -1  -S source.arff -t train.arff -T test.arff -TT test.arff -v -o -I 10 -II 10`
+
+> **Note**: the command David provides uses `:` as class path separator, which should be `;` for newer java.
+
 # Email from David Pardoe (author)
 This has been cleaned up some, but it's still probably not self explanatory.  
 It's also been a while since I looked at this.
@@ -38,11 +49,3 @@ Here the best results were after 7 iterations, when the source instances had a t
 In other words, steps 2-4 of Algorithm 3 in the paper had been performed 8 times, and then the result of the next step 1 (10 iterations of AdaBoost.R2 with source weights fixed) was a model producing an RMS error of 2.88.
 
 For your purposes, it may simply be acceptable to take the lowest error from any iteration, and use this as an optimistic estimate of what you would achieve using cross validation to pick the best place to stop.
-
-# Build Source
-1. Download [weka v3.4.19](http://sourceforge.net/projects/weka/files/weka-3-4/3.4.19/weka-3-4-19.zip/download)
-2. Extract zip and copy `weka.jar` to the same folder where source code is
-3. Run command: `$javac -cp weka.jar TwoStageTrAdaBoostR2.java`
-
-# Run Executable
-`$java -cp weka.jar;. TwoStageTrAdaBoostR2 <option>`
