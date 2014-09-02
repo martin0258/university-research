@@ -1,5 +1,11 @@
 library(testthat)
 context("Test transfer learning algorithms with UCI data")
+
+# set working dir to current src dir
+# ref: http://stackoverflow.com/a/8836576
+this.dir <- dirname(parent.frame(2)$ofile)
+setwd(this.dir)
+
 source("../adaboostR2.R")
 source("../trAdaboostR2.R")
 library(pracma)
