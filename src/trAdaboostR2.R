@@ -306,7 +306,8 @@ trAdaboostR2._weighted_median <- function( x, weights ) {
   #   The weighted median.
 
   # use its w.median to check our implementation
-  library(cwhmisc)
+  # Note: cannot successfully install the package after it was removed from CRAN
+  # library(cwhmisc)
 
   result <- NA
   weights <- unlist(weights)
