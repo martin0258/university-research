@@ -9,4 +9,4 @@ The primary contribution of this paper is to first solve TVR prediction in regre
 Roughly speaking, we solve the problem as follows.  
 First, we use windowing transformation to convert time series data into a set of cases suitable for regression task.  
 Then, several boosting-based transfer learning algorithms are applied to regression task.  
-Experiment results show promise comparing with other tranditional forecasting methods.
+Experiment results show promise comparing with other tranditional time series models and non-transfer learning algorithms.
