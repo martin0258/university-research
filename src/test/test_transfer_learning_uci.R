@@ -88,48 +88,56 @@ uci_test <- function(file_prefix, predictor, ...) {
 
 
 # TODO: avoid declaring duplicate nnet parameters in every test
+# Note: By resetting seed before every test, results differences 
+#       under different environments can be largely reduced.
 
 test_that('UCI Conrete Length data', {
   file_prefix <- 'new-concrete'
-  set.seed(seed)
   cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
   
+  set.seed(seed)
   cat(sprintf('-- Model: nnet -----------------------'), '\n')
   uci_test(file_prefix, nnet, size=7, linout=T, trace=F)
   
+  set.seed(seed)
   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
   uci_test(file_prefix, adaboostR2, size=7, linout=T, trace=F)
   
+  set.seed(seed)
   cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
   uci_test(file_prefix, trAdaboostR2, size=7, linout=T, trace=F)
 })
 
 test_that('UCI Housing data', {
   file_prefix <- 'new-housing'
-  set.seed(seed)
   cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
   
+  set.seed(seed)
   cat(sprintf('-- Model: nnet -----------------------'), '\n')
   uci_test(file_prefix, nnet, size=12, linout=T, trace=F)
   
+  set.seed(seed)
   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
   uci_test(file_prefix, adaboostR2, size=12, linout=T, trace=F)
   
+  set.seed(seed)
   cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
   uci_test(file_prefix, trAdaboostR2, size=12, linout=T, trace=F)
 })
 
 test_that('UCI Auto MPG data', {
   file_prefix <- 'new-autompg'
-  set.seed(seed)
   cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
   
+  set.seed(seed)
   cat(sprintf('-- Model: nnet -----------------------'), '\n')
   uci_test(file_prefix, nnet, size=6, linout=T, trace=F)
   
+  set.seed(seed)
   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
   uci_test(file_prefix, adaboostR2, size=6, linout=T, trace=F)
   
+  set.seed(seed)
   cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
   uci_test(file_prefix, trAdaboostR2, size=6, linout=T, trace=F)
 })
