@@ -10,3 +10,16 @@
   - First, use windowing transformation to convert time series data into a set of cases suitable for regression task.
   - Then, several boosting-based transfer learning algorithms are applied to regression task.
 5. **Result of this research**: Experiment results show promise comparing with other tranditional time series models and non-transfer learning algorithms.
+
+## Experiment
+### Models
+- Time series models
+  - AR (Autoregressive model)
+  - ARIMA (Autoregressive integrated moving average model)
+  - ES (Exponential smoothing)
+- Regression models
+  - LR (Linear regression)
+  - NN (Neural network)
+- Transfer learning models
+  - LR (weak learner) + TrAdaBoost.R2
+  - NN (weak learner) + TrAdaBoost.R2
