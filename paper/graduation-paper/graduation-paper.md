@@ -25,3 +25,17 @@
   - Weak learners
     - LR (Linear regression)
     - NN (Neural network)
+
+### Data Sets
+- Labels (TVR)
+  - Chinese Drama (華劇)
+    - 4 dramas are included: 真愛找麻煩, 剩女保鏢, 愛上巧克力, 我們發財了
+    - 3 dramas are excluded: 美味的想念, 兩個爸爸, 幸福選擇題
+    - Reaons: incompleteness (i.e., too many missing values)
+  - Idol Drama (偶像劇)
+    - 9 dramas are included: 犀利人妻, 國民英雄, 小資女孩向前衝, 向前走向愛走, 螺絲小姐要出嫁, 我租了一個情人, 金大花的華麗冒險, 大紅帽與小野狼, 真愛黑白配
+- Features
+  - For each drama, we also have the following features:
+    - Facebook
+    - Google Trend
+    - Opinion
