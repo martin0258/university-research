@@ -18,8 +18,10 @@
   - ARIMA (Autoregressive integrated moving average model)
   - ES (Exponential smoothing)
 - Regression models
-  - LR (Linear regression)
-  - NN (Neural network)
-- Transfer learning models
-  - LR (weak learner) + TrAdaBoost.R2
-  - NN (weak learner) + TrAdaBoost.R2
+  - Process (same for each weak learner)
+    1. Weak learner
+    2. Weak learner + AdaBoost.R2
+    3. Weak learner + TrAdaBoost.R2
+  - Weak learners
+    - LR (Linear regression)
+    - NN (Neural network)
