@@ -39,3 +39,9 @@
     - Facebook
     - Google Trend
     - Opinion
+
+### Settings
+- **Training set**: all previous periods of a drama + all periods from other earlier dramas
+- **Testing set**: next period of a drama
+- **Metric**: MAPE
+- **Windowing length**: 4 (decided by performance or autocorrelation?)
