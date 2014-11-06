@@ -1,8 +1,9 @@
 gradualTSRegression <- function(x,
+                                feature = NULL,
+                                source_data = NULL,
                                 windowLen = 4, n.ahead = 1,
                                 predictor = lm, ...) {
   # Forecast time series via windowing transformation and regression.
-  # Note: Missing values will be replaced by interpolation.
   #
   # Arguments:
   #   x: A numeric vector or time series.
@@ -27,12 +28,9 @@ gradualTSRegression <- function(x,
   #  If (windowLen = 4, n.ahead = 1), each training instance has 3 predictors
   #  and 1 response variable.
   
-  # Data preprocessing: replace missing values by interpolation
-  library(zoo)
-  x <- na.approx(x)
-  
   # Initialize a data instructure storing input data and result
   result <- data.frame(x)
+
   # Add new columns for storing result
   result[, "Prediction"] <- NA
   result[, "TestError"] <- NA
@@ -46,23 +44,44 @@ gradualTSRegression <- function(x,
   #source("lib/windowing.R")
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
-  names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
-  numCases <- nrow(wData)
   
   # Add time period as a feature
+  numCases <- nrow(wData)
   timePeriods <- seq(windowLen, numCases + windowLen - 1)
   wData <- cbind(timePeriods, wData)
 
+  # Bind features from input parameter if any
+  if (!is.null(feature)) {
+    wData <- cbind(tail(feature, numCases), wData)
+  }
+
+  # Align column names
+  names(wData) <- paste("X", seq(1, ncol(wData)), sep="")
+  names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
+  if (!is.null(source_data)) {
+    names(source_data) <- paste("X", seq(1, ncol(source_data)), sep="")
+    names(source_data)[ncol(source_data)] <- "Y"
+  }
+
   # Train a model for each time period
-  for(trainEndIndex in 1:(numCases-1)) {
+  for(trainEndIndex in 1:(numCases-2)) {
     trainIndex <- 1:trainEndIndex
-    testIndex <- trainEndIndex + 1
+    valIndex <- trainEndIndex + 1
+    testIndex <- trainEndIndex + 2
     testPeriod <- testIndex + windowLen - 1
     
     # Training phase
     model <- tryCatch({
       form <- as.formula("Y~.")
-      predictor(form, wData[trainIndex, ], ...)
+      predictor_name <- as.character(substitute(predictor))
+      if (predictor_name == "trAdaboostR2") {
+        predictor(form,
+                  source_data=source_data,
+                  target_data=wData[trainIndex, ],
+                  val_data=wData[valIndex, ], ...)
+      } else {
+        predictor(form, wData[trainIndex, ], ...)
+      }
     }, error = function(err) {
       return(err)
     })
@@ -96,42 +115,4 @@ gradualTSRegression <- function(x,
   cat("[Time Spent]\n")
   print(end - start)
   return(result)
-}
-
-# Usage example on SET ratings data
-library(nnet)
-set.seed(0)
-setwd("~/Projects/GitHub/ntu-research/")
-source("src/lib/windowing.R")
-source("src/lib/mape.R")
-source("src/adaboostR2.R")
-data <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv")
-dramas <- split(data, factor(data[, "Drama"]))
-results <- list()
-for (idx in 1:length(dramas)) {
-  dramaName <- names(dramas)[idx]
-  colnames(dramas[[idx]])[3] <- dramaName
-  # Model: nnet
-  result <- gradualTSRegression(dramas[[idx]][dramaName],
-                                predictor=nnet, size=3, linout=T, trace=F,
-                                rang=0.1, decay=1e-1, maxit=100)
-  # Model: nnet + adaboostR2
-  result2 <- gradualTSRegression(dramas[[idx]][dramaName],
-                                 predictor=adaboostR2, base_predictor=nnet,
-                                 size=3, linout=T, trace=F,
-                                 rang=0.1, decay=1e-1, maxit=100)
-  results[[idx]] <- result
-
-  # Plot result
-  plot(ts(result["TestError"]), main=dramaName, xlab="Episode", ylab="MAPE", col="red")
-  lines(ts(result["TrainError"]), col="darkred")
-  lines(ts(result2["TestError"]), col="blue")
-  lines(ts(result2["TrainError"]), col="darkblue")
-  result_mape <- mape(result["Prediction"], result[dramaName])
-  result2_mape <- mape(result2["Prediction"], result[dramaName])
-  result_mape_display <- sprintf("nnet: %.3f", result_mape)
-  result2_mape_display <- sprintf("nnet+adaboostR2: %.3f", result2_mape)
-  legend("topleft", legend=c(result_mape_display, result2_mape_display,
-                             "red: nnet", "blue: nnet+adaboostR2",
-                             "dark: train error"), cex=0.7)
 }
