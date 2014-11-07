@@ -45,10 +45,11 @@ gradualTSRegression <- function(x,
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
   
-  # Add time period as a feature
   numCases <- nrow(wData)
-  timePeriods <- seq(windowLen, numCases + windowLen - 1)
-  wData <- cbind(timePeriods, wData)
+
+#   # Add time period as a feature
+#   timePeriods <- seq(windowLen, numCases + windowLen - 1)
+#   wData <- cbind(timePeriods, wData)
 
   # Bind features from input parameter if any
   if (!is.null(feature)) {
