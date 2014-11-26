@@ -12,7 +12,7 @@
 5. **Result of this research**: Experiment results show promise comparing with other tranditional time series models and non-transfer learning algorithms.
 
 ## Experiment
-### Models
+### Models (Learning Algorithms)
 - Time series models
   - AR (Autoregressive model)
   - ARIMA (Autoregressive integrated moving average model)
@@ -45,3 +45,30 @@
 - **Testing set**: next period of a drama
 - **Metric**: MAPE
 - **Windowing length**: 4 (decided by performance or autocorrelation?)
+
+### Evaluation
+#### Performance Metric
+MAPE (Mean Absolute Percentage Error) is the only used metric (Why? Is it good enough?).
+
+In [Forecasting television ratings],
+> The prediction errors are judged by two measures, MAPE and MAD, which have been used extensively for gauging the prediction accuracy of television ratings (e.g., Napoli, 2001; Nikolopoulos et al., 2007; Patelis et al., 2003).
+
+#### Statistical Significance Testing
+By doing statistical significance testing, the purpose is to seek confidence in the belief that there is statistically significant difference in the experiment. 
+However, there are multiple choices of statistical tests. 
+The concerns of choosing statistical tests are as below:
+
+1. Number of algorithms to compare (2 or more)
+2. Number of domains (different data sets) to compare (2 or more)
+3. Parametric or non-parametric statistical tests
+
+The final choice is Friedman's test due to the following reasons:
+
+1. There are more than two algorithms to compare.
+2. There are more than two domains to compare.
+3. Parametric test is preferred since it is difficult to verify assumptions of non-parametric statistical tests.
+
+For more info, please see [Performance Evaluation for Learning Algorithms: Techniques, Application and Issues] (an ICML 2012 tutorial).
+
+[Forecasting television ratings]: http://www.sciencedirect.com/science/article/pii/S0169207011000033
+[Performance Evaluation for Learning Algorithms: Techniques, Application and Issues]: http://www.mohakshah.com/tutorials/icml2012/Tutorial-ICML2012/Tutorial_at_ICML_2012.html
