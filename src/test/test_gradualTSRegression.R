@@ -67,7 +67,9 @@ for (idx in 1:length(dramas)) {
     dramas_indices_with_no_na <- c(dramas_indices_with_no_na, idx)
   }
 }
-dramas <- dramas[-dramas_indices_with_no_na]
+if (length(dramas_indices_with_no_na) > 0) {
+  dramas <- dramas[-dramas_indices_with_no_na]
+}
 
 # Skip drama whose data is not enough (e.g., "Second Life")
 # If it is not skipped, gradualTSRegression() will fail.
@@ -77,7 +79,9 @@ for (idx in 1:length(dramas)) {
     dramas_indices_to_skip <- c(dramas_indices_to_skip, idx)
   }
 }
-dramas <- dramas[-dramas_indices_to_skip]
+if (length(dramas_indices_to_skip) > 0) {
+  dramas <- dramas[-dramas_indices_to_skip]
+}
 
 results <- list()
 for (idx in 1:length(dramas)) {
