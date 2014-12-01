@@ -83,7 +83,16 @@ if (length(dramas_indices_to_skip) > 0) {
   dramas <- dramas[-dramas_indices_to_skip]
 }
 
+# It is a list of data frames.
+#   Each data frame represents the results of a drama with 5 columns.
+#   Each row has ratings, prediction, test error, train error and error message for each episode.
 results <- list()
+
+# It is a matrix of performance to run statistical test.
+#   Each row is the performance results of each drama for different algorithms.
+#   Number of columns is equal to the number of different algorithms.
+performance <- matrix(, nrow=0, ncol=3)
+
 for (idx in 1:length(dramas)) {
   # For simplicity, skip dramas that have any missing values
   ratings <- dramas[[idx]][3]
@@ -174,4 +183,11 @@ for (idx in 1:length(dramas)) {
                    "green: nnet+trAdaboostR2",
                    "dark: train error")
   legend("topleft", legend=plot_legend, cex=0.7)
+
+  performance <- rbind(performance, c(result_mape, result2_mape, result3_mape))
 }
+
+# Run statistical signifance test
+# Note: When sourcing a script, output is printed only if with print() function.
+print(friedman.test(performance))
+print(quade.test(performance))
