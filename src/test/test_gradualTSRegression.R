@@ -21,15 +21,15 @@ ratings <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv",
 data <- ratings
 
 # Read features and combine with ratings
-# source("src/getFeature.R")
-# featureFiles <- c("data/Chinese_Drama_Opinion.csv",
-#                   "data/Chinese_Drama_GoogleTrend.csv",
-#                   "data/Chinese_Drama_FB.csv")
-# for (featureFile in featureFiles) {
-#   feature <- read.csv(featureFile, fileEncoding="utf-8")
-#   # left join automatically by common variables
-#   data <- merge(data, feature, sort=F, all.x=TRUE)
-# }
+source("src/getFeature.R")
+featureFiles <- c("data/Chinese_Drama_Opinion.csv",
+                  "data/Chinese_Drama_GoogleTrend.csv",
+                  "data/Chinese_Drama_FB.csv")
+for (featureFile in featureFiles) {
+  feature <- read.csv(featureFile, fileEncoding="utf-8")
+  # left join automatically by common variables
+  data <- merge(data, feature, sort=F, all.x=TRUE)
+}
 
 # sort (for easy view)
 attach(data)
@@ -84,6 +84,11 @@ if (length(dramas_indices_to_skip) > 0) {
   dramas <- dramas[-dramas_indices_to_skip]
 }
 
+# Hotfix: remove episodes that have missing values in features
+for (idx in 1:length(dramas)) {
+  dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]), ]
+}
+
 # It is a list of data frames.
 #   Each data frame represents the results of a drama with 5 columns.
 #   Each row has ratings, prediction, test error, train error and error message for each episode.
@@ -100,17 +105,18 @@ for (idx in 1:length(dramas)) {
   colnames(dramas[[idx]])[3] <- dramaName
   
   target_feature <- dramas[[idx]][, -c(1, 2, 3)]
+  ratings <- dramas[[idx]][3]
 
   # Model: nnet
   print(sprintf('Running nnet for %s......', dramaName))
   set.seed(seed)
-  result <- gradualTSRegression(dramas[[idx]][dramaName], target_feature,
+  result <- gradualTSRegression(ratings, target_feature,
                                 predictor=nnet, size=3, linout=T, trace=F,
                                 rang=0.1, decay=1e-1, maxit=100)
   # Model: nnet + adaboostR2
   print(sprintf('Running nnet + AdaBoost.R2 for %s......', dramaName))
   set.seed(seed)
-  result2 <- gradualTSRegression(dramas[[idx]][dramaName], target_feature,
+  result2 <- gradualTSRegression(ratings, target_feature,
                                  predictor=adaboostR2, base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
@@ -147,7 +153,7 @@ for (idx in 1:length(dramas)) {
   # Model: nnet + trAdaBoostR2
   print(sprintf('Running nnet + TrAdaBoost.R2 for %s......', dramaName))
   set.seed(seed)
-  result3 <- gradualTSRegression(dramas[[idx]][dramaName], target_feature,
+  result3 <- gradualTSRegression(ratings, target_feature,
                                  source_data=src_data,
                                  predictor=trAdaboostR2,
                                  num_predictors=50,
