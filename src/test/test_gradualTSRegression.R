@@ -96,12 +96,6 @@ mape_dramas <- matrix(, nrow=0, ncol=3)
 mae_dramas <- matrix(, nrow=0, ncol=3)
 
 for (idx in 1:length(dramas)) {
-  # For simplicity, skip dramas that have any missing values
-  ratings <- dramas[[idx]][3]
-  if (any(is.na(ratings))) {
-    next
-  }
-
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
   
