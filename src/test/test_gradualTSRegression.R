@@ -1,6 +1,7 @@
 # Usage example on SET ratings data
 library(nnet)
 library(zoo)
+library(hydroGOF)  # For function mae()
 
 seed <- 0
 
@@ -91,7 +92,8 @@ results <- list()
 # It is a matrix of performance to run statistical test.
 #   Each row is the performance results of each drama for different algorithms.
 #   Number of columns is equal to the number of different algorithms.
-performance <- matrix(, nrow=0, ncol=3)
+mape_dramas <- matrix(, nrow=0, ncol=3)
+mae_dramas <- matrix(, nrow=0, ncol=3)
 
 for (idx in 1:length(dramas)) {
   # For simplicity, skip dramas that have any missing values
@@ -169,25 +171,41 @@ for (idx in 1:length(dramas)) {
   lines(ts(result2["TrainError"]), col="darkblue")
   lines(ts(result3["TestError"]), col="green")
   lines(ts(result3["TrainError"]), col="darkgreen")
-  result_mape <- mape(result["Prediction"], result[dramaName])
-  result2_mape <- mape(result2["Prediction"], result[dramaName])
-  result3_mape <- mape(result3["Prediction"], result[dramaName])
-  result_mape_display <- sprintf("nnet: %.3f", result_mape)
-  result2_mape_display <- sprintf("nnet+adaboostR2: %.3f", result2_mape)
-  result3_mape_display <- sprintf("nnet+trAdaboostR2: %.3f", result3_mape)
-  plot_legend <- c(result_mape_display,
-                   result2_mape_display,
-                   result3_mape_display,
+
+  # Calculate MAPE
+  mape_drama <- c(mape(result["Prediction"], result[dramaName]),
+                  mape(result2["Prediction"], result[dramaName]),
+                  mape(result3["Prediction"], result[dramaName]))
+
+  # Calculate MAE (mean absolute error= mean of |actual - predicted|)
+  mae_drama <- c(mae(result["Prediction"], result[dramaName]),
+                 mae(result2["Prediction"], result[dramaName]),
+                 mae(result3["Prediction"], result[dramaName]))
+
+  # Plot MAPE
+  mape_drama_display <- c(sprintf("nnet: %.3f", mape_drama[1]),
+                          sprintf("nnet+adaboostR2: %.3f", mape_drama[2]),
+                          sprintf("nnet+trAdaboostR2: %.3f", mape_drama[3]))
+  plot_legend <- c(mape_drama_display[1],
+                   mape_drama_display[2],
+                   mape_drama_display[3],
                    "red: nnet",
                    "blue: nnet+adaboostR2",
                    "green: nnet+trAdaboostR2",
                    "dark: train error")
   legend("topleft", legend=plot_legend, cex=0.7)
 
-  performance <- rbind(performance, c(result_mape, result2_mape, result3_mape))
+  mape_dramas <- rbind(mape_dramas, mape_drama)
+  mae_dramas <- rbind(mae_dramas, mae_drama)
 }
+# Fix duplicate row names
+rownames(mape_dramas) <- c(1:nrow(mape_dramas))
+rownames(mae_dramas) <- c(1:nrow(mae_dramas))
 
 # Run statistical signifance test
 # Note: When sourcing a script, output is printed only if with print() function.
-print(friedman.test(performance))
-print(quade.test(performance))
+print(friedman.test(mape_dramas))
+print(quade.test(mape_dramas))
+
+print(friedman.test(mae_dramas))
+print(quade.test(mae_dramas))
