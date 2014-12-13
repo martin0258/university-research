@@ -213,9 +213,10 @@ for (idx in 1:length(dramas)) {
   mape_dramas <- rbind(mape_dramas, mape_drama)
   mae_dramas <- rbind(mae_dramas, mae_drama)
 }
-# Fix duplicate row names
-rownames(mape_dramas) <- c(1:nrow(mape_dramas))
-rownames(mae_dramas) <- c(1:nrow(mae_dramas))
+rownames(mape_dramas) <- names(dramas)
+rownames(mae_dramas) <- names(dramas)
+colnames(mape_dramas) <- c('nnet', 'nnet+adaboostR2', 'nnet+trAdaboostR2')
+colnames(mae_dramas) <- c('nnet', 'nnet+adaboostR2', 'nnet+trAdaboostR2')
 
 # Run statistical signifance test
 # Note: When sourcing a script, output is printed only if with print() function.
