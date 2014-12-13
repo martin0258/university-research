@@ -1,3 +1,15 @@
+# Global parameters of this script.
+# If not set before sourcing this script, use default values as below.
+project_root <- ifelse(exists('project_root'),
+                       project_root,
+                       'D:/Projects/GitHub/ntu-research/')
+test_dramas_type <- ifelse(exists('test_dramas_type'),
+                           test_dramas_type,
+                           'Idol') # Or 'Chinese'
+has_features <- ifelse(exists('has_feautures'),
+                       has_features,
+                       FALSE)
+
 # Usage example on SET ratings data
 library(nnet)
 library(zoo)
@@ -5,8 +17,8 @@ library(hydroGOF)  # For function mae()
 
 seed <- 0
 
-# Change working directory to "ntu-research/"
-setwd('D:/Projects/GitHub/ntu-research/')
+# Change working directory to project root
+setwd(project_root)
 
 source("src/lib/windowing.R")
 source("src/lib/mape.R")
@@ -15,20 +27,23 @@ source("src/trAdaboostR2.R")
 source("src/gradualTSRegression.R")
 
 # Read ratings
-ratings <- read.csv("data/Chinese_Drama_Ratings_AnotherFormat.csv",
-                    fileEncoding="utf-8")
+ratings_file <- sprintf('data/%s_Drama_Ratings_AnotherFormat.csv',
+                        test_dramas_type)
+ratings <- read.csv(ratings_file, fileEncoding='utf-8')
 # Final output (ratings & features)
 data <- ratings
 
 # Read features and combine with ratings
-source("src/getFeature.R")
-featureFiles <- c("data/Chinese_Drama_Opinion.csv",
-                  "data/Chinese_Drama_GoogleTrend.csv",
-                  "data/Chinese_Drama_FB.csv")
-for (featureFile in featureFiles) {
-  feature <- read.csv(featureFile, fileEncoding="utf-8")
-  # left join automatically by common variables
-  data <- merge(data, feature, sort=F, all.x=TRUE)
+if (has_features) {
+  source("src/getFeature.R")
+  featureFiles <- c(sprintf('data/%s_Drama_Opinion.csv', test_dramas_type),
+                    sprintf('data/%s_Drama_GoogleTrend.csv', test_dramas_type),
+                    sprintf('data/%s_Drama_FB.csv', test_dramas_type))
+  for (featureFile in featureFiles) {
+    feature <- read.csv(featureFile, fileEncoding='utf-8')
+    # left join automatically by common variables
+    data <- merge(data, feature, sort=FALSE, all.x=TRUE)
+  }
 }
 
 # sort (for easy view)
