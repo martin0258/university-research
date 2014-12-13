@@ -91,9 +91,7 @@ gradualTSRegression <- function(x,
     # Something went wrong during training.
     if(inherits(model, "error"))
     {
-      result[testPeriod, "ErrorMsg"] <- c(phase='train',
-                                        period=testPeriod,
-                                        errMsg=paste(model))
+      result[testPeriod, "ErrorMsg"] <- paste('Training: ', model)
       # Skip testing phase
       next
     }
