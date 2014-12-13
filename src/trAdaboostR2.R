@@ -142,8 +142,8 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       if (length(last_two_errors) >= 2 &
           last_two_errors[2] > last_two_errors[1]) {
         # early stop
-        msg <- "Early termination at iteration %d because val error increases."
-        cat('\n', sprintf(msg, i))
+        msg <- "Training: Stop at itr %d because val error increases."
+        cat(sprintf(msg, i), '\n')
         break
       }
       pre_val_error <- val_error
@@ -157,8 +157,8 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       #   if the fit is perfect, store the predictor info and stop
       predictors[[i]] <- predictor
       predictor_weights[[i]] <- 1
-      msg <- "Early terminaion because fit at iteration %d is perfect."
-      cat('\n', sprintf(msg, i))
+      msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
+      cat(sprintf(msg, i), '\n')
       break
     }
     errors <- errors / errors_max
@@ -176,8 +176,8 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       # early termination:
       #   stop if the fit is too "terrible"
       #   TODO: fix the case of similar small errors
-      msg <- "Early termination at iteration %d because avg loss >= 0.5"
-      cat('\n', sprintf(msg, i))
+      msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
+      cat(sprintf(msg, i), '\n')
       break
     } else {
       beta_confidence <- avg_loss / (1 - avg_loss)
@@ -218,8 +218,7 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   return (final_predictor)
 }
 
-predict.trAdaboostR2 <- function( object, new_data,
-                                  verbose = TRUE ) {
+predict.trAdaboostR2 <- function( object, new_data, verbose = FALSE) {
   # Returns predictions for new data.
   #
   # Arguments:
@@ -245,11 +244,11 @@ predict.trAdaboostR2 <- function( object, new_data,
   }
 
   if (object$num_predictors == 0) {
-    cat('\n', 'No prediction because there is no base predictor.', '\n')
+    cat('Prediction: Unable to predict because of no base predictor.', '\n')
     return (rep(as.numeric(NA), nrow(new_data)))
   }
   # the newline is for beautifying testthat output
-  cat('\n')
+  #cat('\n')
 
   # build a prediction matrix: (row = cases, col = predictors)
   predictions <- vector()

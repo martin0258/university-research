@@ -2,12 +2,12 @@ library(nnet)
 library(Defaults)
 
 adaboostR2 <- function( formula, data,
-                       num_predictors = 50,
-                       learning_rate = 1,
-                       weighted_sampling = TRUE,
-                       loss = 'linear',
-                       verbose = FALSE,
-                       base_predictor = nnet, ... ) {
+                        num_predictors = 50,
+                        learning_rate = 1,
+                        weighted_sampling = TRUE,
+                        loss = 'linear',
+                        verbose = FALSE,
+                        base_predictor = nnet, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
   #  
@@ -92,8 +92,8 @@ adaboostR2 <- function( formula, data,
       #   if the fit is perfect, store the predictor info and stop
       predictors[[i]] <- predictor
       predictor_weights[[i]] <- 1
-      msg <- "Early terminaion because fit at iteration %d is perfect."
-      cat('\n', sprintf(msg, i))
+      msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
+      cat(sprintf(msg, i), '\n')
       break
     }
     errors <- errors / errors_max
@@ -111,8 +111,8 @@ adaboostR2 <- function( formula, data,
       # early termination:
       #   stop if the fit is too "terrible"
       #   TODO: fix the case of similar small errors
-      msg <- "Early termination at iteration %d because avg loss >= 0.5"
-      cat('\n', sprintf(msg, i))
+      msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
+      cat(sprintf(msg, i, avg_loss), '\n')
       break
     }
     else {
@@ -138,7 +138,7 @@ adaboostR2 <- function( formula, data,
   return (final_predictor)
 }
 
-predict.adaboostR2 <- function( object, new_data, verbose=F ) {
+predict.adaboostR2 <- function( object, new_data, verbose = FALSE ) {
   # Returns predictions for new data.
   
   # Arguments:
@@ -160,11 +160,11 @@ predict.adaboostR2 <- function( object, new_data, verbose=F ) {
   }
 
   if(object$num_predictors == 0) {
-    cat('\n', 'No prediction because there is no base predictor.', '\n')
+    cat('Prediction: Unable to predict because of no base predictor.', '\n')
     return (rep(as.numeric(NA), nrow(new_data)))
   }
   # the newline is for beautifying testthat output
-  cat('\n')
+  #cat('\n')
 
   # build a prediction matrix: (row = cases, col = predictors)
   predictions <- vector()

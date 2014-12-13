@@ -2,6 +2,7 @@ gradualTSRegression <- function(x,
                                 feature = NULL,
                                 source_data = NULL,
                                 windowLen = 4, n.ahead = 1,
+                                verbose = FALSE,
                                 predictor = lm, ...) {
   # Forecast time series via windowing transformation and regression.
   #
@@ -79,9 +80,9 @@ gradualTSRegression <- function(x,
         predictor(form,
                   source_data=source_data,
                   target_data=wData[trainIndex, ],
-                  val_data=wData[valIndex, ], ...)
+                  val_data=wData[valIndex, ], verbose=verbose, ...)
       } else {
-        predictor(form, wData[trainIndex, ], ...)
+        predictor(form, wData[trainIndex, ], verbose=verbose, ...)
       }
     }, error = function(err) {
       return(err)
@@ -110,10 +111,11 @@ gradualTSRegression <- function(x,
     result[testPeriod, "TrainError"] <- trainError
   }
   
-  # Recrod end execution time
+  # Record end execution time
   end <- proc.time()
+
+  time_spent <- end - start
   
-  cat("[Time Spent]\n")
-  print(end - start)
+  cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
   return(result)
 }

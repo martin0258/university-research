@@ -123,16 +123,22 @@ for (idx in 1:length(dramas)) {
   ratings <- dramas[[idx]][3]
 
   # Model: nnet
-  print(sprintf('Running nnet for %s......', dramaName))
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: nnet', dramaName), '\n')
   set.seed(seed)
   result <- gradualTSRegression(ratings, target_feature,
-                                predictor=nnet, size=3, linout=T, trace=F,
+                                predictor=nnet,
+                                size=3, linout=T, trace=F,
                                 rang=0.1, decay=1e-1, maxit=100)
   # Model: nnet + adaboostR2
-  print(sprintf('Running nnet + AdaBoost.R2 for %s......', dramaName))
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: nnet + AdaBoost.R2', dramaName), '\n')
   set.seed(seed)
   result2 <- gradualTSRegression(ratings, target_feature,
-                                 predictor=adaboostR2, base_predictor=nnet,
+                                 predictor=adaboostR2, verbose=T,
+                                 base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
 
@@ -166,13 +172,15 @@ for (idx in 1:length(dramas)) {
   src_data <- data.frame(src_data)
 
   # Model: nnet + trAdaBoostR2
-  print(sprintf('Running nnet + TrAdaBoost.R2 for %s......', dramaName))
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: nnet + TrAdaBoost.R2', dramaName), '\n')
   set.seed(seed)
   result3 <- gradualTSRegression(ratings, target_feature,
                                  source_data=src_data,
                                  predictor=trAdaboostR2,
                                  num_predictors=50,
-                                 verbose=F,
+                                 verbose=T,
                                  base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
