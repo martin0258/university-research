@@ -189,11 +189,11 @@ for (idx in 1:length(dramas)) {
 
   # Plot result
   plot(ts(result["TestError"]), main=dramaName, xlab="Episode", ylab="MAPE", col="red")
-  lines(ts(result["TrainError"]), col="darkred")
+  lines(ts(result["TrainError"]), col="red", type="b")
   lines(ts(result2["TestError"]), col="blue")
-  lines(ts(result2["TrainError"]), col="darkblue")
+  lines(ts(result2["TrainError"]), col="blue", type="b")
   lines(ts(result3["TestError"]), col="green")
-  lines(ts(result3["TrainError"]), col="darkgreen")
+  lines(ts(result3["TrainError"]), col="green", type="b")
 
   # Calculate MAPE
   mape_drama <- c(mape(result["Prediction"], result[dramaName]),
@@ -215,7 +215,7 @@ for (idx in 1:length(dramas)) {
                    "red: nnet",
                    "blue: nnet+adaboostR2",
                    "green: nnet+trAdaboostR2",
-                   "dark: train error")
+                   "-o-: train error")
   legend("topleft", legend=plot_legend, cex=0.7)
 
   mape_dramas <- rbind(mape_dramas, mape_drama)
