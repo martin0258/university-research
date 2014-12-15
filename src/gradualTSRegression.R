@@ -81,8 +81,10 @@ gradualTSRegression <- function(x,
                   source_data=source_data,
                   target_data=wData[trainIndex, ],
                   val_data=wData[valIndex, ], verbose=verbose, ...)
-      } else {
+      } else if (predictor_name == "adaboostR2") {
         predictor(form, wData[trainIndex, ], verbose=verbose, ...)
+      } else {
+        predictor(form, wData[trainIndex, ], ...)
       }
     }, error = function(err) {
       return(err)

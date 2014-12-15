@@ -112,8 +112,8 @@ results <- list()
 # It is a matrix of performance to run statistical test.
 #   Each row is the performance results of each drama for different algorithms.
 #   Number of columns is equal to the number of different algorithms.
-mape_dramas <- matrix(, nrow=0, ncol=3)
-mae_dramas <- matrix(, nrow=0, ncol=3)
+mape_dramas <- matrix(, nrow=0, ncol=5)
+mae_dramas <- matrix(, nrow=0, ncol=5)
 
 for (idx in 1:length(dramas)) {
   dramaName <- names(dramas)[idx]
@@ -141,6 +141,27 @@ for (idx in 1:length(dramas)) {
                                  base_predictor=nnet,
                                  size=3, linout=T, trace=F,
                                  rang=0.1, decay=1e-1, maxit=100)
+  
+  # Model: rpart
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: rpart', dramaName), '\n')
+  set.seed(seed)
+  library(rpart)
+  rp_control <- rpart.control(minsplit=2, maxdepth=4)
+  result_rp <- gradualTSRegression(ratings, target_feature,
+                                   predictor=rpart,
+                                   control=rp_control)
+
+  # Model: rpart + adaboostR2
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: rpart + AdaBoost.R2', dramaName), '\n')
+  set.seed(seed)
+  result_rp_ada <- gradualTSRegression(ratings, target_feature,
+                                       predictor=adaboostR2, verbose=T,
+                                       base_predictor=rpart,
+                                       control=rp_control)
 
   # Combine multiple sources into one data set:
   #   - Apply windowing transformation to each drama
@@ -194,27 +215,41 @@ for (idx in 1:length(dramas)) {
   lines(ts(result2["TrainError"]), col="blue", type="b")
   lines(ts(result3["TestError"]), col="green")
   lines(ts(result3["TrainError"]), col="green", type="b")
+  lines(ts(result_rp["TestError"]), col="orange")
+  lines(ts(result_rp["TrainError"]), col="orange", type="b")
+  lines(ts(result_rp_ada["TestError"]), col="purple")
+  lines(ts(result_rp_ada["TrainError"]), col="purple", type="b")
 
   # Calculate MAPE
   mape_drama <- c(mape(result["Prediction"], result[dramaName]),
                   mape(result2["Prediction"], result[dramaName]),
-                  mape(result3["Prediction"], result[dramaName]))
+                  mape(result3["Prediction"], result[dramaName]),
+                  mape(result_rp["Prediction"], result[dramaName]),
+                  mape(result_rp_ada["Prediction"], result[dramaName]))
 
   # Calculate MAE (mean absolute error= mean of |actual - predicted|)
   mae_drama <- c(mae(result["Prediction"], result[dramaName]),
                  mae(result2["Prediction"], result[dramaName]),
-                 mae(result3["Prediction"], result[dramaName]))
+                 mae(result3["Prediction"], result[dramaName]),
+                 mae(result_rp["Prediction"], result[dramaName]),
+                 mae(result_rp_ada["Prediction"], result[dramaName]))
 
   # Plot MAPE
   mape_drama_display <- c(sprintf("nnet: %.3f", mape_drama[1]),
                           sprintf("nnet+adaboostR2: %.3f", mape_drama[2]),
-                          sprintf("nnet+trAdaboostR2: %.3f", mape_drama[3]))
+                          sprintf("nnet+trAdaboostR2: %.3f", mape_drama[3]),
+                          sprintf("rpart: %.3f", mape_drama[4]),
+                          sprintf("rpart+adaboostR2: %.3f", mape_drama[5]))
   plot_legend <- c(mape_drama_display[1],
                    mape_drama_display[2],
                    mape_drama_display[3],
+                   mape_drama_display[4],
+                   mape_drama_display[5],
                    "red: nnet",
                    "blue: nnet+adaboostR2",
                    "green: nnet+trAdaboostR2",
+                   "orange: rpart",
+                   "purple: rpart+adaboostR2",
                    "-o-: train error")
   legend("topleft", legend=plot_legend, cex=0.7)
 
@@ -223,8 +258,10 @@ for (idx in 1:length(dramas)) {
 }
 rownames(mape_dramas) <- names(dramas)
 rownames(mae_dramas) <- names(dramas)
-colnames(mape_dramas) <- c('nnet', 'nnet+adaboostR2', 'nnet+trAdaboostR2')
-colnames(mae_dramas) <- c('nnet', 'nnet+adaboostR2', 'nnet+trAdaboostR2')
+colnames_models <- c('nnet', 'nnet+adaboostR2', 'nnet+trAdaboostR2',
+                     'rpart', 'rpart+adaboostR2')
+colnames(mape_dramas) <- colnames_models
+colnames(mae_dramas) <- colnames_models
 
 # Run statistical signifance test
 # Note: When sourcing a script, output is printed only if with print() function.
