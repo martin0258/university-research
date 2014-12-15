@@ -62,12 +62,16 @@ adaboostR2 <- function( formula, data,
   predictors <- list()
   predictor_weights <- list()
   avg_losses <- list()
+
+  form <- as.formula(formula, env=environment())
+  # get dependent variable name from formula
+  # TODO: consider the case of multiple responses
+  response <- all.vars(form[[2]])
   
   # set initial data weights
   num_cases <- nrow(data)
   data_weights <- rep(1 / num_cases, num_cases)
   
-  form <- as.formula(formula, env=environment())
   for(i in 1:num_predictors)
   {
     # train a weak hypothesis of base predictor
@@ -87,9 +91,7 @@ adaboostR2 <- function( formula, data,
     }
 
     prediction <- predict(predictor, data)
-    # get dependent variable name from formula
-    # what if there are multiple responses?
-    response <- all.vars(form[[2]])
+
     errors <- abs(prediction - data[response])
     errors_max <- max(errors, na.rm = TRUE)
     if(errors_max == 0) {

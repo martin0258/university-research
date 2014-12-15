@@ -21,13 +21,14 @@ data <- data.frame(y, x)
 # nn <- nnet(y~., data, size=1, linout=TRUE, rang=0.1, decay=5e-4, maxit=200, trace=FALSE)
 # prediction_nn <- predict(nn, data['x'])
 
-# tune nnet
+# tune nnet: "size" and "decay"
 nn_t <- train(y~., data, method='nnet', linout=TRUE, trace=FALSE)
 prediction_nn_t <- predict(nn_t, data['x'])
 
 # train AdaBoost.R2 with nnet
-# tune "size" and "decay"
-ada_nn <- adaboostR2(y~., data, num_predictors=300, verbose=TRUE, base_predictor=nnet,
+ada_nn <- adaboostR2(y~., data, num_predictors=300, verbose=TRUE,
+                     weighted_sampling=TRUE,
+                     base_predictor=nnet,
                      linout=TRUE, trace=FALSE,
                      size=nn_t$bestTune$size, decay=nn_t$bestTune$size)
 prediction_ada_nn <- predict(ada_nn, data['x'])
@@ -36,14 +37,17 @@ prediction_ada_nn <- predict(ada_nn, data['x'])
 # rp <- rpart(y~., data)
 # prediction_rp <- predict(rp, data['x'])
 
-# tune regression tree
-# tune "max depth"
-rp_t <- train(y~., data, method='rpart2', tuneLength=6)
+# tune regression tree: "max depth"
+# Note: The key to get good performance here is to set minsplit small enough!!
+r_control <- rpart.control(minsplit=2)
+rp_t <- train(y~., data, method='rpart2', tuneLength=4, control=r_control)
 prediction_rp_t <- predict(rp_t, data['x'])
 
 # train AdaBoost.R2 with regression tree
-ada_rp <- adaboostR2(y~., data, num_predictors=300, verbose=TRUE, base_predictor=rpart,
-                     maxdepth=rp_t$bestTune$maxdepth)
+ada_rp <- adaboostR2(y~., data, num_predictors=300, verbose=TRUE,
+                     weighted_sampling=TRUE,
+                     base_predictor=rpart,
+                     maxdepth=rp_t$bestTune$maxdepth, control=r_control)
 prediction_ada_rp <- predict(ada_rp, data['x'])
 
 # plot dataset
