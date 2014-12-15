@@ -78,7 +78,12 @@ adaboostR2 <- function( formula, data,
       bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
       predictor <- base_predictor(form, data[bootstrap_idx, ], ...)
     }else {
-      predictor <- base_predictor(form, data, weights=data_weights, ...)
+      # By using do.call can resolve the env scope issue of 'weights'
+      # Reference: http://stackoverflow.com/a/6957900
+      predictor <- do.call(base_predictor,
+                           list(formula=form,
+                                data=data,
+                                weights=data_weights, ...))
     }
 
     prediction <- predict(predictor, data)
