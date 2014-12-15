@@ -3,6 +3,10 @@
 
 library(nnet)
 library(caret)
+# Set working dir to current file location
+# Ref: http://stackoverflow.com/a/25995989
+this.dir <- dirname(parent.frame(2)$ofile)
+setwd(this.dir)
 source("../adaboostR2.R")
 
 set.seed(1)
