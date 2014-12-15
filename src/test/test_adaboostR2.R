@@ -1,141 +1,54 @@
-library(testthat)
-context("Test transfer learning algorithms with UCI data")
+# Test AdaBoost.R2 with 1D sinusoidal dataset with Gaussian noise.
+# Ref: http://scikit-learn.org/stable/auto_examples/ensemble/plot_adaboost_regression.html
+
+library(nnet)
 source("../adaboostR2.R")
-source("../trAdaboostR2.R")
-library(pracma)
 
-# Precondition: 
-#   - The current working directory must be the root of the project.
+set.seed(1)
 
-seed <- 0
+# create the dataset
+num_cases <- 100
+x <- seq(from=0, to=6, length.out=num_cases)
+y <- sin(x) + sin(6 * x) + rnorm(num_cases, mean=0, sd=0.1)
+data <- data.frame(y, x)
 
-uci_test <- function(file_prefix, predictor, ...) {
-  folder <- '../../data/transfer data/'
-  files <- paste(folder, file_prefix, seq(1, 3), '.arff', sep='')
-  response <- 'my_res'
+# train nnet
+nn <- nnet(y~., data, size=1, linout=TRUE, rang=0.1, decay=5e-4, maxit=200, trace=FALSE)
+prediction_nn <- predict(nn, data['x'])
 
-  # read and preprocess data
-  library(foreign)
-  uci_data <- list()
-  for(file in files) {
-    data <- read.arff(file)
+# train AdaBoost.R2 with nnet
+ada_nn <- adaboostR2(y~., data, num_predictors=300, verbose=TRUE, base_predictor=nnet,
+                     size=1, linout=TRUE, rang=0.1, decay=5e-4, maxit=200, trace=FALSE)
+prediction_ada_nn <- predict(ada_nn, data['x'])
 
-    # ignore cases having missing values
-    data <- na.omit(data)
+# train regression tree
+rp <- rpart(y~., data)
+prediction_rp <- predict(rp, data['x'])
 
-    idx <- length(uci_data) + 1
-    names(data)[ncol(data)] <- response
-    uci_data[[idx]] <- data
-  }
+# train AdaBoost.R2 with regression tree
+ada_rp <- adaboostR2(y~., data, num_predictors=300, verbose=TRUE, base_predictor=rpart)
+prediction_ada_rp <- predict(ada_rp, data['x'])
 
-  # run 3 experiments (with different target sets)
-  training_rmse <- vector()
-  testing_rmse <- vector()
-  for(i in 1:length(uci_data)) {
-    # prepare training data
-    uci_train_data <- vector()
-    train_data_idx <- 1:length(uci_data)
-    train_data_idx <- train_data_idx[- i]
-    for(j in train_data_idx) {
-      uci_train_data <- rbind(uci_train_data, uci_data[[j]])
-    }
+# plot dataset
+plot(x, y, type='b', main='AdaBoost.R2 with 1D sinusoidal dataset with Gaussian noise',
+     xlab='data - x', ylab='data - y')
+# plot prediction
+points(x, prediction_nn, type='b', col='blue')
+points(x, prediction_ada_nn, type='b', col='red')
+points(x, prediction_rp, type='b', col='green')
+points(x, prediction_ada_rp, type='b', col='orange')
+legends <- c('training data',
+             'nnet', 'AdaBoost.R2+nnet',
+             'rpart', 'AdaBoost.R2+rpart')
+legend('topright', legend=legends,
+       col=c('black', 'blue', 'red', 'green', 'orange'),
+       cex=0.7, pch=21, lty=1)
 
-    # prepare source data (for transfer learning algorithm)
-    uci_train_src_data <- uci_train_data
-    
-    # add training instances from target data set
-    num_training_from_target <- 25
-    train_from_target <- uci_data[[i]][1:num_training_from_target, ]
-    uci_train_data <- rbind(uci_train_data, train_from_target)
-    
-    # prepare target data (for transfer learning algorithm)
-    uci_train_target_data <- train_from_target
-    
-    # prepare testing data
-    uci_test_data <- uci_data[[i]][-1:-num_training_from_target, ]
-    num_test_cases <- nrow(uci_test_data)
-    num_features <- ncol(uci_data[[i]]) - 1
-    formula <- as.formula(sprintf('%s ~ .', response))
-    
-    # fit with training data
-    predictor_name <- as.character(substitute(predictor))
-    if (predictor_name == "trAdaboostR2") {
-      fit <- predictor(formula,
-                       source_data=uci_train_src_data,
-                       target_data=uci_train_target_data, ...)
-    } else {
-      fit <- predictor(formula, uci_train_data, ...)
-    }
-    
-    # predict on training & testing data
-    train_prediction <- predict(fit, uci_train_data)
-    test_prediction <- predict(fit, uci_test_data)
-    
-    test_errors <- rmserr(test_prediction, uci_test_data[[response]])
-    train_errors <- rmserr(train_prediction, uci_train_data[[response]])
-    training_rmse <- c(training_rmse, round(train_errors$rmse, 2))
-    testing_rmse <- c(testing_rmse, round(test_errors$rmse, 2))
-  }
-  cat(' Training RMSE: ', paste(training_rmse, collapse=' | '), '\n')
-  cat(' Testing  RMSE: ', paste(testing_rmse, collapse=' | '), '\n')
-}
-
-
-# TODO: avoid declaring duplicate nnet parameters in every test
-
-test_that('UCI Conrete Length data', {
-  file_prefix <- 'new-concrete'
-  set.seed(seed)
-  cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
-  
-  cat(sprintf('-- Model: nnet -----------------------'), '\n')
-  uci_test(file_prefix, nnet, size=7, linout=T, trace=F)
-  
-  cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, adaboostR2, size=7, linout=T, trace=F)
-  
-  cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, trAdaboostR2, size=7, linout=T, trace=F)
-})
-
-test_that('UCI Housing data', {
-  file_prefix <- 'new-housing'
-  set.seed(seed)
-  cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
-  
-  cat(sprintf('-- Model: nnet -----------------------'), '\n')
-  uci_test(file_prefix, nnet, size=12, linout=T, trace=F)
-  
-  cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, adaboostR2, size=12, linout=T, trace=F)
-  
-  cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, trAdaboostR2, size=12, linout=T, trace=F)
-})
-
-test_that('UCI Auto MPG data', {
-  file_prefix <- 'new-autompg'
-  set.seed(seed)
-  cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
-  
-  cat(sprintf('-- Model: nnet -----------------------'), '\n')
-  uci_test(file_prefix, nnet, size=6, linout=T, trace=F)
-  
-  cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, adaboostR2, size=6, linout=T, trace=F)
-  
-  cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, trAdaboostR2, size=6, linout=T, trace=F)
-})
-
-# TODO: fix error "factor c has new levels chevrolet, honda"
-# test_that('UCI Automobile data', {
-#   file_prefix <- 'new-imports'
-#   set.seed(seed)
-#   cat(sprintf('-- Data: %s -----------------------', file_prefix), '\n')
-#   cat(sprintf('-- Model: nnet -----------------------'), '\n')
-#   # TODO: avoid declaring duplicate parameters
-#   uci_test(file_prefix, nnet, size=24, linout=T, trace=F, MaxNWts=2000)
-#   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-#   uci_test(file_prefix, adaboostR2, size=24, linout=T, trace=F, MaxNWts=2000)
-# })
+# goodness of fit
+library(hydroGOF)
+performance <- data.frame(gof(prediction_nn, data['y']),
+                          gof(prediction_ada_nn, data[, 'y']),
+                          gof(prediction_rp, data[, 'y']),
+                          gof(prediction_ada_rp, data[, 'y']))
+colnames(performance) <- c('nn', 'ada_nn', 'rp', 'ada_rp')
+print(performance)
