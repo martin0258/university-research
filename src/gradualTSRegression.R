@@ -84,7 +84,8 @@ gradualTSRegression <- function(x,
       } else if (predictor_name == "adaboostR2") {
         predictor(form, wData[trainIndex, ], verbose=verbose, ...)
       } else {
-        predictor(form, wData[trainIndex, ], ...)
+        # Use do.call to easily add new model in test_gradualTSRegression.R
+        do.call(predictor, args=list(formula=form, data=wData[trainIndex, ], ...))
       }
     }, error = function(err) {
       return(err)

@@ -12,6 +12,7 @@ has_features <- ifelse(exists('has_feautures'),
 
 # Usage example on SET ratings data
 library(nnet)
+library(rpart)
 library(zoo)
 library(hydroGOF)  # For function mae()
 
@@ -127,10 +128,13 @@ for (idx in 1:length(dramas)) {
   cat('Starting experiment...', '\n')
   cat(sprintf('Drama: %s, Model: nnet', dramaName), '\n')
   set.seed(seed)
-  result <- gradualTSRegression(ratings, target_feature,
-                                predictor=nnet,
-                                size=3, linout=T, trace=F,
-                                rang=0.1, decay=1e-1, maxit=100)
+  base_predictor_args <- list(predictor='nnet',
+                              size=3, linout=T, trace=F,
+                              rang=0.1, decay=1e-1, maxit=100)
+  args <- c(list(x=ratings, feature=target_feature), base_predictor_args)
+  # Use do.call to easily add new model in test_gradualTSRegression.R
+  result <- do.call(gradualTSRegression, args=args)
+
   # Model: nnet + adaboostR2
   cat('--------------------', '\n')
   cat('Starting experiment...', '\n')
@@ -147,7 +151,6 @@ for (idx in 1:length(dramas)) {
   cat('Starting experiment...', '\n')
   cat(sprintf('Drama: %s, Model: rpart', dramaName), '\n')
   set.seed(seed)
-  library(rpart)
   rp_control <- rpart.control(minsplit=2, maxdepth=4)
   result_rp <- gradualTSRegression(ratings, target_feature,
                                    predictor=rpart,
