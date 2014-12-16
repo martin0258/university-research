@@ -2,6 +2,7 @@
 # Ref: http://scikit-learn.org/stable/auto_examples/ensemble/plot_adaboost_regression.html
 
 library(nnet)
+library(rpart)
 library(caret)
 # Set working dir to current file location
 # Ref: http://stackoverflow.com/a/25995989
