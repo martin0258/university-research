@@ -127,9 +127,16 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       # we can do weighted sampling of the training set with replacement,
       # and fit on the bootstrapped sample and obtain a prediction.
       bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
-      predictor <- base_predictor(form, data[bootstrap_idx, ], ...)
+      predictor <- do.call(base_predictor,
+                           args=list(formula=form,
+                           data=data[bootstrap_idx, ], ...))
     } else {
-      predictor <- base_predictor(form, data, weights=data_weights, ...)
+      # By using do.call can resolve the env scope issue of 'weights'
+      # Reference: http://stackoverflow.com/a/6957900
+      predictor <- do.call(base_predictor,
+                           list(formula=form,
+                                data=data,
+                                weights=data_weights, ...))
     }
 
     # predict on validation data (if any)

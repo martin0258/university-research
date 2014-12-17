@@ -1,3 +1,10 @@
+# This script is a test of SET TVR data
+# It tests performance in terms of different algorithms
+# To be specific, it tests the following learning algorithms:
+#   - weak learner (nnet and rpart for default)
+#   - AdaBoost.R2 (weak learner)
+#   - TrAdaBoost.R2 (weak learner)
+
 # Global parameters of this script.
 # If not set before sourcing this script, use default values as below.
 project_root <- ifelse(exists('project_root'),
@@ -9,23 +16,35 @@ test_dramas_type <- ifelse(exists('test_dramas_type'),
 has_features <- ifelse(exists('has_feautures'),
                        has_features,
                        FALSE)
+seed <- ifelse(exists('seed'), seed, 0)
+if (!exists('base_predictors_args')) {
+  base_predictors_args <-list(
+                              list(
+                                   predictor='nnet',
+                                   size=3, linout=T, trace=F,
+                                   rang=0.1, decay=1e-1, maxit=100
+                                  ),
+                              list(
+                                   predictor='rpart',
+                                   minsplit=2, maxdepth=4
+                                  )
+                             )
+}
 
-# Usage example on SET ratings data
 library(nnet)
 library(rpart)
-library(zoo)
 library(hydroGOF)  # For function mae()
 
-seed <- 0
-
-# Change working directory to project root
+# Change working directory to project root to source following libs
 setwd(project_root)
-
 source("src/lib/windowing.R")
 source("src/lib/mape.R")
 source("src/adaboostR2.R")
 source("src/trAdaboostR2.R")
 source("src/gradualTSRegression.R")
+
+# Record script start time for calculating time spent afterwards
+start_time <- proc.time()
 
 # Read ratings
 ratings_file <- sprintf('data/%s_Drama_Ratings_AnotherFormat.csv',
@@ -105,16 +124,33 @@ for (idx in 1:length(dramas)) {
   dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]), ]
 }
 
-# It is a list of data frames.
-#   Each data frame represents the results of a drama with 5 columns.
-#   Each row has ratings, prediction, test error, train error and error message for each episode.
+# It is a list of data frames (each is returned from gradualTSRegression).
+#   Each data frame represents the results of a drama.
+#   Each row has the following column for each episode: 
+#     1. ratings
+#     2. test prediction
+#     3. train prediction
+#     4. test error
+#     4. train error
+#     5. error message
 results <- list()
 
 # It is a matrix of performance to run statistical test.
 #   Each row is the performance results of each drama for different algorithms.
 #   Number of columns is equal to the number of different algorithms.
-mape_dramas <- matrix(, nrow=0, ncol=5)
-mae_dramas <- matrix(, nrow=0, ncol=5)
+num_models <- length(base_predictors_args) * 3
+mape_dramas <- matrix(, nrow=0, ncol=num_models)
+mae_dramas <- matrix(, nrow=0, ncol=num_models)
+models_names <- c()
+for (base_predictor_args in base_predictors_args) {
+  base_predictor_name <- base_predictor_args$predictor
+  models_names <- c(models_names,
+                    sprintf('%s', base_predictor_name),
+                    sprintf('adaboostR2(%s)', base_predictor_name),
+                    sprintf('trAdaboostR2(%s)', base_predictor_name))
+}
+colnames(mape_dramas) <- models_names
+colnames(mae_dramas) <- models_names
 
 for (idx in 1:length(dramas)) {
   dramaName <- names(dramas)[idx]
@@ -122,149 +158,117 @@ for (idx in 1:length(dramas)) {
   
   target_feature <- dramas[[idx]][, -c(1, 2, 3)]
   ratings <- dramas[[idx]][3]
-
-  # Model: nnet
-  cat('--------------------', '\n')
-  cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: nnet', dramaName), '\n')
-  set.seed(seed)
-  base_predictor_args <- list(predictor='nnet',
-                              size=3, linout=T, trace=F,
-                              rang=0.1, decay=1e-1, maxit=100)
-  args <- c(list(x=ratings, feature=target_feature), base_predictor_args)
-  # Use do.call to easily add new model in test_gradualTSRegression.R
-  result <- do.call(gradualTSRegression, args=args)
-
-  # Model: nnet + adaboostR2
-  cat('--------------------', '\n')
-  cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: nnet + AdaBoost.R2', dramaName), '\n')
-  set.seed(seed)
-  result2 <- gradualTSRegression(ratings, target_feature,
-                                 predictor=adaboostR2, verbose=T,
-                                 base_predictor=nnet,
-                                 size=3, linout=T, trace=F,
-                                 rang=0.1, decay=1e-1, maxit=100)
   
-  # Model: rpart
-  cat('--------------------', '\n')
-  cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: rpart', dramaName), '\n')
-  set.seed(seed)
-  rp_control <- rpart.control(minsplit=2, maxdepth=4)
-  result_rp <- gradualTSRegression(ratings, target_feature,
-                                   predictor=rpart,
-                                   control=rp_control)
+  for (base_predictor_args in base_predictors_args) {
+    # Experiment 1: base predictor only
+    set.seed(seed)
 
-  # Model: rpart + adaboostR2
-  cat('--------------------', '\n')
-  cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: rpart + AdaBoost.R2', dramaName), '\n')
-  set.seed(seed)
-  result_rp_ada <- gradualTSRegression(ratings, target_feature,
-                                       predictor=adaboostR2, verbose=T,
-                                       base_predictor=rpart,
-                                       control=rp_control)
+    cat('--------------------', '\n')
+    cat('Starting experiment...', '\n')
+    cat(sprintf('Drama: %s, Model: %s',
+                dramaName, base_predictor_args$predictor), '\n')
+    
+    # Use do.call to easily add new base predictor
+    args <- c(list(x=ratings, feature=target_feature), base_predictor_args)
+    result <- do.call(gradualTSRegression, args=args)
+    results[[length(results) + 1]] <- result
+    
+    # Experiment break between 1 & 2: Adjust args for AdaBoost.R2/TrAdaBoost.R2
+    # Add a new arg and remove old arg
+    base_predictor_args['base_predictor'] <- base_predictor_args$predictor
+    base_predictor_args['predictor'] <- NULL
+    
+    # Experiment 2: AdaBoost.R2 with base predictor
+    set.seed(seed)
 
-  # Combine multiple sources into one data set:
-  #   - Apply windowing transformation to each drama
-  #   - Bind data.
-  window_len <- 4
-  src_indices <- 1:length(dramas)
-  src_indices <- src_indices[-idx]
-  src_data <- c()  # An empty data frame?
-  for (src_idx in src_indices) {
-    # Form windowing data
-    src_drama_name <- names(dramas)[src_idx]
-    colnames(dramas[[src_idx]])[3] <- src_drama_name
-    src_drama <- dramas[[src_idx]][src_drama_name]
-    w_data <- windowing(src_drama, window_len)
+    cat('--------------------', '\n')
+    cat('Starting experiment...', '\n')
+    cat(sprintf('Drama: %s, Model: AdaBoost.R2(%s)',
+                dramaName, base_predictor_args$base_predictor), '\n')
+    
+    args <- c(list(x=ratings, feature=target_feature,
+                   predictor='adaboostR2', verbose=T), base_predictor_args)
+    result <- do.call(gradualTSRegression, args=args)
+    results[[length(results) + 1]] <- result
+    
+    # Experiment 3: TrAdaBoost.R2 with base predictor
+    
+    # Prepare data set for TrAdaBoost.R2
+    # Combine multiple sources into one data set:
+    #   - Apply windowing transformation to each drama
+    #   - Bind data
+    window_len <- 4
+    src_indices <- 1:length(dramas)
+    src_indices <- src_indices[-idx]
+    src_data <- c()  # An empty data frame?
+    for (src_idx in src_indices) {
+      # Form windowing data
+      src_drama_name <- names(dramas)[src_idx]
+      colnames(dramas[[src_idx]])[3] <- src_drama_name
+      src_drama <- dramas[[src_idx]][src_drama_name]
+      w_data <- windowing(src_drama, window_len)
+  
+      num_cases <- nrow(w_data)
+  
+      # Extra: Add time period as a feature into windowing data
+#       time_periods <- seq(window_len, num_cases + window_len - 1)
+#       w_data <- cbind(time_periods, w_data)
+  
+      # Add other features into windowing data
+      features <- tail(dramas[[src_idx]][, -c(1, 2, 3)], num_cases)
+      w_data <- cbind(features, w_data)
+  
+      # Bind windowing data
+      src_data <- rbind(w_data, src_data)
+    }
+    src_data <- data.frame(src_data)
 
-    num_cases <- nrow(w_data)
-
-#     # Add time period as a feature into windowing data
-#     time_periods <- seq(window_len, num_cases + window_len - 1)
-#     w_data <- cbind(time_periods, w_data)
-
-    # Add other features into windowing data
-    features <- tail(dramas[[src_idx]][, -c(1, 2, 3)], num_cases)
-    w_data <- cbind(features, w_data)
-
-    # Bind windowing data
-    src_data <- rbind(w_data, src_data)
+    set.seed(seed)
+    cat('--------------------', '\n')
+    cat('Starting experiment...', '\n')
+    cat(sprintf('Drama: %s, Model: TrAdaBoost.R2(%s)',
+                dramaName, base_predictor_args$base_predictor), '\n')
+    args <- c(list(x=ratings, feature=target_feature, source_data=src_data,
+                   predictor='trAdaboostR2', num_predictors=50, verbose=T),
+              base_predictor_args)
+    result <- do.call(gradualTSRegression, args=args)
+    results[[length(results) + 1]] <- result
   }
-  src_data <- data.frame(src_data)
 
-  # Model: nnet + trAdaBoostR2
-  cat('--------------------', '\n')
-  cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: nnet + TrAdaBoost.R2', dramaName), '\n')
-  set.seed(seed)
-  result3 <- gradualTSRegression(ratings, target_feature,
-                                 source_data=src_data,
-                                 predictor=trAdaboostR2,
-                                 num_predictors=50,
-                                 verbose=T,
-                                 base_predictor=nnet,
-                                 size=3, linout=T, trace=F,
-                                 rang=0.1, decay=1e-1, maxit=100)
-
-  results[[idx]] <- result3
-
-  # Plot result
-  plot(ts(result["TestError"]), main=dramaName, xlab="Episode", ylab="MAPE", col="red")
-  lines(ts(result["TrainError"]), col="red", type="b")
-  lines(ts(result2["TestError"]), col="blue")
-  lines(ts(result2["TrainError"]), col="blue", type="b")
-  lines(ts(result3["TestError"]), col="green")
-  lines(ts(result3["TrainError"]), col="green", type="b")
-  lines(ts(result_rp["TestError"]), col="orange")
-  lines(ts(result_rp["TrainError"]), col="orange", type="b")
-  lines(ts(result_rp_ada["TestError"]), col="purple")
-  lines(ts(result_rp_ada["TrainError"]), col="purple", type="b")
-
-  # Calculate MAPE
-  mape_drama <- c(mape(result["Prediction"], result[dramaName]),
-                  mape(result2["Prediction"], result[dramaName]),
-                  mape(result3["Prediction"], result[dramaName]),
-                  mape(result_rp["Prediction"], result[dramaName]),
-                  mape(result_rp_ada["Prediction"], result[dramaName]))
-
-  # Calculate MAE (mean absolute error= mean of |actual - predicted|)
-  mae_drama <- c(mae(result["Prediction"], result[dramaName]),
-                 mae(result2["Prediction"], result[dramaName]),
-                 mae(result3["Prediction"], result[dramaName]),
-                 mae(result_rp["Prediction"], result[dramaName]),
-                 mae(result_rp_ada["Prediction"], result[dramaName]))
-
-  # Plot MAPE
-  mape_drama_display <- c(sprintf("nnet: %.3f", mape_drama[1]),
-                          sprintf("nnet+adaboostR2: %.3f", mape_drama[2]),
-                          sprintf("nnet+trAdaboostR2: %.3f", mape_drama[3]),
-                          sprintf("rpart: %.3f", mape_drama[4]),
-                          sprintf("rpart+adaboostR2: %.3f", mape_drama[5]))
-  plot_legend <- c(mape_drama_display[1],
-                   mape_drama_display[2],
-                   mape_drama_display[3],
-                   mape_drama_display[4],
-                   mape_drama_display[5],
-                   "red: nnet",
-                   "blue: nnet+adaboostR2",
-                   "green: nnet+trAdaboostR2",
-                   "orange: rpart",
-                   "purple: rpart+adaboostR2",
-                   "-o-: train error")
-  legend("topleft", legend=plot_legend, cex=0.7)
-
+  # Calculate MAPE & MAE
+  mape_drama <- c()
+  mae_drama <- c()
+  for (result in tail(results, num_models)) {
+    mape_drama <- c(mape_drama, mape(result['Prediction'], ratings))
+    mae_drama <- c(mae_drama, mae(result['Prediction'], ratings))
+  }
   mape_dramas <- rbind(mape_dramas, mape_drama)
   mae_dramas <- rbind(mae_dramas, mae_drama)
+
+  # Plot result
+  color_idx <- 0
+  colors <- rainbow(num_models) 
+  for (result in tail(results, num_models)) {
+    color_idx <- color_idx + 1
+    color <- colors[color_idx]
+    if (color_idx == 1) {
+      # Note: Draw bigger values first to make plot more readable
+      # In most cases, testing errors are bigger than training errors
+      plot(ts(result['TestError']), col=color, xlab='', ylab='', type='o')
+      title(main=dramaName, xlab='Episode', ylab='MAPE')
+      lines(ts(result['TrainError']), col=color, lty=2)
+    } else {
+      lines(ts(result['TestError']), col=color, type='o')
+      lines(ts(result['TrainError']), col=color, lty=2)
+    }
+  }
+  legend('topleft', legend=paste(models_names, ': ', mape_drama, sep=''),
+         pch=21, lty=1, col=colors, cex=0.7)
+  legend('bottomleft', legend=c('training', 'testing'),
+         pch=c(NA, 21), lty=c(2, 1))
 }
 rownames(mape_dramas) <- names(dramas)
 rownames(mae_dramas) <- names(dramas)
-colnames_models <- c('nnet', 'nnet+adaboostR2', 'nnet+trAdaboostR2',
-                     'rpart', 'rpart+adaboostR2')
-colnames(mape_dramas) <- colnames_models
-colnames(mae_dramas) <- colnames_models
 
 # Run statistical signifance test
 # Note: When sourcing a script, output is printed only if with print() function.
@@ -273,3 +277,8 @@ print(quade.test(mape_dramas))
 
 print(friedman.test(mae_dramas))
 print(quade.test(mae_dramas))
+
+# Print total time spent
+end_time <- proc.time()
+time_spent <- end_time - start_time
+cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')

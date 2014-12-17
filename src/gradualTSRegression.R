@@ -31,6 +31,7 @@ gradualTSRegression <- function(x,
   
   # Initialize a data instructure storing input data and result
   result <- data.frame(x)
+  rownames(result) <- seq(1, nrow(result))
 
   # Add new columns for storing result
   result[, "Prediction"] <- NA
@@ -75,16 +76,17 @@ gradualTSRegression <- function(x,
     # Training phase
     model <- tryCatch({
       form <- as.formula("Y~.")
-      predictor_name <- as.character(substitute(predictor))
-      if (predictor_name == "trAdaboostR2") {
-        predictor(form,
-                  source_data=source_data,
-                  target_data=wData[trainIndex, ],
-                  val_data=wData[valIndex, ], verbose=verbose, ...)
-      } else if (predictor_name == "adaboostR2") {
-        predictor(form, wData[trainIndex, ], verbose=verbose, ...)
+      # Use do.call to easily add new model in test_gradualTSRegression.R
+      if (predictor == "trAdaboostR2") {
+        do.call(predictor, args=list(formula=form,
+                                     source_data=source_data,
+                                     target_data=wData[trainIndex, ],
+                                     val_data=wData[valIndex, ], verbose=verbose, ...))
+      } else if (predictor == "adaboostR2") {
+        do.call(predictor, args=list(formula=form,
+                                     data=wData[trainIndex, ],
+                                     verbose=verbose, ...))
       } else {
-        # Use do.call to easily add new model in test_gradualTSRegression.R
         do.call(predictor, args=list(formula=form, data=wData[trainIndex, ], ...))
       }
     }, error = function(err) {
