@@ -34,6 +34,7 @@ if (!exists('base_predictors_args')) {
 library(nnet)
 library(rpart)
 library(hydroGOF)  # For function mae()
+library(doParallel)
 
 # Change working directory to project root to source following libs
 setwd(project_root)
@@ -42,6 +43,9 @@ source("src/lib/mape.R")
 source("src/adaboostR2.R")
 source("src/trAdaboostR2.R")
 source("src/gradualTSRegression.R")
+
+# Set up parallel computing
+registerDoParallel(cores=detectCores())
 
 # Record script start time for calculating time spent afterwards
 start_time <- proc.time()
@@ -152,7 +156,8 @@ for (base_predictor_args in base_predictors_args) {
 colnames(mape_dramas) <- models_names
 colnames(mae_dramas) <- models_names
 
-for (idx in 1:length(dramas)) {
+# There are many unresolved issues of using %dopar%
+foreach (idx = 1:length(dramas)) %do% {
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
   
