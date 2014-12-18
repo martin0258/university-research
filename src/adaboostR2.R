@@ -1,13 +1,17 @@
-library(nnet)
+library(rpart)
 library(Defaults)
+library(e1071)    # for parameter tuning
+library(hydroGOF) # for default error_fun
 
 adaboostR2 <- function( formula, data,
+                        val_data = NULL,
                         num_predictors = 50,
                         learning_rate = 1,
                         weighted_sampling = TRUE,
                         loss = 'linear',
                         verbose = FALSE,
-                        base_predictor = nnet, ... ) {
+                        error_fun = mse,
+                        base_predictor = rpart, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
   #  
@@ -60,91 +64,143 @@ adaboostR2 <- function( formula, data,
 
   # initialize return values
   predictors <- list()
-  predictor_weights <- list()
+  predictors_weights <- list()
   avg_losses <- list()
+  params <- match.call()
 
-  form <- as.formula(formula, env=environment())
+  model_formula <- as.formula(formula, env=environment())
   # get dependent variable name from formula
   # TODO: consider the case of multiple responses
-  response <- all.vars(form[[2]])
+  response <- all.vars(model_formula[[2]])
+  
+  val_errors <- c()
+  train_errors <- c()
+  
+  # leave-one-out parameter tuning
+  tune_control <- tune.control(sampling='fix',
+                               error.fun=error_fun)
+  
+  train_data <- data
+  train_num_cases <- nrow(train_data)
   
   # set initial data weights
-  num_cases <- nrow(data)
-  data_weights <- rep(1 / num_cases, num_cases)
+  train_data_weights <- rep(1 / train_num_cases, train_num_cases)
   
   for(i in 1:num_predictors)
   {
+    cat(sprintf('AdaBoost.R2 iteration %2d...\n', i))
     # train a weak hypothesis of base predictor
     if(weighted_sampling) {
       # instead of training with data_weights,
       # we can do weighted sampling of the training set with replacement,
       # and fit on the bootstrapped sample and obtain a prediction.
-      bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
+      bootstrap_idx <- sample(train_num_cases,
+                              replace=TRUE, 
+                              prob=train_data_weights)
+#       tune_result <- tune(base_predictor,
+#                           model_formula, data=train_data[bootstrap_idx, ],
+#                           ranges=list(maxdepth=seq(1, 4)),
+#                           tunecontrol=tune_control, ...)
+#       predictor <- tune_result$best.model
       predictor <- do.call(base_predictor,
-                           args=list(formula=form,
-                           data=data[bootstrap_idx, ], ...))
-    }else {
+                           args=list(formula=model_formula,
+                           data=train_data[bootstrap_idx, ], ...))
+    } else {
       # By using do.call can resolve the env scope issue of 'weights'
       # Reference: http://stackoverflow.com/a/6957900
       predictor <- do.call(base_predictor,
-                           list(formula=form,
-                                data=data,
-                                weights=data_weights, ...))
+                           list(formula=model_formula,
+                                data=train_data,
+                                weights=train_data_weights, ...))
     }
 
-    prediction <- predict(predictor, data)
+    prediction <- predict(predictor, train_data)
 
-    errors <- abs(prediction - data[response])
+    errors <- abs(prediction - train_data[response])
     errors_max <- max(errors, na.rm = TRUE)
-    if(errors_max == 0) {
+    if (errors_max == 0) {
       # early termination:
       #   if the fit is perfect, store the predictor info and stop
       predictors[[i]] <- predictor
-      predictor_weights[[i]] <- 1
+      predictors_weights[[i]] <- 1
       msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
       cat(sprintf(msg, i), '\n')
       break
     }
     errors <- errors / errors_max
     
-    if(loss == 'square') {
+    if (loss == 'square') {
       errors <- errors ^ 2
-    }else if(loss == 'exponential') {
+    } else if(loss == 'exponential') {
       errors <- 1 - exp(- errors)
     }
     
-    avg_loss <- sum(data_weights * errors, na.rm = TRUE)
+    avg_loss <- sum(train_data_weights * errors, na.rm = TRUE)
     avg_losses[[i]] <- avg_loss
 
-    if(avg_loss >= 0.5) {
+    if (avg_loss >= 0.5) {
       # early termination:
       #   stop if the fit is too "terrible"
       #   TODO: fix the case of similar small errors
       msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
       cat(sprintf(msg, i, avg_loss), '\n')
       break
-    }
-    else {
+    } else {
       # update data weights
       beta_confidence <- avg_loss / (1 - avg_loss)
-      data_weights <- data_weights * beta_confidence ^ ((1 - errors) * learning_rate)
+      train_data_weights <- 
+        train_data_weights * beta_confidence ^ ((1 - errors) * learning_rate)
+
       # normalize
-      data_weights <- data_weights / sum(data_weights)
+      train_data_weights <- train_data_weights / sum(train_data_weights)
 
       # store the predictor info
       predictors[[i]] <- predictor
-      predictor_weights[[i]] <- learning_rate * log(1 / beta_confidence)
+      predictors_weights[[i]] <- learning_rate * log(1 / beta_confidence)
     }
+    
+    # monitor performance of current ensemble
+    # WARNING: very time-consuming due to prediction performance!!
+    current_ada <- construct.adaboostR2(predictors,
+                                        predictors_weights)
+    train_prediction <- predict(current_ada, train_data)
+    train_error <- error_fun(train_prediction, train_data[, response])
+    train_errors <- c(train_errors, train_error)
+
+    if (!is.null(val_data)) {
+      val_prediction <- predict(current_ada, val_data)
+      val_error <- error_fun(val_prediction, val_data[, response])
+      val_errors <- c(val_errors, val_error)
+    }
+
+    # use performance on validation data to determine stop or not
   }
-  
-  final_predictor <- list(predictors = predictors,
-                     predictor_weights = predictor_weights, 
-                     num_predictors = length(predictors),
-                     input_num_predictors = num_predictors,
-                     avg_losses = avg_losses)
-  class(final_predictor) <- "adaboostR2"
+
+  errors_over_itrs <- data.frame(val_errors, train_errors)
+  final_ada <- construct.adaboostR2(predictors,
+                                    predictors_weights,
+                                    params=match.call(),
+                                    errors=errors_over_itrs,
+                                    avg_losses)
   setDefaults(cat, file='')
-  return (final_predictor)
+  return (final_ada)
+}
+
+construct.adaboostR2 <- function (predictors,
+                                  predictors_weights,
+                                  params = NULL,
+                                  errors = NULL,
+                                  avg_losses = NULL
+                                  ) {
+  # Return an adaboostR2 object
+  predictor <- list(predictors = predictors,
+                    predictors_weights = predictors_weights, 
+                    params = params,
+                    num_predictors = length(predictors),
+                    errors = errors,
+                    avg_losses = avg_losses)
+  class(predictor) <- 'adaboostR2'
+  return (predictor)
 }
 
 predict.adaboostR2 <- function( object, new_data, verbose = FALSE ) {
@@ -190,7 +246,7 @@ predict.adaboostR2 <- function( object, new_data, verbose = FALSE ) {
   for(i in 1:nrow(new_data))
   {
     final_prediction <- weighted_median(predictions[i, ], 
-                                        object$predictor_weights)
+                                        object$predictors_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
   setDefaults(cat, file='')
