@@ -80,11 +80,11 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   #     ICML 2007.
 
   # Cast formula.
-  form <- as.formula(formula, env=environment())
+  model_formula <- as.formula(formula, env=environment())
 
   # get dependent variable name from formula
   # what if there are multiple responses?
-  response <- all.vars(form[[2]])
+  response <- all.vars(model_formula[[2]])
 
   # Adjust option of printing message.
   if (!verbose) {
@@ -128,7 +128,7 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       # and fit on the bootstrapped sample and obtain a prediction.
       bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
       predictor <- do.call(base_predictor,
-                           args=list(formula=form,
+                           args=list(formula=model_formula,
                            data=data[bootstrap_idx, ], ...))
     } else {
       # By using do.call can resolve the env scope issue of 'weights'
