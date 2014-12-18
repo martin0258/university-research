@@ -28,6 +28,7 @@ gradualTSRegression <- function(x,
   # Example:
   #  If (windowLen = 4, n.ahead = 1), each training instance has 3 predictors
   #  and 1 response variable.
+  model_formula <- as.formula('Y~.')
   
   # Initialize a data instructure storing input data and result
   result <- data.frame(x)
@@ -67,27 +68,35 @@ gradualTSRegression <- function(x,
   }
 
   # Train a model for each time period
-  for(trainEndIndex in 1:(numCases-2)) {
+  # Start from 2 because at least 2 training instances are needed
+  # for doing leave-one-out cross-validation to tune parameters
+  for(trainEndIndex in 2:(numCases - 1)) {
     trainIndex <- 1:trainEndIndex
-    valIndex <- trainEndIndex + 1
-    testIndex <- trainEndIndex + 2
+    testIndex <- trainEndIndex + 1
     testPeriod <- testIndex + windowLen - 1
+    
+    # settings of parameter tuning
+    tune_control <- tune.control(sampling='fix',
+                                 error.fun=mape_actual_first)
     
     # Training phase
     model <- tryCatch({
-      form <- as.formula("Y~.")
       # Use do.call to easily add new model in test_gradualTSRegression.R
       if (predictor == "trAdaboostR2") {
-        do.call(predictor, args=list(formula=form,
+        do.call(predictor, args=list(formula=model_formula,
                                      source_data=source_data,
                                      target_data=wData[trainIndex, ],
-                                     val_data=wData[valIndex, ], verbose=verbose, ...))
+#                                      val_data=wData[valIndex, ], verbose=verbose, ...))
+                                     val_data=NULL, verbose=verbose, ...))
       } else if (predictor == "adaboostR2") {
-        do.call(predictor, args=list(formula=form,
+        do.call(predictor, args=list(formula=model_formula,
                                      data=wData[trainIndex, ],
                                      verbose=verbose, ...))
       } else {
-        do.call(predictor, args=list(formula=form, data=wData[trainIndex, ], ...))
+        tune_result <- tune(predictor, model_formula, data=wData[trainIndex, ],
+                            ranges=list(maxdepth=seq(1, 4)),
+                            tunecontrol=tune_control, ...)
+        tune_result$best.model
       }
     }, error = function(err) {
       return(err)
