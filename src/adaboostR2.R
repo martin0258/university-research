@@ -176,13 +176,31 @@ adaboostR2 <- function( formula, data,
     # use performance on validation data to determine stop or not
   }
 
-  errors_over_itrs <- data.frame(val_errors, train_errors)
+  setDefaults(cat, file='')
+
+  if (!is.null(val_data)) {
+    errors_over_itrs <- data.frame(val_errors, train_errors)
+
+    # re-train with full data, and num_predictors is determined by min val error
+    full_data <- rbind(data, val_data)
+    min_val_error_itr <- which.min(val_errors)
+    model <- adaboostR2(model_formula, full_data,
+                        num_predictors=min_val_error_itr,
+                        learning_rate = learning_rate,
+                        weighted_sampling = weighted_sampling,
+                        loss = loss,
+                        verbose = verbose,
+                        error_fun = error_fun,
+                        base_predictor = base_predictor, ... )
+    model$errors <- errors_over_itrs
+    return(model)
+  }
+
   final_ada <- construct.adaboostR2(predictors,
                                     predictors_weights,
                                     params=match.call(),
-                                    errors=errors_over_itrs,
+                                    errors=NULL,
                                     avg_losses)
-  setDefaults(cat, file='')
   return (final_ada)
 }
 
