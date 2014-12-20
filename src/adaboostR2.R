@@ -90,6 +90,9 @@ adaboostR2 <- function( formula, data,
   
   for(i in 1:num_predictors)
   {
+    # progress indicator: a dot indicates a training iteration got started
+    cat('.')
+    
     # train a weak hypothesis of base predictor
     if(weighted_sampling) {
       # instead of training with data_weights,
@@ -124,6 +127,7 @@ adaboostR2 <- function( formula, data,
       #   if the fit is perfect, store the predictor info and stop
       predictors[[i]] <- predictor
       predictors_weights[[i]] <- 1
+      cat('\n')
       msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
       cat(sprintf(msg, i), '\n')
     } else {
@@ -142,6 +146,7 @@ adaboostR2 <- function( formula, data,
         # early termination:
         #   stop if the fit is too "terrible"
         #   TODO: fix the case of similar small errors
+        cat('\n')
         msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
         cat(sprintf(msg, i, avg_loss), '\n')
         break
@@ -159,8 +164,6 @@ adaboostR2 <- function( formula, data,
         predictors_weights[[i]] <- learning_rate * log(1 / beta_confidence)
       }
     }
-    
-    cat('.')  # One dot indicates one training iteration is done
     
     # monitor performance of current ensemble
     # WARNING: very time-consuming due to prediction performance!!
@@ -185,7 +188,7 @@ adaboostR2 <- function( formula, data,
     if (errors_max == 0) break
   }
 
-  cat('\n')  # newline after printing 1 or more dots
+  cat('\n')  # newline after printing one or more dots
 
   setDefaults(cat, file='')
 
