@@ -75,6 +75,8 @@ adaboostR2 <- function( formula, data,
   
   val_errors <- c()
   train_errors <- c()
+  val_base_predictions_cache <- vector()
+  train_base_predictions_cache <- vector()
   
   # leave-one-out parameter tuning
   tune_control <- tune.control(sampling='fix',
@@ -88,7 +90,6 @@ adaboostR2 <- function( formula, data,
   
   for(i in 1:num_predictors)
   {
-    cat(sprintf('AdaBoost.R2 iteration %2d...\n', i))
     # train a weak hypothesis of base predictor
     if(weighted_sampling) {
       # instead of training with data_weights,
@@ -125,65 +126,83 @@ adaboostR2 <- function( formula, data,
       predictors_weights[[i]] <- 1
       msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
       cat(sprintf(msg, i), '\n')
-      break
-    }
-    errors <- errors / errors_max
-    
-    if (loss == 'square') {
-      errors <- errors ^ 2
-    } else if(loss == 'exponential') {
-      errors <- 1 - exp(- errors)
-    }
-    
-    avg_loss <- sum(train_data_weights * errors, na.rm = TRUE)
-    avg_losses[[i]] <- avg_loss
-
-    if (avg_loss >= 0.5) {
-      # early termination:
-      #   stop if the fit is too "terrible"
-      #   TODO: fix the case of similar small errors
-      msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
-      cat(sprintf(msg, i, avg_loss), '\n')
-      break
     } else {
-      # update data weights
-      beta_confidence <- avg_loss / (1 - avg_loss)
-      train_data_weights <- 
-        train_data_weights * beta_confidence ^ ((1 - errors) * learning_rate)
-
-      # normalize
-      train_data_weights <- train_data_weights / sum(train_data_weights)
-
-      # store the predictor info
-      predictors[[i]] <- predictor
-      predictors_weights[[i]] <- learning_rate * log(1 / beta_confidence)
+      errors <- errors / errors_max
+      
+      if (loss == 'square') {
+        errors <- errors ^ 2
+      } else if(loss == 'exponential') {
+        errors <- 1 - exp(- errors)
+      }
+      
+      avg_loss <- sum(train_data_weights * errors, na.rm = TRUE)
+      avg_losses[[i]] <- avg_loss
+  
+      if (avg_loss >= 0.5) {
+        # early termination:
+        #   stop if the fit is too "terrible"
+        #   TODO: fix the case of similar small errors
+        msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
+        cat(sprintf(msg, i, avg_loss), '\n')
+        break
+      } else {
+        # update data weights
+        beta_confidence <- avg_loss / (1 - avg_loss)
+        train_data_weights <- 
+          train_data_weights * beta_confidence ^ ((1 - errors) * learning_rate)
+  
+        # normalize
+        train_data_weights <- train_data_weights / sum(train_data_weights)
+  
+        # store the predictor info
+        predictors[[i]] <- predictor
+        predictors_weights[[i]] <- learning_rate * log(1 / beta_confidence)
+      }
     }
+    
+    cat('.')  # One dot indicates one training iteration is done
     
     # monitor performance of current ensemble
     # WARNING: very time-consuming due to prediction performance!!
     current_ada <- construct.adaboostR2(predictors,
                                         predictors_weights)
-    train_prediction <- predict(current_ada, train_data)
+    predictions <- predict(current_ada, train_data, verbose=F,
+                           train_base_predictions_cache)
+    train_prediction <- predictions[['final_predictions']]
+    train_base_predictions_cache <- predictions[['base_predictions_cache']]
     train_error <- error_fun(train_prediction, train_data[, response])
     train_errors <- c(train_errors, train_error)
 
     if (!is.null(val_data)) {
-      val_prediction <- predict(current_ada, val_data)
+      predictions <- predict(current_ada, val_data, verbose=F,
+                             val_base_predictions_cache)
+      val_prediction <- predictions[['final_predictions']]
+      val_base_predictions_cache <- predictions[['base_predictions_cache']]
       val_error <- error_fun(val_prediction, val_data[, response])
       val_errors <- c(val_errors, val_error)
     }
 
-    # use performance on validation data to determine stop or not
+    if (errors_max == 0) break
   }
+
+  cat('\n')  # newline after printing 1 or more dots
 
   setDefaults(cat, file='')
 
-  if (!is.null(val_data)) {
-    errors_over_itrs <- data.frame(val_errors, train_errors)
+  # plot errors over iterations
+  if (is.null(val_data)) val_errors <- rep(NA, length(train_errors))
+  errors_over_itrs <- data.frame(val_errors, train_errors)
+  p <- xyplot(ts(errors_over_itrs), superpose=T, type='o', lwd=2,
+              main='Errors over iterations', xlab='Iteration', ylab='Error')
+  print(p)
 
-    # re-train with full data, and num_predictors is determined by min val error
+  # re-train with full data, and num_predictors is determined by min val error
+  if (!is.null(val_data)) {
     full_data <- rbind(data, val_data)
     min_val_error_itr <- which.min(val_errors)
+    cat(sprintf('Trained %d predictors.\n', length(predictors)))
+    cat(sprintf('Retrain %d predictors with all data based on min val error.\n',
+                min_val_error_itr))
     model <- adaboostR2(model_formula, full_data,
                         num_predictors=min_val_error_itr,
                         learning_rate = learning_rate,
@@ -221,7 +240,8 @@ construct.adaboostR2 <- function (predictors,
   return (predictor)
 }
 
-predict.adaboostR2 <- function( object, new_data, verbose = FALSE ) {
+predict.adaboostR2 <- function( object, new_data, verbose = FALSE,
+                                base_predictions_cache = NULL) {
   # Returns predictions for new data.
   
   # Arguments:
@@ -249,26 +269,43 @@ predict.adaboostR2 <- function( object, new_data, verbose = FALSE ) {
   # the newline is for beautifying testthat output
   #cat('\n')
 
-  # build a prediction matrix: (row = cases, col = predictors)
-  predictions <- vector()
+  # initialize return values
   final_predictions <- vector()
   
-  for(predictor in object$predictors)
+  # build a base prediction matrix: (row = cases, col = predictors)
+  if (is.null(base_predictions_cache)) {
+    base_predictions <- vector()
+    predictor_start_idx <- 1
+  } else {
+    base_predictions <- base_predictions_cache
+    predictor_start_idx <- ifelse(!is.null(ncol(base_predictions)),
+                              ncol(base_predictions) + 1, 1)
+  }
+  
+  for(idx in predictor_start_idx:object$num_predictors)
   { 
-    prediction <- predict(predictor, new_data)
-    predictions <- cbind(predictions, prediction)
+    predictor <- object$predictors[[idx]]
+    base_prediction <- predict(predictor, new_data)
+    base_predictions <- cbind(base_predictions, base_prediction)
   }
 
   # for each case, get the weighted median as the final prediction
   weighted_median <- adaboostR2._weighted_median
   for(i in 1:nrow(new_data))
   {
-    final_prediction <- weighted_median(predictions[i, ], 
+    final_prediction <- weighted_median(base_predictions[i, ], 
                                         object$predictors_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
+  
   setDefaults(cat, file='')
-  return (final_predictions)
+  
+  if (is.null(base_predictions_cache)) {
+    return (final_predictions)
+  } else {
+    return (list(final_predictions=final_predictions,
+                 base_predictions_cache=base_predictions))
+  }
 }
 
 summary.adaboostR2 <- function( object ) {
