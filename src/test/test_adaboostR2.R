@@ -9,6 +9,8 @@ source("src/adaboostR2.R")
 
 set.seed(1)
 
+start_time <- proc.time()
+
 # create the data set
 num_cases <- 100
 x <- seq(from=0, to=6, length.out=num_cases)
@@ -50,9 +52,9 @@ prediction_ada_rp <- predict(ada_rp, test_data['x'])
 # plot errors over iterations (TOFIX: blank image)
 # TOFIX: blank image when sourcing script, have to type print(p) in console
 # dev.off()  # http://stackoverflow.com/a/20627536
-p <- xyplot(ts(ada_rp$errors), superpose=T, type='o', lwd=2,
-            main='Errors over iterations', xlab='Iteration', ylab='Error')
-print(p)
+# p <- xyplot(ts(ada_rp$errors), superpose=T, type='o', lwd=2,
+#             main='Errors over iterations', xlab='Iteration', ylab='Error')
+# print(p)
 
 # evaluate goodness of fit on validation
 performance <- data.frame(gof(prediction_rp, test_data[, 'y']),
@@ -75,3 +77,8 @@ prediction_ada_rp <- prediction_ada_rp[order(prediction_ada_rp$x), ]
 points(prediction_ada_rp$x, prediction_ada_rp$y, type='o', col=colors[3])
 legends <- c('training data', 'rpart', 'AdaBoost.R2(rpart)')
 legend('topright', legend=legends, col=colors, cex=0.7, pch=21, lty=1)
+
+# Print total time spent
+end_time <- proc.time()
+time_spent <- end_time - start_time
+cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
