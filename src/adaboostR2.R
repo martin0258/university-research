@@ -1,7 +1,7 @@
 library(rpart)
-library(Defaults)
 library(e1071)    # for parameter tuning
 library(hydroGOF) # for default error_fun
+library(lattice)  # for plotting errors over iterations
 
 adaboostR2 <- function( formula, data,
                         val_data = NULL,
@@ -47,20 +47,9 @@ adaboostR2 <- function( formula, data,
   #   An object of class "adaboostR2".
   #   The object contains the following components:
   #     - predictors: predictors trained at each iteration
-  #     - predictor_weights: weight of each predictor
+  #     - predictors_weights: weight of each predictor
   #     - num_predictors: number of predictors
   #     - avg_losses: average loss of each predictor
-  if (!verbose) {
-    if (.Platform$OS.type == "windows") {
-      setDefaults(cat, file='nul')
-    } else {
-      # this only works for linux
-      # for windows we need to use NUL or nul
-      setDefaults(cat, file='/dev/null')
-    }
-  }else {
-    setDefaults(cat, file='')
-  }
 
   # initialize return values
   predictors <- list()
@@ -91,7 +80,7 @@ adaboostR2 <- function( formula, data,
   for(i in 1:num_predictors)
   {
     # progress indicator: a dot indicates a training iteration got started
-    cat('.')
+    cat_verbose(verbose, '.')
     
     # train a weak hypothesis of base predictor
     if(weighted_sampling) {
@@ -127,9 +116,9 @@ adaboostR2 <- function( formula, data,
       #   if the fit is perfect, store the predictor info and stop
       predictors[[i]] <- predictor
       predictors_weights[[i]] <- 1
-      cat('\n')
+      cat_verbose(verbose, '\n')
       msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
-      cat(sprintf(msg, i), '\n')
+      cat_verbose(verbose, sprintf(msg, i))
     } else {
       errors <- errors / errors_max
       
@@ -146,9 +135,9 @@ adaboostR2 <- function( formula, data,
         # early termination:
         #   stop if the fit is too "terrible"
         #   TODO: fix the case of similar small errors
-        cat('\n')
+        cat_verbose(verbose, '\n')
         msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
-        cat(sprintf(msg, i, avg_loss), '\n')
+        cat_verbose(verbose, sprintf(msg, i, avg_loss))
         break
       } else {
         # update data weights
@@ -185,12 +174,12 @@ adaboostR2 <- function( formula, data,
       val_errors <- c(val_errors, val_error)
     }
 
+    # early stop if fit of this iteration is perfect
     if (errors_max == 0) break
   }
 
-  cat('\n')  # newline after printing one or more dots
-
-  setDefaults(cat, file='')
+  # newline after printing one or more dots
+  cat_verbose(verbose, '\n')
 
   # plot errors over iterations
   if (is.null(val_data)) val_errors <- rep(NA, length(train_errors))
@@ -203,8 +192,9 @@ adaboostR2 <- function( formula, data,
   if (!is.null(val_data)) {
     full_data <- rbind(data, val_data)
     min_val_error_itr <- which.min(val_errors)
-    cat(sprintf('Trained %d predictors.\n', length(predictors)))
-    cat(sprintf('Retrain %d predictors with all data based on min val error.\n',
+    cat_verbose(verbose, sprintf('Trained %d predictors.\n', length(predictors)))
+    cat_verbose(verbose,
+                sprintf('Retrain %d predictors with all data based on min val error.\n',
                 min_val_error_itr))
     model <- adaboostR2(model_formula, full_data,
                         num_predictors=min_val_error_itr,
@@ -253,20 +243,10 @@ predict.adaboostR2 <- function( object, new_data, verbose = FALSE,
   #   new_data: The matrix or data frame of inputs for training data.
   #
   # Returns: The predictions for new data.
-  if(!verbose) {
-    if (.Platform$OS.type == "windows") {
-      setDefaults(cat, file='nul')
-    } else {
-      # this only works for linux
-      # for windows we need to use NUL or nul
-      setDefaults(cat, file='/dev/null')
-    }
-  }else {
-    setDefaults(cat, file='')
-  }
 
   if(object$num_predictors == 0) {
-    cat('Prediction: Unable to predict because of no base predictor.', '\n')
+    msg <- 'Prediction: Unable to predict because of no base predictor.'
+    cat_verbose(verbose, msg, '\n')
     return (rep(as.numeric(NA), nrow(new_data)))
   }
   # the newline is for beautifying testthat output
@@ -300,8 +280,6 @@ predict.adaboostR2 <- function( object, new_data, verbose = FALSE,
                                         object$predictors_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
-  
-  setDefaults(cat, file='')
   
   if (is.null(base_predictions_cache)) {
     return (final_predictions)
@@ -362,4 +340,12 @@ adaboostR2._weighted_median <- function( x, weights ) {
 #   expected_result <- w.median(x, weights)
 #   stopifnot(result == expected_result)
   return (result)
+}
+
+cat_verbose <- function (verbose, ...) {
+  if (verbose) {
+    do.call('cat', args=list(..., file=''))
+  } else {
+    # do (print) nothing
+  }
 }

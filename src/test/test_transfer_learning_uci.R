@@ -1,4 +1,5 @@
 library(testthat)
+library(nnet)
 context("Test transfer learning algorithms with UCI data")
 
 # set working dir to current src dir
@@ -101,11 +102,13 @@ test_that('UCI Conrete Length data', {
   
   set.seed(seed)
   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, adaboostR2, size=7, linout=T, trace=F)
+  uci_test(file_prefix, adaboostR2, verbose=F,
+           base_predictor=nnet, size=7, linout=T, trace=F)
   
   set.seed(seed)
   cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, trAdaboostR2, size=7, linout=T, trace=F)
+  uci_test(file_prefix, trAdaboostR2, verbose=F,
+           base_predictor=nnet, size=7, linout=T, trace=F)
 })
 
 test_that('UCI Housing data', {
@@ -118,11 +121,13 @@ test_that('UCI Housing data', {
   
   set.seed(seed)
   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, adaboostR2, size=12, linout=T, trace=F)
+  uci_test(file_prefix, adaboostR2, verbose=F,
+           base_predictor=nnet, size=12, linout=T, trace=F)
   
   set.seed(seed)
   cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, trAdaboostR2, size=12, linout=T, trace=F)
+  uci_test(file_prefix, trAdaboostR2, verbose=F,
+           base_predictor=nnet, size=12, linout=T, trace=F)
 })
 
 test_that('UCI Auto MPG data', {
@@ -135,11 +140,13 @@ test_that('UCI Auto MPG data', {
   
   set.seed(seed)
   cat(sprintf('-- Model: AdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, adaboostR2, size=6, linout=T, trace=F)
+  uci_test(file_prefix, adaboostR2, verbose=F,
+           base_predictor=nnet, size=6, linout=T, trace=F)
   
   set.seed(seed)
   cat(sprintf('-- Model: TrAdaBoost.R2 with nnet ------'), '\n')
-  uci_test(file_prefix, trAdaboostR2, size=6, linout=T, trace=F)
+  uci_test(file_prefix, trAdaboostR2, verbose=F,
+           base_predictor=nnet, size=6, linout=T, trace=F)
 })
 
 # TODO: fix error "factor c has new levels chevrolet, honda"
