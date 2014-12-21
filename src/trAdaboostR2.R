@@ -1,4 +1,6 @@
 library(rpart)
+library(hydroGOF) # for default error_fun
+library(lattice)  # for plotting errors over iterations
 
 trAdaboostR2 <- function( formula, source_data, target_data,
                           val_data = NULL,
@@ -7,6 +9,7 @@ trAdaboostR2 <- function( formula, source_data, target_data,
                           loss = 'linear',
                           weighted_sampling = TRUE,
                           verbose = FALSE,
+                          error_fun = mse,
                           base_predictor = rpart, ...
                         ) {
   # Fits and returns a TrAdaBoost.R2 model.
@@ -132,8 +135,9 @@ trAdaboostR2 <- function( formula, source_data, target_data,
     prediction <- predict(predictor, data)
 
     errors <- abs(prediction - data[response])
-    errors_max <- max(errors, na.rm=TRUE)
-    if (errors_max == 0) {
+    errors_max_source <- max(errors[source_idx, ], na.rm=TRUE)
+    errors_max_target <- max(errors[target_idx, ], na.rm=TRUE)
+    if (errors_max_target == 0) {
       # early termination:
       #   if the fit is perfect, store the predictor info and stop
       predictors[[t]] <- predictor
@@ -142,7 +146,11 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
       cat_verbose(verbose, sprintf(msg, t))
     } else {
-      errors <- errors / errors_max
+      # normalize errors
+      errors[target_idx, ] <- errors[target_idx, ] / errors_max_target
+      if (errors_max_source != 0) {
+        errors[source_idx, ] <- errors[source_idx, ] / errors_max_source
+      }
   
       if (loss == 'square') {
         errors <- errors ^ 2
@@ -150,7 +158,8 @@ trAdaboostR2 <- function( formula, source_data, target_data,
         errors <- 1 - exp(- errors)
       }
   
-      avg_loss <- sum(data_weights * errors, na.rm=TRUE)
+      avg_loss <- sum(data_weights[target_idx] * errors[target_idx, ],
+                      na.rm=TRUE)
       avg_losses[[t]] <- avg_loss
   
       if (avg_loss >= 0.5) {
@@ -185,13 +194,38 @@ trAdaboostR2 <- function( formula, source_data, target_data,
       }
     }
 
-    # early stop if fit of this iteration is perfect
-    if (errors_max == 0) break
-  }
+    # monitor performance of current ensemble
+    # WARNING: very time-consuming due to prediction performance!!
+    fit <- construct.trAdaboostR2(predictors, predictors_weights)
+    predictions <- predict(fit, target_data, verbose=F,
+                           train_base_predictions_cache)
+    train_prediction <- predictions[['final_predictions']]
+    train_base_predictions_cache <- predictions[['base_predictions_cache']]
+    train_error <- error_fun(train_prediction, target_data[, response])
+    train_errors <- c(train_errors, train_error)
 
+    if (!is.null(val_data)) {
+      predictions <- predict(fit, val_data, verbose=F,
+                             val_base_predictions_cache)
+      val_prediction <- predictions[['final_predictions']]
+      val_base_predictions_cache <- predictions[['base_predictions_cache']]
+      val_error <- error_fun(val_prediction, val_data[, response])
+      val_errors <- c(val_errors, val_error)
+    }
+
+    # early stop if fit of this iteration is perfect
+    if (errors_max_target == 0) break
+  }
   
   # newline after printing one or more dots
   cat_verbose(verbose, '\n')
+  
+  # plot errors over iterations
+  if (is.null(val_data)) val_errors <- rep(NA, length(train_errors))
+  errors_over_itrs <- data.frame(val_errors, train_errors)
+  p <- xyplot(ts(errors_over_itrs), superpose=T, type='o', lwd=2,
+              main='Errors over iterations', xlab='Iteration', ylab='Error')
+  print(p)
 
   final_predictor <- list(predictors=predictors,
                           predictors_weights=predictors_weights,
@@ -203,7 +237,25 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   return (final_predictor)
 }
 
-predict.trAdaboostR2 <- function( object, new_data, verbose = FALSE) {
+construct.trAdaboostR2 <- function (predictors,
+                                    predictors_weights,
+                                    params = NULL,
+                                    errors = NULL,
+                                    avg_losses = NULL
+                                   ) {
+  # Return an adaboostR2 object
+  predictor <- list(predictors = predictors,
+                    predictors_weights = predictors_weights,
+                    params = params,
+                    num_predictors = length(predictors),
+                    errors = errors,
+                    avg_losses = avg_losses)
+  class(predictor) <- 'trAdaboostR2'
+  return (predictor)
+}
+
+predict.trAdaboostR2 <- function( object, new_data, verbose = FALSE,
+                                  base_predictions_cache = NULL) {
   # Returns predictions for new data.
   #
   # Arguments:
@@ -225,19 +277,31 @@ predict.trAdaboostR2 <- function( object, new_data, verbose = FALSE) {
   # the newline is for beautifying testthat output
   #cat('\n')
 
-  # build a prediction matrix: (row = cases, col = predictors)
-  predictions <- vector()
+  # initialize return values
   final_predictions <- vector()
+  
+  # Based on [1], only consider the final ceiling(N/2) predictors
+  num_predictors_consider <- ceiling(object$num_predictors / 2)
+  predictors_idx <- tail(1:object$num_predictors, num_predictors_consider)
+  predictors <- tail(object$predictors, num_predictors_consider)
+  predictors_weights <- tail(object$predictors_weights, num_predictors_consider)
+  
+  # build a base prediction matrix: (row = cases, col = predictors)
+  base_predictions <- vector()
 
-  # TODO: confirm N (in paper) to used
-  predictor_start_idx <-
-    object$num_predictors - ceiling(object$num_predictors / 2) + 1
-  predictor_range <- predictor_start_idx:object$num_predictors
-  for(idx in predictor_range)
+  for(i in predictors_idx)
   {
-    predictor <- object$predictors[[idx]]
-    prediction <- predict(predictor, new_data)
-    predictions <- cbind(predictions, prediction)
+    colname <- sprintf('%s', i)
+    if (colname %in% colnames(base_predictions_cache)) {
+      # cache hits
+      base_predictions <- cbind(base_predictions,
+                                base_predictions_cache[, colname])
+    } else {
+      predictor <- object$predictors[[i]]
+      base_prediction <- predict(predictor, new_data)
+      base_predictions <- cbind(base_predictions, base_prediction)
+      colnames(base_predictions)[ncol(base_predictions)] <- colname
+    }
   }
 
   # for each case, get the weighted median as the final prediction
@@ -245,12 +309,16 @@ predict.trAdaboostR2 <- function( object, new_data, verbose = FALSE) {
   for(i in 1:nrow(new_data))
   {
     final_prediction <-
-      weighted_median(predictions[i, ],
-                      object$predictors_weights[predictor_range])
+      weighted_median(base_predictions[i, ], predictors_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
 
-  return (final_predictions)
+  if (is.null(base_predictions_cache)) {
+    return (final_predictions)
+  } else {
+    return (list(final_predictions=final_predictions,
+                 base_predictions_cache=base_predictions))
+  }
 }
 
 summary.trAdaboostR2 <- function( object ) {

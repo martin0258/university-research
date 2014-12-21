@@ -262,7 +262,7 @@ predict.adaboostR2 <- function( object, new_data, verbose = FALSE,
   } else {
     base_predictions <- base_predictions_cache
     predictor_start_idx <- ifelse(!is.null(ncol(base_predictions)),
-                              ncol(base_predictions) + 1, 1)
+                                  ncol(base_predictions) + 1, 1)
   }
   
   for(idx in predictor_start_idx:object$num_predictors)
