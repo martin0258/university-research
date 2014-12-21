@@ -73,7 +73,13 @@ gradualTSRegression <- function(x,
   for(trainEndIndex in 2:(numCases - 1)) {
     trainIndex <- 1:trainEndIndex
     testIndex <- trainEndIndex + 1
+    train_data <- wData[trainIndex, ]  # train data = subtrain + validation
+    val_num_cases <- 1
+    val_data <- tail(train_data, val_num_cases)
+    subtrain_data <- wData[1:(trainEndIndex - val_num_cases), ]
+    test_data <- wData[testIndex, ]
     testPeriod <- testIndex + windowLen - 1
+    cat(sprintf('--- Testing Episode: %2d --- \n', testPeriod))
     
     # settings of parameter tuning
     tune_control <- tune.control(sampling='fix',
@@ -85,18 +91,21 @@ gradualTSRegression <- function(x,
       if (predictor == "trAdaboostR2") {
         do.call(predictor, args=list(formula=model_formula,
                                      source_data=source_data,
-                                     target_data=wData[trainIndex, ],
-#                                      val_data=wData[valIndex, ], verbose=verbose, ...))
-                                     val_data=NULL, verbose=verbose, ...))
+                                     target_data=train_data,
+                                     val_data=NULL,
+                                     verbose=verbose, ...))
       } else if (predictor == "adaboostR2") {
         do.call(predictor, args=list(formula=model_formula,
-                                     data=wData[trainIndex, ],
+                                     data=train_data,
+                                     val_data=NULL,
                                      verbose=verbose, ...))
       } else {
-        tune_result <- tune(predictor, model_formula, data=wData[trainIndex, ],
-                            ranges=list(maxdepth=seq(1, 4)),
-                            tunecontrol=tune_control, ...)
-        tune_result$best.model
+        do.call(predictor, args=list(formula=model_formula,
+                                     data=train_data, ...))
+#         tune_result <- tune(predictor, model_formula, data=train_data,
+#                             ranges=list(maxdepth=seq(1, 4)),
+#                             tunecontrol=tune_control, ...)
+#         tune_result$best.model
       }
     }, error = function(err) {
       return(err)
