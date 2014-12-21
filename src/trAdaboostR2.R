@@ -226,6 +226,28 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   p <- xyplot(ts(errors_over_itrs), superpose=T, type='o', lwd=2,
               main='Errors over iterations', xlab='Iteration', ylab='Error')
   print(p)
+  
+  # re-train with full data, and num_predictors is determined by min val error
+  if (!is.null(val_data)) {
+    full_target_data <- rbind(target_data, val_data)
+    min_val_error_itr <- which.min(val_errors)
+    cat_verbose(verbose, sprintf('Trained %d predictors.\n', length(predictors)))
+    cat_verbose(verbose,
+                sprintf('Retrain %d predictors with all data based on min val error.\n',
+                min_val_error_itr))
+    model <- trAdaboostR2(model_formula,
+                          source_data = source_data,
+                          target_data = full_target_data,
+                          num_predictors = min_val_error_itr,
+                          learning_rate = learning_rate,
+                          weighted_sampling = weighted_sampling,
+                          loss = loss,
+                          verbose = verbose,
+                          error_fun = error_fun,
+                          base_predictor = base_predictor, ... )
+    model$errors <- errors_over_itrs
+    return(model)
+  }
 
   final_predictor <- list(predictors=predictors,
                           predictors_weights=predictors_weights,
