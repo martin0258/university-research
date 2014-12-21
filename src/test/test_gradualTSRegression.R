@@ -19,11 +19,11 @@ has_features <- ifelse(exists('has_feautures'),
 seed <- ifelse(exists('seed'), seed, 0)
 if (!exists('base_predictors_args')) {
   base_predictors_args <-list(
-                              list(
-                                   predictor='nnet',
-                                   size=3, linout=T, trace=F,
-                                   rang=0.1, decay=1e-1, maxit=100
-                                  ),
+#                               list(
+#                                    predictor='nnet',
+#                                    size=3, linout=T, trace=F,
+#                                    rang=0.1, decay=1e-1, maxit=100
+#                                   ),
                               list(
                                    predictor='rpart',
                                    minsplit=2, maxdepth=4
@@ -45,7 +45,7 @@ source("src/trAdaboostR2.R")
 source("src/gradualTSRegression.R")
 
 # Set up parallel computing
-registerDoParallel(cores=detectCores())
+# registerDoParallel(cores=detectCores())
 
 # Record script start time for calculating time spent afterwards
 start_time <- proc.time()
@@ -157,7 +157,8 @@ colnames(mape_dramas) <- models_names
 colnames(mae_dramas) <- models_names
 
 # There are many unresolved issues of using %dopar%
-foreach (idx = 1:length(dramas)) %do% {
+# foreach (idx = 1:length(dramas)) %do% {
+for (idx in 1:length(dramas)) {
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
   
@@ -192,7 +193,8 @@ foreach (idx = 1:length(dramas)) %do% {
                 dramaName, base_predictor_args$base_predictor), '\n')
     
     args <- c(list(x=ratings, feature=target_feature,
-                   predictor='adaboostR2', verbose=T), base_predictor_args)
+                   predictor='adaboostR2', verbose=T, error_fun=mape),
+              base_predictor_args)
     result <- do.call(gradualTSRegression, args=args)
     results[[length(results) + 1]] <- result
     
@@ -234,7 +236,7 @@ foreach (idx = 1:length(dramas)) %do% {
     cat(sprintf('Drama: %s, Model: TrAdaBoost.R2(%s)',
                 dramaName, base_predictor_args$base_predictor), '\n')
     args <- c(list(x=ratings, feature=target_feature, source_data=src_data,
-                   predictor='trAdaboostR2', num_predictors=50, verbose=T),
+                   predictor='trAdaboostR2', verbose=T, error_fun=mape),
               base_predictor_args)
     result <- do.call(gradualTSRegression, args=args)
     results[[length(results) + 1]] <- result
@@ -249,6 +251,8 @@ foreach (idx = 1:length(dramas)) %do% {
   }
   mape_dramas <- rbind(mape_dramas, mape_drama)
   mae_dramas <- rbind(mae_dramas, mae_drama)
+  rownames(mape_dramas)[nrow(mape_dramas)] <- dramaName
+  rownames(mae_dramas)[nrow(mae_dramas)] <- dramaName
 
   # Plot result
   color_idx <- 0
@@ -272,16 +276,16 @@ foreach (idx = 1:length(dramas)) %do% {
   legend('bottomleft', legend=c('training', 'testing'),
          pch=c(NA, 21), lty=c(2, 1))
 }
-rownames(mape_dramas) <- names(dramas)
-rownames(mae_dramas) <- names(dramas)
+
+# Print an overall error across all dramas
 
 # Run statistical signifance test
 # Note: When sourcing a script, output is printed only if with print() function.
-print(friedman.test(mape_dramas))
-print(quade.test(mape_dramas))
-
-print(friedman.test(mae_dramas))
-print(quade.test(mae_dramas))
+# print(friedman.test(mape_dramas))
+# print(quade.test(mape_dramas))
+# 
+# print(friedman.test(mae_dramas))
+# print(quade.test(mae_dramas))
 
 # Print total time spent
 end_time <- proc.time()
