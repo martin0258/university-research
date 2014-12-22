@@ -139,9 +139,9 @@ gradualTSRegression <- function(x,
       trainError <- mape(predictTrain, wData[trainIndex, "Y"])
       testError <- mape(predictTest, wData[testIndex, "Y"])
     } else if (model_type == 'ts') {
-      predictTrain <- model$fitted_values
-      predictTest <- predict(model, n.ahead = n.ahead)
-      trainError <- mape(predictTrain, train_data_ts)
+      predictTrain <- NA
+      predictTest <- predict(model, n.ahead = n.ahead)[1]
+      trainError <- NA # mape(predictTrain, train_data_ts)
       testError <- mape(predictTest, test_data_ts)
     } else {
       # should not be here in any case

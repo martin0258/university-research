@@ -40,6 +40,8 @@ library(doParallel)
 setwd(project_root)
 source("src/lib/windowing.R")
 source("src/lib/mape.R")
+source("src/guessLastPeriod.R")
+source("src/avgPastPeriods.R")
 source("src/adaboostR2.R")
 source("src/trAdaboostR2.R")
 source("src/gradualTSRegression.R")
@@ -142,7 +144,8 @@ results <- list()
 # It is a matrix of performance to run statistical test.
 #   Each row is the performance results of each drama for different algorithms.
 #   Number of columns is equal to the number of different algorithms.
-num_models <- length(base_predictors_args) * 3
+num_base_models <- 3
+num_models <- length(base_predictors_args) * 3 + num_base_models 
 mape_dramas <- matrix(, nrow=0, ncol=num_models)
 mae_dramas <- matrix(, nrow=0, ncol=num_models)
 models_names <- c()
@@ -153,6 +156,8 @@ for (base_predictor_args in base_predictors_args) {
                     sprintf('adaboostR2(%s)', base_predictor_name),
                     sprintf('trAdaboostR2(%s)', base_predictor_name))
 }
+models_names <- c(models_names,
+                  'lastPeriod', 'avgPastPeriods', 'HoltWinters(alpha)')
 colnames(mape_dramas) <- models_names
 colnames(mae_dramas) <- models_names
 
@@ -242,12 +247,37 @@ for (idx in 1:length(dramas)) {
     results[[length(results) + 1]] <- result
   }
 
+  # Experiment 4: naive time series baseline model - guess last period
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: guessLastPeriod', dramaName), '\n')
+  args <- c(list(x=ratings, model_type='ts', predictor='guessLastPeriod'))
+  result <- do.call(gradualTSRegression, args=args)
+  results[[length(results) + 1]] <- result
+
+  # Experiment 5: naive time series baseline model - avg past periods
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: avgPastPeriods', dramaName), '\n')
+  args <- c(list(x=ratings, model_type='ts', predictor='avgPastPeriods'))
+  result <- do.call(gradualTSRegression, args=args)
+  results[[length(results) + 1]] <- result
+
+  # Experiment 6: time series baseline model - simple exp smoothing
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: HoltWinters(alpha)', dramaName), '\n')
+  args <- c(list(x=ratings, model_type='ts',
+                 predictor='HoltWinters', beta=F, gamma=F))
+  result <- do.call(gradualTSRegression, args=args)
+  results[[length(results) + 1]] <- result
+
   # Calculate MAPE & MAE
   mape_drama <- c()
   mae_drama <- c()
   for (result in tail(results, num_models)) {
     mape_drama <- c(mape_drama, mape(result['Prediction'], ratings))
-    mae_drama <- c(mae_drama, round(mae(result['Prediction'], ratings)), 4)
+    mae_drama <- c(mae_drama, round(mae(result['Prediction'], ratings), 4))
   }
   mape_dramas <- rbind(mape_dramas, mape_drama)
   mae_dramas <- rbind(mae_dramas, mae_drama)
