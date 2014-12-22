@@ -212,32 +212,22 @@ for (idx in 1:num_dramas) {
     
     # Prepare data set for TrAdaBoost.R2
     # Combine multiple sources into one data set:
-    #   - Apply windowing transformation to each drama
-    #   - Bind data
+    src_data <- list()
     src_indices <- 1:length(dramas)
     src_indices <- src_indices[-idx]
-    src_data <- c()  # An empty data frame?
     for (src_idx in src_indices) {
-      # Form windowing data
       src_drama_name <- names(dramas)[src_idx]
       colnames(dramas[[src_idx]])[3] <- src_drama_name
-      src_drama <- dramas[[src_idx]][src_drama_name]
-      w_data <- windowing(src_drama, window_len)
-  
-      num_cases <- nrow(w_data)
+      src_data[[length(src_data) + 1]] <- dramas[[src_idx]][3]
   
       # Extra: Add time period as a feature into windowing data
 #       time_periods <- seq(window_len, num_cases + window_len - 1)
 #       w_data <- cbind(time_periods, w_data)
   
       # Add other features into windowing data
-      features <- tail(dramas[[src_idx]][, -c(1, 2, 3)], num_cases)
-      w_data <- cbind(features, w_data)
-  
-      # Bind windowing data
-      src_data <- rbind(w_data, src_data)
+#       features <- tail(dramas[[src_idx]][, -c(1, 2, 3)], num_cases)
+#       w_data <- cbind(features, w_data)
     }
-    src_data <- data.frame(src_data)
 
     set.seed(seed)
     cat('--------------------', '\n')

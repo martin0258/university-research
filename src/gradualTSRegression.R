@@ -67,10 +67,6 @@ gradualTSRegression <- function(x,
   # Align column names
   names(wData) <- paste("X", seq(1, ncol(wData)), sep="")
   names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
-  if (!is.null(source_data)) {
-    names(source_data) <- paste("X", seq(1, ncol(source_data)), sep="")
-    names(source_data)[ncol(source_data)] <- "Y"
-  }
 
   # Train a model for each time period
   # Start from 2 because at least 2 training instances are needed
@@ -93,12 +89,29 @@ gradualTSRegression <- function(x,
     tune_control <- tune.control(sampling='fix',
                                  error.fun=mape_actual_first)
     
+    # form regression cases for source data
+    # only include same period cases as target data (EY's suggestion)
+    # may have multiple sources
+    train_data_src <- NULL
+    if (!is.null(source_data)) {
+      train_data_src <- c()
+      for (src_data in source_data) {
+        w_data_src <- windowing(src_data, windowLen)
+        end_idx_src <- min(trainEndIndex, nrow(w_data_src))
+        train_data_src <- rbind(train_data_src, w_data_src[1:end_idx_src, ])
+      }
+      train_data_src <- data.frame(train_data_src)
+      names(train_data_src) <- paste("X", seq(1, ncol(train_data_src)), sep="")
+      names(train_data_src)[ncol(train_data_src)] <- "Y"
+    }
+    
     # Training phase
     model <- tryCatch({
       # Use do.call to easily add new model in test_gradualTSRegression.R
       if (predictor == "trAdaboostR2") {
         do.call(predictor, args=list(formula=model_formula,
-                                     source_data=source_data,
+                                     source_data=train_data_src,
+                                     num_predictors=nrow(train_data_src),
                                      target_data=train_data,
                                      val_data=NULL,
                                      verbose=verbose, ...))
