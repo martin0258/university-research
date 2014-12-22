@@ -146,20 +146,20 @@ results <- list()
 #   Number of columns is equal to the number of different algorithms.
 num_base_models <- 3
 num_models <- length(base_predictors_args) * 3 + num_base_models 
-mape_dramas <- matrix(, nrow=0, ncol=num_models)
-mae_dramas <- matrix(, nrow=0, ncol=num_models)
+mape_dramas <- matrix(, nrow=num_models, ncol=0)
+mae_dramas <- matrix(, nrow=num_models, ncol=0)
 models_names <- c()
 for (base_predictor_args in base_predictors_args) {
   base_predictor_name <- base_predictor_args$predictor
   models_names <- c(models_names,
                     sprintf('%s', base_predictor_name),
-                    sprintf('adaboostR2(%s)', base_predictor_name),
-                    sprintf('trAdaboostR2(%s)', base_predictor_name))
+                    sprintf('adaboostR2.%s', base_predictor_name),
+                    sprintf('trAdaboostR2.%s', base_predictor_name))
 }
 models_names <- c(models_names,
-                  'lastPeriod', 'avgPastPeriods', 'HoltWinters(alpha)')
-colnames(mape_dramas) <- models_names
-colnames(mae_dramas) <- models_names
+                  'lastPeriod', 'avgPastPeriods', 'HoltWinter.alpha')
+rownames(mape_dramas) <- models_names
+rownames(mae_dramas) <- models_names
 
 # There are many unresolved issues of using %dopar%
 # foreach (idx = 1:length(dramas)) %do% {
@@ -279,10 +279,10 @@ for (idx in 1:length(dramas)) {
     mape_drama <- c(mape_drama, mape(result['Prediction'], ratings))
     mae_drama <- c(mae_drama, round(mae(result['Prediction'], ratings), 4))
   }
-  mape_dramas <- rbind(mape_dramas, mape_drama)
-  mae_dramas <- rbind(mae_dramas, mae_drama)
-  rownames(mape_dramas)[nrow(mape_dramas)] <- dramaName
-  rownames(mae_dramas)[nrow(mae_dramas)] <- dramaName
+  mape_dramas <- cbind(mape_dramas, mape_drama)
+  mae_dramas <- cbind(mae_dramas, mae_drama)
+  colnames(mape_dramas)[ncol(mape_dramas)] <- dramaName
+  colnames(mae_dramas)[ncol(mae_dramas)] <- dramaName
 
   # Plot result
   color_idx <- 0
@@ -312,11 +312,11 @@ for (idx in 1:length(dramas)) {
 # Print test errors and ranks
 mape_rank_dramas <- mape_dramas
 mae_rank_dramas <- mae_dramas
-for (i in 1:nrow(mape_rank_dramas)) {
-  mape_rank_dramas[i, ] <- paste(mape_rank_dramas[i, ], ' #',
-                                 rank(mape_rank_dramas[i, ]), sep='')
-  mae_rank_dramas[i, ] <- paste(mae_rank_dramas[i, ], ' #',
-                                rank(mae_rank_dramas[i, ]), sep='')
+for (i in 1:ncol(mape_rank_dramas)) {
+  mape_rank_dramas[, i] <- paste(mape_rank_dramas[, i], ' #',
+                                 rank(mape_rank_dramas[, i]), sep='')
+  mae_rank_dramas[, i] <- paste(mae_rank_dramas[, i], ' #',
+                                rank(mae_rank_dramas[, i]), sep='')
 }
 print(mape_rank_dramas)
 print(mae_rank_dramas)
