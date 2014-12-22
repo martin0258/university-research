@@ -3,6 +3,7 @@ gradualTSRegression <- function(x,
                                 source_data = NULL,
                                 windowLen = 4, n.ahead = 1,
                                 verbose = FALSE,
+                                model_type = c('regression', 'ts'),
                                 predictor = lm, ...) {
   # Forecast time series via windowing transformation and regression.
   #
@@ -28,6 +29,7 @@ gradualTSRegression <- function(x,
   # Example:
   #  If (windowLen = 4, n.ahead = 1), each training instance has 3 predictors
   #  and 1 response variable.
+  model_type <- match.arg(model_type)
   model_formula <- as.formula('Y~.')
   
   # Initialize a data instructure storing input data and result
@@ -40,13 +42,16 @@ gradualTSRegression <- function(x,
   result[, "TrainError"] <- NA
   result[, "ErrorMsg"] <- NA
 
-  # Recrod start execution time
+  # Record start execution time
   start <- proc.time()
 
   # Form regression data from time series
   #source("lib/windowing.R")
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
+  
+  # Form time series data
+  x_ts <- ts(x)
   
   numCases <- nrow(wData)
 
@@ -79,6 +84,9 @@ gradualTSRegression <- function(x,
     subtrain_data <- wData[1:(trainEndIndex - val_num_cases), ]
     test_data <- wData[testIndex, ]
     testPeriod <- testIndex + windowLen - 1
+    trainPeriods <- 1:(testPeriod - 1)
+    train_data_ts <- x_ts[trainPeriods]
+    test_data_ts <- x_ts[testPeriod]
     cat(sprintf('--- Testing Episode: %2d --- \n', testPeriod))
     
     # settings of parameter tuning
@@ -99,13 +107,18 @@ gradualTSRegression <- function(x,
                                      data=train_data,
                                      val_data=NULL,
                                      verbose=verbose, ...))
-      } else {
+      } else if (model_type == 'regression') {
         do.call(predictor, args=list(formula=model_formula,
                                      data=train_data, ...))
 #         tune_result <- tune(predictor, model_formula, data=train_data,
 #                             ranges=list(maxdepth=seq(1, 4)),
 #                             tunecontrol=tune_control, ...)
 #         tune_result$best.model
+      } else if (model_type == 'ts') {
+        # training time series model
+        do.call(predictor, args=list(x=train_data_ts, ...))
+      } else {
+        # should not be here in any case
       }
     }, error = function(err) {
       return(err)
@@ -120,13 +133,22 @@ gradualTSRegression <- function(x,
     }
     
     # Testing phase
-    predictTrain <- predict(model, wData[trainIndex, ])
-    predictTest <- predict(model, wData[testIndex, ])
+    if (model_type == 'regression') {
+      predictTrain <- predict(model, wData[trainIndex, ])
+      predictTest <- predict(model, wData[testIndex, ])
+      trainError <- mape(predictTrain, wData[trainIndex, "Y"])
+      testError <- mape(predictTest, wData[testIndex, "Y"])
+    } else if (model_type == 'ts') {
+      predictTrain <- model$fitted_values
+      predictTest <- predict(model, n.ahead = n.ahead)
+      trainError <- mape(predictTrain, train_data_ts)
+      testError <- mape(predictTest, test_data_ts)
+    } else {
+      # should not be here in any case
+    }
     
     # Evaluate
     #source("lib/mape.R")
-    trainError <- mape(predictTrain, wData[trainIndex, "Y"])
-    testError <- mape(predictTest, wData[testIndex, "Y"])
     result[testPeriod, "Prediction"] <- predictTest
     result[testPeriod, "TestError"] <- testError
     result[testPeriod, "TrainError"] <- trainError
