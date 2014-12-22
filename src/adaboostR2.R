@@ -11,6 +11,7 @@ adaboostR2 <- function( formula, data,
                         loss = 'linear',
                         verbose = FALSE,
                         error_fun = mse,
+                        monitor_errors = FALSE,
                         base_predictor = rpart, ... ) {
   # Fits and returns an adaboost model for regression.
   # The algorithm is known as AdaBoost.R2 (Drucker, 1997).
@@ -156,22 +157,24 @@ adaboostR2 <- function( formula, data,
     
     # monitor performance of current ensemble
     # WARNING: very time-consuming due to prediction performance!!
-    current_ada <- construct.adaboostR2(predictors,
-                                        predictors_weights)
-    predictions <- predict(current_ada, train_data, verbose=F,
-                           train_base_predictions_cache)
-    train_prediction <- predictions[['final_predictions']]
-    train_base_predictions_cache <- predictions[['base_predictions_cache']]
-    train_error <- error_fun(train_prediction, train_data[, response])
-    train_errors <- c(train_errors, train_error)
-
-    if (!is.null(val_data)) {
-      predictions <- predict(current_ada, val_data, verbose=F,
-                             val_base_predictions_cache)
-      val_prediction <- predictions[['final_predictions']]
-      val_base_predictions_cache <- predictions[['base_predictions_cache']]
-      val_error <- error_fun(val_prediction, val_data[, response])
-      val_errors <- c(val_errors, val_error)
+    if (monitor_errors) {
+      current_ada <- construct.adaboostR2(predictors,
+                                          predictors_weights)
+      predictions <- predict(current_ada, train_data, verbose=F,
+                             train_base_predictions_cache)
+      train_prediction <- predictions[['final_predictions']]
+      train_base_predictions_cache <- predictions[['base_predictions_cache']]
+      train_error <- error_fun(train_prediction, train_data[, response])
+      train_errors <- c(train_errors, train_error)
+  
+      if (!is.null(val_data)) {
+        predictions <- predict(current_ada, val_data, verbose=F,
+                               val_base_predictions_cache)
+        val_prediction <- predictions[['final_predictions']]
+        val_base_predictions_cache <- predictions[['base_predictions_cache']]
+        val_error <- error_fun(val_prediction, val_data[, response])
+        val_errors <- c(val_errors, val_error)
+      }
     }
 
     # early stop if fit of this iteration is perfect
@@ -182,11 +185,13 @@ adaboostR2 <- function( formula, data,
   cat_verbose(verbose, '\n')
 
   # plot errors over iterations
-  if (is.null(val_data)) val_errors <- rep(NA, length(train_errors))
-  errors_over_itrs <- data.frame(val_errors, train_errors)
-  p <- xyplot(ts(errors_over_itrs), superpose=T, type='o', lwd=2,
-              main='Errors over iterations', xlab='Iteration', ylab='Error')
-  print(p)
+  if (monitor_errors) {
+    if (is.null(val_data)) val_errors <- rep(NA, length(train_errors))
+    errors_over_itrs <- data.frame(val_errors, train_errors)
+    p <- xyplot(ts(errors_over_itrs), superpose=T, type='o', lwd=2,
+                main='Errors over iterations', xlab='Iteration', ylab='Error')
+    print(p)
+  }
 
   # re-train with full data, and num_predictors is determined by min val error
   if (!is.null(val_data)) {
