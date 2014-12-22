@@ -16,6 +16,9 @@ test_dramas_type <- ifelse(exists('test_dramas_type'),
 has_features <- ifelse(exists('has_feautures'),
                        has_features,
                        FALSE)
+window_len <- ifelse(exists('window_len'),
+                     window_len,
+                     4)
 seed <- ifelse(exists('seed'), seed, 0)
 if (!exists('base_predictors_args')) {
   base_predictors_args <-list(
@@ -161,9 +164,10 @@ models_names <- c(models_names,
 rownames(mape_dramas) <- models_names
 rownames(mae_dramas) <- models_names
 
+num_dramas <- length(dramas)
 # There are many unresolved issues of using %dopar%
 # foreach (idx = 1:length(dramas)) %do% {
-for (idx in 1:length(dramas)) {
+for (idx in 1:num_dramas) {
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
   
@@ -180,7 +184,8 @@ for (idx in 1:length(dramas)) {
                 dramaName, base_predictor_args$predictor), '\n')
     
     # Use do.call to easily add new base predictor
-    args <- c(list(x=ratings, feature=target_feature), base_predictor_args)
+    args <- c(list(x=ratings, feature=target_feature, windowLen=window_len),
+              base_predictor_args)
     result <- do.call(gradualTSRegression, args=args)
     results[[length(results) + 1]] <- result
     
@@ -197,7 +202,7 @@ for (idx in 1:length(dramas)) {
     cat(sprintf('Drama: %s, Model: AdaBoost.R2(%s)',
                 dramaName, base_predictor_args$base_predictor), '\n')
     
-    args <- c(list(x=ratings, feature=target_feature,
+    args <- c(list(x=ratings, feature=target_feature, windowLen=window_len,
                    predictor='adaboostR2', verbose=T, error_fun=mape),
               base_predictor_args)
     result <- do.call(gradualTSRegression, args=args)
@@ -209,7 +214,6 @@ for (idx in 1:length(dramas)) {
     # Combine multiple sources into one data set:
     #   - Apply windowing transformation to each drama
     #   - Bind data
-    window_len <- 4
     src_indices <- 1:length(dramas)
     src_indices <- src_indices[-idx]
     src_data <- c()  # An empty data frame?
@@ -241,6 +245,7 @@ for (idx in 1:length(dramas)) {
     cat(sprintf('Drama: %s, Model: TrAdaBoost.R2(%s)',
                 dramaName, base_predictor_args$base_predictor), '\n')
     args <- c(list(x=ratings, feature=target_feature, source_data=src_data,
+                   windowLen=window_len,
                    predictor='trAdaboostR2', verbose=T, error_fun=mape),
               base_predictor_args)
     result <- do.call(gradualTSRegression, args=args)
@@ -307,7 +312,22 @@ for (idx in 1:length(dramas)) {
          pch=c(NA, 21), lty=c(2, 1))
 }
 
-# TODO: Print an overall error across all dramas
+# For each model, calculate an overall error across all dramas
+all_mape <- c()
+all_mae <- c()
+for (i in 1:num_models) {
+  predictions <- c()
+  actuals <- c()
+  for (j in 1:num_dramas) {
+    result_idx <- i + num_models * (j - 1)
+    predictions <- c(predictions,  results[[result_idx]]$Prediction)
+    actuals <- c(actuals, results[[result_idx]][, 1])
+  }
+  all_mape <- c(all_mape, mape(predictions, actuals))
+  all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
+}
+mape_dramas <- cbind(mape_dramas, all_mape)
+mae_dramas <- cbind(mae_dramas, all_mae)
 
 # Print test errors and ranks
 mape_rank_dramas <- mape_dramas
