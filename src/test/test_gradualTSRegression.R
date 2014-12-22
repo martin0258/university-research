@@ -247,7 +247,7 @@ for (idx in 1:length(dramas)) {
   mae_drama <- c()
   for (result in tail(results, num_models)) {
     mape_drama <- c(mape_drama, mape(result['Prediction'], ratings))
-    mae_drama <- c(mae_drama, mae(result['Prediction'], ratings))
+    mae_drama <- c(mae_drama, round(mae(result['Prediction'], ratings)), 4)
   }
   mape_dramas <- rbind(mape_dramas, mape_drama)
   mae_dramas <- rbind(mae_dramas, mae_drama)
@@ -277,7 +277,19 @@ for (idx in 1:length(dramas)) {
          pch=c(NA, 21), lty=c(2, 1))
 }
 
-# Print an overall error across all dramas
+# TODO: Print an overall error across all dramas
+
+# Print test errors and ranks
+mape_rank_dramas <- mape_dramas
+mae_rank_dramas <- mae_dramas
+for (i in 1:nrow(mape_rank_dramas)) {
+  mape_rank_dramas[i, ] <- paste(mape_rank_dramas[i, ], ' #',
+                                 rank(mape_rank_dramas[i, ]), sep='')
+  mae_rank_dramas[i, ] <- paste(mae_rank_dramas[i, ], ' #',
+                                rank(mae_rank_dramas[i, ]), sep='')
+}
+print(mape_rank_dramas)
+print(mae_rank_dramas)
 
 # Run statistical signifance test
 # Note: When sourcing a script, output is printed only if with print() function.
