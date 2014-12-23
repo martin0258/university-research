@@ -5,8 +5,14 @@
 #   - AdaBoost.R2 (weak learner)
 #   - TrAdaBoost.R2 (weak learner)
 
+library(nnet)
+library(rpart)
+library(hydroGOF)  # For function mae()
+library(doParallel)
+
 # Global parameters of this script.
 # If not set before sourcing this script, use default values as below.
+r_control <- rpart.control(minsplit=2, maxdepth=4)
 project_root <- ifelse(exists('project_root'),
                        project_root,
                        'D:/Projects/GitHub/ntu-research/')
@@ -29,15 +35,10 @@ if (!exists('base_predictors_args')) {
 #                                   ),
                               list(
                                    predictor='rpart',
-                                   minsplit=2, maxdepth=4
+                                   control=r_control
                                   )
                              )
 }
-
-library(nnet)
-library(rpart)
-library(hydroGOF)  # For function mae()
-library(doParallel)
 
 # Change working directory to project root to source following libs
 setwd(project_root)
@@ -47,6 +48,7 @@ source("src/guessLastPeriod.R")
 source("src/avgPastPeriods.R")
 source("src/adaboostR2.R")
 source("src/trAdaboostR2.R")
+source("src/rsw.R")
 source("src/gradualTSRegression.R")
 
 # Set up parallel computing
@@ -147,8 +149,9 @@ results <- list()
 # It is a matrix of performance to run statistical test.
 #   Each row is the performance results of each drama for different algorithms.
 #   Number of columns is equal to the number of different algorithms.
-num_base_models <- 3
-num_models <- length(base_predictors_args) * 3 + num_base_models 
+num_base_models <- length(base_predictors_args)
+num_baseline_models <- 6
+num_models <- num_base_models * 3 + num_baseline_models
 mape_dramas <- matrix(, nrow=num_models, ncol=0)
 mae_dramas <- matrix(, nrow=num_models, ncol=0)
 models_names <- c()
@@ -159,8 +162,9 @@ for (base_predictor_args in base_predictors_args) {
                     sprintf('adaboostR2.%s', base_predictor_name),
                     sprintf('trAdaboostR2.%s', base_predictor_name))
 }
-models_names <- c(models_names,
-                  'lastPeriod', 'avgPastPeriods', 'HoltWinter.alpha')
+baseline_models_names <- c('lastPeriod', 'avgPastPeriods', 'HoltWinter.alpha',
+                           'rsw.rpart.flat', 'rsw.rpart.linear', 'rsw.rpart.exp')
+models_names <- c(models_names, baseline_models_names)
 rownames(mape_dramas) <- models_names
 rownames(mae_dramas) <- models_names
 
@@ -245,7 +249,7 @@ for (idx in 1:num_dramas) {
   # Experiment 4: naive time series baseline model - guess last period
   cat('--------------------', '\n')
   cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: guessLastPeriod', dramaName), '\n')
+  cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_models_names[1]), '\n')
   args <- c(list(x=ratings, model_type='ts', predictor='guessLastPeriod'))
   result <- do.call(gradualTSRegression, args=args)
   results[[length(results) + 1]] <- result
@@ -253,7 +257,7 @@ for (idx in 1:num_dramas) {
   # Experiment 5: naive time series baseline model - avg past periods
   cat('--------------------', '\n')
   cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: avgPastPeriods', dramaName), '\n')
+  cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_models_names[2]), '\n')
   args <- c(list(x=ratings, model_type='ts', predictor='avgPastPeriods'))
   result <- do.call(gradualTSRegression, args=args)
   results[[length(results) + 1]] <- result
@@ -261,9 +265,39 @@ for (idx in 1:num_dramas) {
   # Experiment 6: time series baseline model - simple exp smoothing
   cat('--------------------', '\n')
   cat('Starting experiment...', '\n')
-  cat(sprintf('Drama: %s, Model: HoltWinters(alpha)', dramaName), '\n')
+  cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_models_names[3]), '\n')
   args <- c(list(x=ratings, model_type='ts',
                  predictor='HoltWinters', beta=F, gamma=F))
+  result <- do.call(gradualTSRegression, args=args)
+  results[[length(results) + 1]] <- result
+
+  # Experiment 7: rsw.flat
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_models_names[4]), '\n')
+  args <- c(list(x=ratings, model_type='ts',
+                 predictor='rsw', window_len=window_len, weight_type='flat',
+                 method='rpart', control=r_control))
+  result <- do.call(gradualTSRegression, args=args)
+  results[[length(results) + 1]] <- result
+
+  # Experiment 8: rsw.linear
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_models_names[5]), '\n')
+  args <- c(list(x=ratings, model_type='ts',
+                 predictor='rsw', window_len=window_len, weight_type='linear',
+                 method='rpart', control=r_control))
+  result <- do.call(gradualTSRegression, args=args)
+  results[[length(results) + 1]] <- result
+
+  # Experiment 7: rsw.exp
+  cat('--------------------', '\n')
+  cat('Starting experiment...', '\n')
+  cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_models_names[6]), '\n')
+  args <- c(list(x=ratings, model_type='ts',
+                 predictor='rsw', window_len=window_len, weight_type='exp',
+                 method='rpart', control=r_control))
   result <- do.call(gradualTSRegression, args=args)
   results[[length(results) + 1]] <- result
 
@@ -276,9 +310,9 @@ for (idx in 1:num_dramas) {
   }
   mape_dramas <- cbind(mape_dramas, mape_drama)
   mae_dramas <- cbind(mae_dramas, mae_drama)
-  # Note: display first 3 characters of drama name to make table more readable
-  colnames(mape_dramas)[ncol(mape_dramas)] <- substr(dramaName, 1, 3)
-  colnames(mae_dramas)[ncol(mae_dramas)] <- substr(dramaName, 1, 3)
+  # Note: display first 2 characters of drama name to make table more readable
+  colnames(mape_dramas)[ncol(mape_dramas)] <- substr(dramaName, 1, 2)
+  colnames(mae_dramas)[ncol(mae_dramas)] <- substr(dramaName, 1, 2)
 
   # Plot result
   color_idx <- 0
