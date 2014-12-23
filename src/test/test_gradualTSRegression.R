@@ -171,6 +171,9 @@ baseline_models <-
       list(name='auto.arima',
            args=list(model_type='ts', predictor='auto.arima')
           ),
+      list(name='nnetar',
+           args=list(model_type='ts', predictor='nnetar')
+          ),
       list(name='rsw.rpart.flat',
            args=list(model_type='ts', predictor='rsw',
                      window_len=window_len, weight_type='flat',

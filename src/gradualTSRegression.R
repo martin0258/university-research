@@ -154,9 +154,7 @@ gradualTSRegression <- function(x,
       testError <- mape(predictTest, wData[testIndex, "Y"])
     } else if (model_type == 'ts') {
       predictTrain <- NA
-      if (predictor == 'ets') {
-        predictTest <- forecast(model, h = n.ahead)$mean[1]
-      } else if (predictor == 'auto.arima') {
+      if (predictor %in% c('ets', 'auto.arima', 'nnetar')) {
         # Reference: http://stackoverflow.com/a/22213320
         predictTest <- forecast(model, h = n.ahead)$mean[1]
       } else {
