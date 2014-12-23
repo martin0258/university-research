@@ -5,6 +5,7 @@ rsw <- function (x,
                  window_len,
                  weighted_sampling = TRUE,
                  seed = 1,
+                 repeats = 20,
                  weight_type = c('flat', 'linear', 'exp'),
                  method, ...) {
   # Return a model that trains a regression model
@@ -45,35 +46,46 @@ rsw <- function (x,
     # should not be here
   }
   
+  fits <- list()
   if (weighted_sampling) {
     # resampling data based on case weights
-    set.seed(1)
-    bootstrap_idx <- sample(num_cases, replace=TRUE, prob=case_weights)
-    fit <- do.call(method, args=list(formula=model_formula,
-                                     data=r_data[bootstrap_idx, ], ...))
+    set.seed(seed)
+    for (i in 1:repeats) {
+      bootstrap_idx <- sample(num_cases, replace=TRUE, prob=case_weights)
+      fit <- do.call(method, args=list(formula=model_formula,
+                                       data=r_data[bootstrap_idx, ], ...))
+      fits[[length(fits) + 1]] <- fit
+    }
+    fitted <- sapply(fits, 'fitted')
   } else {
     fit <- do.call(method, args=list(formula=model_formula,
                                      data=r_data, weights=case_weights, ...))
+    fits[[length(models) + 1]] <- fit
+    fitted <- fitted(fit)
   }
-  
-  # fitted values
-  fitted <- fitted(fit)
   
   # construct return object
   obj <- list(x = x, window_len = window_len, 
-              call = match.call(), fit = fit, fitted = fitted)
+              call = match.call(), fits = fits, fitted = fitted)
   class(obj) <- 'rsw'
   
   return (obj)
 }
 
 predict.rsw <- function (object, n.ahead = 1)  {
+  # form test data
   num_features <- object$window_len - 1
   last_case_x <- tail(object$x, num_features)
   last_case_x <- data.frame(matrix(last_case_x, nrow=1))
   names(last_case_x) <- paste('X', seq(1, num_features), sep='')
-  prediction <- predict(object$fit, newdata=last_case_x)[1]
-  predictions <- rep(prediction, n.ahead) # flat multiple steps forecast
+  
+  predictions <- c()
+  for (fit in object$fits) {
+    prediction <- predict(fit, newdata=last_case_x)[1]
+    predictions <- c(predictions, prediction)
+  }
+  final_prediction <- mean(predictions)
+  predictions <- rep(final_prediction, n.ahead) # flat multiple steps forecast
   names(predictions) <- seq(length(object$x) + 1, length.out = n.ahead)
   return (predictions)
 }
