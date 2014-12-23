@@ -8,6 +8,7 @@
 
 library(nnet)
 library(rpart)
+library(forecast)  # for auto.arima() and ets()
 library(hydroGOF)  # For function mae()
 library(doParallel)
 
@@ -163,6 +164,12 @@ baseline_models <-
           ),
       list(name='HoltWinters.α.β',
            args=list(model_type='ts', predictor='HoltWinters', gamma=F)
+          ),
+      list(name='ESStateSpace',
+           args=list(model_type='ts', predictor='ets')
+          ),
+      list(name='auto.arima',
+           args=list(model_type='ts', predictor='auto.arima')
           ),
       list(name='rsw.rpart.flat',
            args=list(model_type='ts', predictor='rsw',
@@ -323,13 +330,15 @@ for (idx in 1:num_dramas) {
          pch=c(NA, 21), lty=c(2, 1))
 }
 
+num_dramas_performed <- length(results) / num_models
+
 # For each model, calculate an overall error across all dramas
 all_mape <- c()
 all_mae <- c()
 for (i in 1:num_models) {
   predictions <- c()
   actuals <- c()
-  for (j in 1:num_dramas) {
+  for (j in 1:num_dramas_performed) {
     result_idx <- i + num_models * (j - 1)
     predictions <- c(predictions,  results[[result_idx]]$Prediction)
     actuals <- c(actuals, results[[result_idx]][, 1])

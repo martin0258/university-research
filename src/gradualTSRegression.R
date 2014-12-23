@@ -4,7 +4,7 @@ gradualTSRegression <- function(x,
                                 windowLen = 4, n.ahead = 1,
                                 verbose = FALSE,
                                 model_type = c('regression', 'ts'),
-                                predictor = lm, ...) {
+                                predictor, ...) {
   # Forecast time series via windowing transformation and regression.
   #
   # Arguments:
@@ -130,7 +130,7 @@ gradualTSRegression <- function(x,
 #         tune_result$best.model
       } else if (model_type == 'ts') {
         # training time series model
-        do.call(predictor, args=list(x=train_data_ts, ...))
+        do.call(predictor, args=list(train_data_ts, ...))
       } else {
         # should not be here in any case
       }
@@ -154,7 +154,14 @@ gradualTSRegression <- function(x,
       testError <- mape(predictTest, wData[testIndex, "Y"])
     } else if (model_type == 'ts') {
       predictTrain <- NA
-      predictTest <- predict(model, n.ahead = n.ahead)[1]
+      if (predictor == 'ets') {
+        predictTest <- forecast(model, h = n.ahead)$mean[1]
+      } else if (predictor == 'auto.arima') {
+        # Reference: http://stackoverflow.com/a/22213320
+        predictTest <- forecast(model, h = n.ahead)$mean[1]
+      } else {
+        predictTest <- predict(model, n.ahead = n.ahead)[1]
+      }
       trainError <- NA # mape(predictTrain, train_data_ts)
       testError <- mape(predictTest, test_data_ts)
     } else {
