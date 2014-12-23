@@ -97,8 +97,9 @@ gradualTSRegression <- function(x,
       train_data_src <- c()
       for (src_data in source_data) {
         w_data_src <- windowing(src_data, windowLen)
-        end_idx_src <- min(trainEndIndex, nrow(w_data_src))
-        train_data_src <- rbind(train_data_src, w_data_src[1:end_idx_src, ])
+        end_idx_src <- nrow(w_data_src) #min(trainEndIndex, nrow(w_data_src))
+        # Note: changing bind order affects performance
+        train_data_src <- rbind(w_data_src[1:end_idx_src, ], train_data_src)
       }
       train_data_src <- data.frame(train_data_src)
       names(train_data_src) <- paste("X", seq(1, ncol(train_data_src)), sep="")
@@ -111,7 +112,7 @@ gradualTSRegression <- function(x,
       if (predictor == "trAdaboostR2") {
         do.call(predictor, args=list(formula=model_formula,
                                      source_data=train_data_src,
-                                     num_predictors=nrow(train_data_src),
+                                     num_predictors=50,
                                      target_data=train_data,
                                      val_data=NULL,
                                      verbose=verbose, ...))

@@ -276,8 +276,9 @@ for (idx in 1:num_dramas) {
   }
   mape_dramas <- cbind(mape_dramas, mape_drama)
   mae_dramas <- cbind(mae_dramas, mae_drama)
-  colnames(mape_dramas)[ncol(mape_dramas)] <- dramaName
-  colnames(mae_dramas)[ncol(mae_dramas)] <- dramaName
+  # Note: display first 3 characters of drama name to make table more readable
+  colnames(mape_dramas)[ncol(mape_dramas)] <- substr(dramaName, 1, 3)
+  colnames(mae_dramas)[ncol(mae_dramas)] <- substr(dramaName, 1, 3)
 
   # Plot result
   color_idx <- 0
