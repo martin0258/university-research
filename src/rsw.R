@@ -6,7 +6,7 @@ rsw <- function (x,
                  weighted_sampling = TRUE,
                  seed = 1,
                  repeats = 20,
-                 weight_type = c('flat', 'linear', 'exp'),
+                 weight_type = c('equal', 'linear', 'exp'),
                  method, ...) {
   # Return a model that trains a regression model
   # with time series weights concepts (newer cases have more weights)
@@ -41,14 +41,13 @@ rsw <- function (x,
   # Give more weights for newer cases
   # Options: linear increase, exponential increase
   
-  if (weight_type == 'flat') {
+  if (weight_type == 'equal') {
+    # this is known as bagging
     case_weights <- rep(1 / num_cases, num_cases)
   } else if (weight_type == 'linear') {
-    alpha <- 1
-    case_weights <- alpha * seq(1, num_cases)
+    case_weights <- seq(1, num_cases)
   } else if (weight_type == 'exp') {
-    alpha <- 1
-    case_weights <- alpha * exp(1:num_cases)
+    case_weights <- exp(1:num_cases)
   } else {
     # should not be here
   }
@@ -63,18 +62,17 @@ rsw <- function (x,
                                        data=r_data[bootstrap_idx, ], ...))
       fits[[length(fits) + 1]] <- fit
     }
-    fitted <- sapply(fits, 'fitted')
   } else {
     fit <- do.call(method, args=list(formula=model_formula,
                                      data=r_data, weights=case_weights, ...))
-    fits[[length(models) + 1]] <- fit
-    fitted <- fitted(fit)
+    fits[[1]] <- fit
   }
   
   # construct return object
   obj <- list(x = x, window_len = window_len, r_data = r_data,
-              call = match.call(), fits = fits, fitted = fitted)
+              call = match.call(), fits = fits)
   class(obj) <- 'rsw'
+  obj[['fitted']] <- fitted(obj)
   
   return (obj)
 }

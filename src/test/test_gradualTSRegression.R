@@ -10,7 +10,7 @@ library(nnet)
 library(rpart)
 library(forecast)  # for auto.arima() and ets()
 library(hydroGOF)  # For function mae()
-library(doParallel)
+#library(doParallel)
 
 # Global parameters of this script.
 # If not set before sourcing this script, use default values as below.
@@ -175,9 +175,14 @@ baseline_models <-
       list(name='nnetar',
            args=list(model_type='ts', predictor='nnetar')
           ),
-      list(name='rsw.rpart.flat',
+      list(name='rsw.rpart.equal',
            args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='flat',
+                     window_len=NULL, weight_type='equal', weighted_sampling=F,
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.equal.ws',
+           args=list(model_type='ts', predictor='rsw',
+                     window_len=NULL, weight_type='equal',
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.linear',
@@ -356,11 +361,11 @@ mae_dramas <- cbind(mae_dramas, all_mae)
 # Print test errors and ranks
 mape_rank_dramas <- mape_dramas
 mae_rank_dramas <- mae_dramas
-for (i in 1:ncol(mape_rank_dramas)) {
-  mape_rank_dramas[, i] <- paste(mape_rank_dramas[, i], ' #',
-                                 rank(mape_rank_dramas[, i]), sep='')
-  mae_rank_dramas[, i] <- paste(mae_rank_dramas[, i], ' #',
-                                rank(mae_rank_dramas[, i]), sep='')
+for (i in 1:ncol(mape_dramas)) {
+  mape_rank_dramas[, i] <- paste(sprintf('%.4f', mape_dramas[, i]), ' #',
+                                 rank(mape_dramas[, i]), sep='')
+  mae_rank_dramas[, i] <- paste(sprintf('%.4f', mae_dramas[, i]), ' #',
+                                rank(mae_dramas[, i]), sep='')
 }
 print(mape_rank_dramas)
 print(mae_rank_dramas)
