@@ -2,7 +2,7 @@ source('src/lib/windowing.R')  # for transform time series to regression
 
 # 'R'egression with Time 'S'eries 'W'eighting (RSW)
 rsw <- function (x,
-                 window_len,
+                 window_len = NULL,
                  weighted_sampling = TRUE,
                  seed = 1,
                  repeats = 20,
@@ -19,6 +19,13 @@ rsw <- function (x,
   
   # cast x to make sure it is time series
   x <- ts(x)
+  
+  # automatically choose optimal number of lags via AIC for a linear AR model
+  # window length = number of lags + 1 (1 is for the y of one-step forecast)
+  if (is.null(window_len)) {
+    window_len <- ar(x, aic=TRUE)$order + 1
+    window_len <- ifelse(window_len <= 2, 2, window_len)
+  }
   
   weight_type <- match.arg(weight_type)
   

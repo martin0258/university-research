@@ -41,6 +41,7 @@ if (!exists('base_predictors_args')) {
                                   )
                              )
 }
+base_predictors_args <- list() # disable boost and transfer models
 
 # Change working directory to project root to source following libs
 setwd(project_root)
@@ -176,17 +177,17 @@ baseline_models <-
           ),
       list(name='rsw.rpart.flat',
            args=list(model_type='ts', predictor='rsw',
-                     window_len=window_len, weight_type='flat',
+                     window_len=NULL, weight_type='flat',
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.linear',
            args=list(model_type='ts', predictor='rsw',
-                     window_len=window_len, weight_type='linear',
+                     window_len=NULL, weight_type='linear',
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.exp',
            args=list(model_type='ts', predictor='rsw',
-                     window_len=window_len, weight_type='exp',
+                     window_len=NULL, weight_type='exp',
                      method='rpart', control=r_control)
           )
       )
