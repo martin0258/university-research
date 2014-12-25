@@ -72,7 +72,7 @@ rsw <- function (x,
   }
   
   # construct return object
-  obj <- list(x = x, window_len = window_len, 
+  obj <- list(x = x, window_len = window_len, r_data = r_data,
               call = match.call(), fits = fits, fitted = fitted)
   class(obj) <- 'rsw'
   
@@ -94,5 +94,57 @@ predict.rsw <- function (object, n.ahead = 1)  {
   final_prediction <- mean(predictions)
   predictions <- rep(final_prediction, n.ahead) # flat multiple steps forecast
   names(predictions) <- seq(length(object$x) + 1, length.out = n.ahead)
+  return (predictions)
+}
+
+fitted.rsw <- function (object) {
+  predictions <- c()
+  for (fit in object$fits) {
+    prediction <- predict(fit, object$r_data)
+    predictions <- rbind(predictions, prediction)
+  }
+  result <- c(rep(NA, object$window_len - 1), colMeans(predictions))
+  names(result) <- seq(1, length(result))
+  return (result)
+}
+
+ensemble_ts <- function (y, ...) {
+  input_predictions <- data.frame(list(...))
+  y_x <- cbind(y, input_predictions)
+  colnames(y_x) <- c('y', paste('p', seq(1, ncol(y_x) - 1), sep=''))
+  
+  # only keep cases with no missing value at all
+  # assumption: all the cases with missing value are centralized first
+  y_x_complete <- y_x[complete.cases(y_x), ]
+  
+  # gradual time series regression
+  train_errors <- c()
+  predictions <- c()
+  num_min_train <- 1
+  for (train_idx in 1:(nrow(y_x_complete) - 1)) {
+    # prepare training and testing data
+    train_data <- y_x_complete[train_idx, ]
+    test_data <- y_x_complete[train_idx + 1, ]
+    
+    # train an ensemble model
+#     fit <- rpart(y~., train_data, minsplit=2, maxdepth=2)
+#     fit <- lm(y~., train_data)
+    
+    # test (predict)
+#     prediction <- predict(fit, newdata=test_data)
+    train_error <- abs(train_data[, 1] - train_data[, -c(1)])
+    train_errors <- rbind(train_errors, train_error)
+    best_model_idx <- which.min(colSums(train_errors))
+    prediction <- test_data[, 1 + best_model_idx]
+    predictions <- c(predictions, prediction)
+#     cat(sprintf('%d,', best_model_idx))
+  }
+#   cat('\n')
+  predictions <- c(y_x_complete[1, 4], predictions)
+  
+  # padded starting cases that have missing values with NA
+  num_incomplete_cases <- nrow(y_x) - nrow(y_x_complete)
+  predictions <- c(rep(NA, num_incomplete_cases), predictions)
+  names(predictions) <- seq(1, length(predictions))
   return (predictions)
 }
