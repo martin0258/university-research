@@ -87,12 +87,12 @@ baseline_models <-
                      method='rpart', control=r_control)
           )
       )
-ensemble_model <- list(predictor='rsw',
-                       input_models=c('SExpSmoothing', 'auto.arima', 'nnetar'),
-                       args=list(weight_type='exp',
-                                 method='rpart', control=r_control_ensemble)
-                      )
-ensemble_models_names <- ensemble_model$input_models
+ensemble <- list(predictor='rsw',
+                 input_models=c('SExpSmoothing', 'auto.arima', 'nnetar'),
+                 args=list(weight_type='linear',
+                 method='rpart', control=r_control_ensemble)
+                )
+ensemble_models_names <- ensemble$input_models
 # End of settings
 
 num_base_models <- length(base_predictors_args)
@@ -404,9 +404,8 @@ for (drama_idx in 1:num_dramas_performed) {
     test_episode <- as.integer(rownames(test_data))
     
     # train an ensemble model
-    fit <- do.call(ensemble_model$predictor,
-                   args=c(list(formula=y~., data=train_data),
-                          ensemble_model$args))
+    fit <- do.call(ensemble$predictor,
+                   args=c(list(formula=y~., data=train_data), ensemble$args))
 
     # training error
     predict_train <- predict(fit, train_data)
@@ -427,7 +426,10 @@ for (drama_idx in 1:num_dramas_performed) {
 }
 mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))
 mae_dramas <- rbind(mae_dramas, c(mae_drama, NA))
-ensemble_name <- sprintf('%s%s', ensemble_model$predictor,
+ensemble_name <- sprintf('%s.%s.%s.%s',
+                         ensemble$predictor,
+                         ensemble$args$method,
+                         ensemble$args$weight_type,
                          paste(ensemble_models_idx, collapse='.'))
 rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
 rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
