@@ -15,6 +15,7 @@ library(hydroGOF)  # For function mae()
 # Global parameters of this script.
 # If not set before sourcing this script, use default values as below.
 r_control <- rpart.control(minsplit=2, maxdepth=4)
+r_control_ensemble <- rpart.control(minsplit=2, maxdepth=1)
 project_root <- ifelse(exists('project_root'),
                        project_root,
                        'D:/Projects/GitHub/ntu-research/')
@@ -42,6 +43,73 @@ if (!exists('base_predictors_args')) {
                              )
 }
 base_predictors_args <- list() # disable boost and transfer models
+baseline_models <- 
+  list(
+      list(name='lastPeriod',
+           args=list(model_type='ts', predictor='guessLastPeriod')
+          ),
+      list(name='avgPastPeriods',
+           args=list(model_type='ts', predictor='avgPastPeriods')
+          ),
+      list(name='SExpSmoothing',
+           args=list(model_type='ts', predictor='HoltWinters', beta=F, gamma=F)
+          ),
+      list(name='DExpSmoothing',
+           args=list(model_type='ts', predictor='HoltWinters', gamma=F)
+          ),
+      list(name='ESStateSpace',
+           args=list(model_type='ts', predictor='ets')
+          ),
+      list(name='auto.arima',
+           args=list(model_type='ts', predictor='auto.arima')
+          ),
+      list(name='nnetar',
+           args=list(model_type='ts', predictor='nnetar')
+          ),
+      list(name='rsw.rpart.equal',
+           args=list(model_type='ts', predictor='rsw',
+                     window_len=NULL, weight_type='equal', weighted_sampling=F,
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.equal.ws',
+           args=list(model_type='ts', predictor='rsw',
+                     window_len=NULL, weight_type='equal',
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.linear',
+           args=list(model_type='ts', predictor='rsw',
+                     window_len=NULL, weight_type='linear',
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.exp',
+           args=list(model_type='ts', predictor='rsw',
+                     window_len=NULL, weight_type='exp',
+                     method='rpart', control=r_control)
+          )
+      )
+ensemble_model <- list(predictor='rsw',
+                       input_models=c('ESStateSpace', 'auto.arima'),
+                       args=list(weight_type='exp',
+                                 method='rpart', control=r_control_ensemble)
+                      )
+ensemble_models_names <- ensemble_model$input_models
+# End of settings
+
+num_base_models <- length(base_predictors_args)
+num_baseline_models <- length(baseline_models)
+num_models <- num_base_models * 3 + num_baseline_models
+models_names <- c()
+for (base_predictor_args in base_predictors_args) {
+  base_predictor_name <- base_predictor_args$predictor
+  models_names <- c(models_names,
+                    sprintf('%s', base_predictor_name),
+                    sprintf('adaboostR2.%s', base_predictor_name),
+                    sprintf('trAdaboostR2.%s', base_predictor_name))
+}
+# Reference: http://stackoverflow.com/a/2803542
+baseline_models_names <- sapply(baseline_models, '[[', 1)
+models_names <- c(models_names, baseline_models_names)
+ensemble_models_idx <- match(ensemble_models_names, models_names)
 
 # Change working directory to project root to source following libs
 setwd(project_root)
@@ -149,69 +217,8 @@ for (idx in 1:length(dramas)) {
 #     5. error message
 results <- list()
 
-# It is a matrix of performance to run statistical test.
-#   Each row is the performance results of each drama for different algorithms.
-#   Number of columns is equal to the number of different algorithms.
-baseline_models <- 
-  list(
-      list(name='lastPeriod',
-           args=list(model_type='ts', predictor='guessLastPeriod')
-          ),
-      list(name='avgPastPeriods',
-           args=list(model_type='ts', predictor='avgPastPeriods')
-          ),
-      list(name='SExpSmoothing',
-           args=list(model_type='ts', predictor='HoltWinters', beta=F, gamma=F)
-          ),
-      list(name='DExpSmoothing',
-           args=list(model_type='ts', predictor='HoltWinters', gamma=F)
-          ),
-      list(name='ESStateSpace',
-           args=list(model_type='ts', predictor='ets')
-          ),
-      list(name='auto.arima',
-           args=list(model_type='ts', predictor='auto.arima')
-          ),
-      list(name='nnetar',
-           args=list(model_type='ts', predictor='nnetar')
-          ),
-      list(name='rsw.rpart.equal',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='equal', weighted_sampling=F,
-                     method='rpart', control=r_control)
-          ),
-      list(name='rsw.rpart.equal.ws',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='equal',
-                     method='rpart', control=r_control)
-          ),
-      list(name='rsw.rpart.linear',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='linear',
-                     method='rpart', control=r_control)
-          ),
-      list(name='rsw.rpart.exp',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='exp',
-                     method='rpart', control=r_control)
-          )
-      )
-num_base_models <- length(base_predictors_args)
-num_baseline_models <- length(baseline_models)
-num_models <- num_base_models * 3 + num_baseline_models
 mape_dramas <- matrix(, nrow=num_models, ncol=0)
 mae_dramas <- matrix(, nrow=num_models, ncol=0)
-models_names <- c()
-for (base_predictor_args in base_predictors_args) {
-  base_predictor_name <- base_predictor_args$predictor
-  models_names <- c(models_names,
-                    sprintf('%s', base_predictor_name),
-                    sprintf('adaboostR2.%s', base_predictor_name),
-                    sprintf('trAdaboostR2.%s', base_predictor_name))
-}
-# Reference: http://stackoverflow.com/a/2803542
-baseline_models_names <- sapply(baseline_models, '[[', 1)
-models_names <- c(models_names, baseline_models_names)
 rownames(mape_dramas) <- models_names
 rownames(mae_dramas) <- models_names
 
@@ -341,54 +348,11 @@ for (idx in 1:num_dramas) {
 
 num_dramas_performed <- length(results) / num_models
 
-# For each model, calculate an overall error across all dramas
-all_mape <- c()
-all_mae <- c()
-for (i in 1:num_models) {
-  predictions <- c()
-  actuals <- c()
-  for (j in 1:num_dramas_performed) {
-    result_idx <- i + num_models * (j - 1)
-    predictions <- c(predictions,  results[[result_idx]]$Prediction)
-    actuals <- c(actuals, results[[result_idx]][, 1])
-  }
-  all_mape <- c(all_mape, mape(predictions, actuals))
-  all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
-}
-mape_dramas <- cbind(mape_dramas, all_mape)
-mae_dramas <- cbind(mae_dramas, all_mae)
-
-# Print test errors and ranks
-mape_rank_dramas <- mape_dramas
-mae_rank_dramas <- mae_dramas
-for (i in 1:ncol(mape_dramas)) {
-  mape_rank_dramas[, i] <- paste(sprintf('%.4f', mape_dramas[, i]), ' #',
-                                 rank(mape_dramas[, i]), sep='')
-  mae_rank_dramas[, i] <- paste(sprintf('%.4f', mae_dramas[, i]), ' #',
-                                rank(mae_dramas[, i]), sep='')
-}
-print(mape_rank_dramas)
-print(mae_rank_dramas)
-
-# Run statistical signifance test
-# Note: When sourcing a script, output is printed only if with print() function.
-# print(friedman.test(mape_dramas))
-# print(quade.test(mape_dramas))
-# 
-# print(friedman.test(mae_dramas))
-# print(quade.test(mae_dramas))
-
-# Print total time spent
-end_time <- proc.time()
-time_spent <- end_time - start_time
-cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
-
 # ensemble
+cat('--------------------', '\n')
+cat('Starting ensemble...', '\n')
 ensemble_results <- list()
-mape_drama <- c()
-ensemble_models_names <- c('lastPeriod', 'SExpSmoothing',
-                           'auto.arima', 'rsw.rpart.exp')
-ensemble_models_idx <- match(ensemble_models_names, models_names)
+mape_drama <- mae_drama <- c()
 for (drama_idx in 1:num_dramas_performed) {
   # form data
   x_predictions <- vector()
@@ -423,10 +387,9 @@ for (drama_idx in 1:num_dramas_performed) {
     test_episode <- as.integer(rownames(test_data))
     
     # train an ensemble model
-#     fit <- rpart(y~., train_data, minsplit=2, maxdepth=3)
-    fit <- rsw(formula=y~., data=train_data,
-               weight_type='exp',
-               method='rpart', minsplit=2, maxdepth=1)
+    fit <- do.call(ensemble_model$predictor,
+                   args=c(list(formula=y~., data=train_data),
+                          ensemble_model$args))
 
     # training error
     predict_train <- predict(fit, train_data)
@@ -443,10 +406,29 @@ for (drama_idx in 1:num_dramas_performed) {
   }
   ensemble_results[[length(ensemble_results) + 1]] <- result
   mape_drama <- c(mape_drama, mape(result[['Prediction']], result[[1]]))
+  mae_drama <- c(mae_drama, round(mae(result[['Prediction']], result[[1]]), 4))
 }
-mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))  
-rownames(mape_dramas)[nrow(mape_dramas)] <- 'ensemble'
+mape_dramas <- rbind(mape_dramas, c(mape_drama))  
+mae_dramas <- rbind(mae_dramas, c(mae_drama))  
+ensemble_name <- sprintf('%s%s', ensemble_model$predictor,
+                         paste(ensemble_models_idx, collapse='.'))
+rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
+rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
 
+# For each model, calculate an overall error across all dramas
+all_mape <- c()
+all_mae <- c()
+for (i in 1:num_models) {
+  predictions <- c()
+  actuals <- c()
+  for (j in 1:num_dramas_performed) {
+    result_idx <- i + num_models * (j - 1)
+    predictions <- c(predictions,  results[[result_idx]]$Prediction)
+    actuals <- c(actuals, results[[result_idx]][, 1])
+  }
+  all_mape <- c(all_mape, mape(predictions, actuals))
+  all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
+}
 # calculate an overall error for ensemble
 predictions <- c()
 actuals <- c()
@@ -454,5 +436,33 @@ for (i in 1:num_dramas_performed) {
   predictions <- c(predictions, ensemble_results[[i]]$Prediction)
   actuals <- c(actuals, ensemble_results[[i]][, 1])
 }
-all_mape <- mape(predictions, actuals)
-mape_dramas['ensemble', 'all_mape'] <- all_mape
+all_mape <- c(all_mape, mape(predictions, actuals))
+all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
+# bind overall errors
+mape_dramas <- cbind(mape_dramas, all_mape)
+mae_dramas <- cbind(mae_dramas, all_mae)
+
+# Print test errors and ranks
+mape_rank_dramas <- mape_dramas
+mae_rank_dramas <- mae_dramas
+for (i in 1:ncol(mape_dramas)) {
+  mape_rank_dramas[, i] <- paste(sprintf('%.4f', mape_dramas[, i]), ' #',
+                                 rank(mape_dramas[, i]), sep='')
+  mae_rank_dramas[, i] <- paste(sprintf('%.4f', mae_dramas[, i]), ' #',
+                                rank(mae_dramas[, i]), sep='')
+}
+print(mape_rank_dramas)
+print(mae_rank_dramas)
+
+# Run statistical signifance test
+# Note: When sourcing a script, output is printed only if with print() function.
+# print(friedman.test(mape_dramas))
+# print(quade.test(mape_dramas))
+# 
+# print(friedman.test(mae_dramas))
+# print(quade.test(mae_dramas))
+
+# Print total time spent
+end_time <- proc.time()
+time_spent <- end_time - start_time
+cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
