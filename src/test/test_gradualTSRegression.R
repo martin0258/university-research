@@ -386,7 +386,8 @@ cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
 # ensemble
 ensemble_results <- list()
 mape_drama <- c()
-ensemble_models_names <- c('lastPeriod', 'rsw.rpart.exp')
+ensemble_models_names <- c('lastPeriod', 'SExpSmoothing',
+                           'auto.arima', 'rsw.rpart.exp')
 ensemble_models_idx <- match(ensemble_models_names, models_names)
 for (drama_idx in 1:num_dramas_performed) {
   # form data
@@ -425,7 +426,7 @@ for (drama_idx in 1:num_dramas_performed) {
 #     fit <- rpart(y~., train_data, minsplit=2, maxdepth=3)
     fit <- rsw(formula=y~., data=train_data,
                weight_type='exp',
-               method='rpart', control=r_control)
+               method='rpart', minsplit=2, maxdepth=1)
 
     # training error
     predict_train <- predict(fit, train_data)
