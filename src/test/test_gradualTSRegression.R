@@ -88,7 +88,7 @@ baseline_models <-
           )
       )
 ensemble_model <- list(predictor='rsw',
-                       input_models=c('ESStateSpace', 'auto.arima'),
+                       input_models=c('SExpSmoothing', 'auto.arima', 'nnetar'),
                        args=list(weight_type='exp',
                                  method='rpart', control=r_control_ensemble)
                       )
@@ -109,7 +109,6 @@ for (base_predictor_args in base_predictors_args) {
 # Reference: http://stackoverflow.com/a/2803542
 baseline_models_names <- sapply(baseline_models, '[[', 1)
 models_names <- c(models_names, baseline_models_names)
-ensemble_models_idx <- match(ensemble_models_names, models_names)
 
 # Change working directory to project root to source following libs
 setwd(project_root)
@@ -348,11 +347,29 @@ for (idx in 1:num_dramas) {
 
 num_dramas_performed <- length(results) / num_models
 
+# For each model, calculate an overall error across all dramas
+all_mape <- c()
+all_mae <- c()
+for (i in 1:num_models) {
+  predictions <- c()
+  actuals <- c()
+  for (j in 1:num_dramas_performed) {
+    result_idx <- i + num_models * (j - 1)
+    predictions <- c(predictions,  results[[result_idx]]$Prediction)
+    actuals <- c(actuals, results[[result_idx]][, 1])
+  }
+  all_mape <- c(all_mape, mape(predictions, actuals))
+  all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
+}
+mape_dramas <- cbind(mape_dramas, all_mape)
+mae_dramas <- cbind(mae_dramas, all_mae)
+
 # ensemble
 cat('--------------------', '\n')
 cat('Starting ensemble...', '\n')
 ensemble_results <- list()
 mape_drama <- mae_drama <- c()
+ensemble_models_idx <- match(ensemble_models_names, models_names)
 for (drama_idx in 1:num_dramas_performed) {
   # form data
   x_predictions <- vector()
@@ -408,27 +425,13 @@ for (drama_idx in 1:num_dramas_performed) {
   mape_drama <- c(mape_drama, mape(result[['Prediction']], result[[1]]))
   mae_drama <- c(mae_drama, round(mae(result[['Prediction']], result[[1]]), 4))
 }
-mape_dramas <- rbind(mape_dramas, c(mape_drama))  
-mae_dramas <- rbind(mae_dramas, c(mae_drama))  
+mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))
+mae_dramas <- rbind(mae_dramas, c(mae_drama, NA))
 ensemble_name <- sprintf('%s%s', ensemble_model$predictor,
                          paste(ensemble_models_idx, collapse='.'))
 rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
 rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
 
-# For each model, calculate an overall error across all dramas
-all_mape <- c()
-all_mae <- c()
-for (i in 1:num_models) {
-  predictions <- c()
-  actuals <- c()
-  for (j in 1:num_dramas_performed) {
-    result_idx <- i + num_models * (j - 1)
-    predictions <- c(predictions,  results[[result_idx]]$Prediction)
-    actuals <- c(actuals, results[[result_idx]][, 1])
-  }
-  all_mape <- c(all_mape, mape(predictions, actuals))
-  all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
-}
 # calculate an overall error for ensemble
 predictions <- c()
 actuals <- c()
@@ -436,11 +439,8 @@ for (i in 1:num_dramas_performed) {
   predictions <- c(predictions, ensemble_results[[i]]$Prediction)
   actuals <- c(actuals, ensemble_results[[i]][, 1])
 }
-all_mape <- c(all_mape, mape(predictions, actuals))
-all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
-# bind overall errors
-mape_dramas <- cbind(mape_dramas, all_mape)
-mae_dramas <- cbind(mae_dramas, all_mae)
+mape_dramas[ensemble_name, 'all_mape'] <- mape(predictions, actuals)
+mae_dramas[ensemble_name, 'all_mae'] <- round(mae(predictions, actuals), 4)
 
 # Print test errors and ranks
 mape_rank_dramas <- mape_dramas
