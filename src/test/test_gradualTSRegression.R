@@ -160,10 +160,10 @@ baseline_models <-
       list(name='avgPastPeriods',
            args=list(model_type='ts', predictor='avgPastPeriods')
           ),
-      list(name='HoltWinters.α',
+      list(name='SExpSmoothing',
            args=list(model_type='ts', predictor='HoltWinters', beta=F, gamma=F)
           ),
-      list(name='HoltWinters.α.β',
+      list(name='DExpSmoothing',
            args=list(model_type='ts', predictor='HoltWinters', gamma=F)
           ),
       list(name='ESStateSpace',
@@ -382,3 +382,76 @@ print(mae_rank_dramas)
 end_time <- proc.time()
 time_spent <- end_time - start_time
 cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
+
+# ensemble
+ensemble_results <- list()
+mape_drama <- c()
+ensemble_models_names <- c('lastPeriod', 'rsw.rpart.exp')
+ensemble_models_idx <- match(ensemble_models_names, models_names)
+for (drama_idx in 1:num_dramas_performed) {
+  # form data
+  x_predictions <- vector()
+  for (model_idx in ensemble_models_idx) {
+    result_idx <- model_idx + (drama_idx - 1) * num_models
+    x_predictions <- cbind(x_predictions,
+                           results[[result_idx]]$Prediction)
+  }
+  y_ratings <- results[[result_idx]][, 1]
+  y_x <- data.frame(cbind(y_ratings, x_predictions))
+  colnames(y_x) <- c('y', ensemble_models_names)
+  
+  # initialize result
+  result <- results[[result_idx]]
+  result[, -1] <- NA
+  
+  # only keep cases with no missing value at all
+  # assumption: all the cases with missing value are centralized first
+  y_x_complete <- y_x[complete.cases(y_x), ]
+  
+  # gradual time series regression
+  train_errors <- c()
+  test_errors <- c()
+  predictions <- c()
+  num_min_train <- 2
+  for (train_end_idx in num_min_train:(nrow(y_x_complete) - 1)) {
+    # prepare training and testing data
+    train_idx <- 1:train_end_idx
+    test_idx <- train_end_idx + 1
+    train_data <- y_x_complete[train_idx, ]
+    test_data <- y_x_complete[test_idx, ]
+    test_episode <- as.integer(rownames(test_data))
+    
+    # train an ensemble model
+#     fit <- rpart(y~., train_data, minsplit=2, maxdepth=3)
+    fit <- rsw(formula=y~., data=train_data,
+               weight_type='exp',
+               method='rpart', control=r_control)
+
+    # training error
+    predict_train <- predict(fit, train_data)
+    train_error <- mape(predict_train, train_data[['y']])
+    
+    # test (predict)
+    predict_test <- predict(fit, test_data)
+    test_error <- mape(predict_test, test_data[['y']])
+
+    # store result
+    result[test_episode, 'Prediction'] <- predict_test
+    result[test_episode, 'TestError'] <- test_error
+    result[test_episode, 'TrainError'] <- train_error
+  }
+  ensemble_results[[length(ensemble_results) + 1]] <- result
+  mape_drama <- c(mape_drama, mape(result[['Prediction']], result[[1]]))
+}
+mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))  
+rownames(mape_dramas)[nrow(mape_dramas)] <- 'ensemble'
+
+# calculate an overall error for ensemble
+predictions <- c()
+actuals <- c()
+for (i in 1:num_dramas_performed) {
+  predictions <- c(predictions, ensemble_results[[i]]$Prediction)
+  actuals <- c(actuals, ensemble_results[[i]][, 1])
+}
+all_mape <- mape(predictions, actuals)
+mape_dramas['ensemble', 'all_mape'] <- all_mape
