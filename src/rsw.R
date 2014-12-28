@@ -106,7 +106,7 @@ predict.rsw <- function (object, new_data = NULL, n.ahead = 1)  {
     
     predictions <- vector()
     for (fit in object$fits) {
-      prediction <- predict(fit, test_data)
+      prediction <- as.numeric(predict(fit, test_data))
       predictions <- rbind(predictions, prediction)
     }
     predictions <- colMeans(predictions)
