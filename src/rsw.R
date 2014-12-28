@@ -8,6 +8,7 @@ rsw <- function (x = NULL,
                  seed = 1,
                  repeats = 20,
                  weight_type = c('equal', 'linear', 'exp'),
+                 prune = TRUE,
                  method, ...) {
   # Return a model that trains a regression model
   # with time series weights concepts (newer cases have more weights)
@@ -67,14 +68,26 @@ rsw <- function (x = NULL,
     set.seed(seed)
     for (i in 1:repeats) {
       bootstrap_idx <- sample(num_cases, replace=TRUE, prob=case_weights)
+      # fit a model
       fit <- do.call(method, args=list(formula=model_formula,
                                        data=r_data[bootstrap_idx, ], ...))
       fits[[length(fits) + 1]] <- fit
     }
   } else {
+    # fit a model
     fit <- do.call(method, args=list(formula=model_formula,
                                      data=r_data, weights=case_weights, ...))
     fits[[1]] <- fit
+  }
+  
+  # prune tree (http://www.statmethods.net/advstats/cart.html)
+  if (method == 'rpart' && prune == TRUE) {
+    for (i in 1:length(fits)) {
+      fit <- fits[[i]]
+      min_val_cp <- fit$cptable[which.min(fit$cptable[, 'xerror']), 'CP']
+      fit <- prune(fit, min_val_cp)
+      fits[[i]] <- fit
+    }
   }
   
   # construct return object

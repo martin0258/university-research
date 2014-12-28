@@ -14,8 +14,8 @@ library(hydroGOF)  # For function mae()
 
 # Global parameters of this script.
 # If not set before sourcing this script, use default values as below.
-r_control <- rpart.control(minsplit=2, maxdepth=4)
-r_control_ensemble <- rpart.control(minsplit=2, maxdepth=1)
+r_control <- rpart.control(minsplit=2, maxdepth=30)
+r_control_ensemble <- rpart.control(minsplit=2, maxdepth=30)
 project_root <- ifelse(exists('project_root'),
                        project_root,
                        'D:/Projects/GitHub/ntu-research/')
