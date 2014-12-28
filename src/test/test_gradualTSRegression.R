@@ -441,8 +441,8 @@ for (i in 1:num_dramas_performed) {
   predictions <- c(predictions, ensemble_results[[i]]$Prediction)
   actuals <- c(actuals, ensemble_results[[i]][, 1])
 }
-mape_dramas[ensemble_name, 'all_mape'] <- mape(predictions, actuals)
-mae_dramas[ensemble_name, 'all_mae'] <- round(mae(predictions, actuals), 4)
+mape_dramas[nrow(mape_dramas), 'all_mape'] <- mape(predictions, actuals)
+mae_dramas[nrow(mae_dramas), 'all_mae'] <- round(mae(predictions, actuals), 4)
 
 # Print test errors and ranks
 mape_rank_dramas <- mape_dramas
