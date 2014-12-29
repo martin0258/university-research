@@ -1,3 +1,0 @@
-[submodule "src/scikit-learn"]
-	path = src/scikit-learn
-	url = https://github.com/martin0258/scikit-learn.git
