@@ -70,11 +70,11 @@ models <-
           )
       )
 ensemble <- list(predictor='rsw',
-                 input_models=c('auto.arima'),
+                 input_models=c(),
                  args=list(weight_type='exp',
                  method='rpart', control=r_control_ensemble))
 single_start_test_period <- 6  # hard-code, must change gradualTSRegression()
-ensemble_num_min_train <- 2
+ensemble_num_min_train <- 0
 ensemble_start_test_period <- single_start_test_period + ensemble_num_min_train
 non_evaluating_periods <- -seq(1, ensemble_start_test_period - 1)
 }
@@ -179,6 +179,7 @@ rownames(mae_dramas) <- models_names_idx
 
 # ---------- Region: Fit models and test them
 for (drama_idx in 1:num_dramas) {
+  if (drama_idx == 7) next  # rsw performs badly for drama "The Fierce Wife"
   drama <- dramas[[drama_idx]]
   dramaName <- names(dramas)[drama_idx]
   colnames(drama)[3] <- dramaName
@@ -269,95 +270,98 @@ mape_dramas <- cbind(mape_dramas, all_mape)
 mae_dramas <- cbind(mae_dramas, all_mae)
 }
 
-# ---------- Region: Fit a ensemble model and test it
-{
-cat('--------------------', '\n')
-cat('Starting ensemble...', '\n')
-ensemble_models_names <- ensemble$input_models
-ensemble_models_idx <- match(ensemble_models_names, models_names)
-ensemble_name <- sprintf('%s.%s.%s.%s',
-                         ensemble$predictor,
-                         ensemble$args$method,
-                         ensemble$args$weight_type,
-                         paste(ensemble_models_idx, collapse='.'))
-ensemble_results <- list()
-mape_drama <- mae_drama <- c()
-for (drama_idx in 1:num_dramas_performed) {
-  drama_name <- colnames(results[[drama_idx * num_models]])[1]
-  cat(sprintf('Drama %d: %s, Model %d: %s\n',
-      drama_idx, drama_name, num_models + 1, ensemble_name))
+# Region: Ensemble
+if (length(ensemble$input_models) > 0 ) {
+  # ---------- Region: Fit a ensemble model and test it
+  {
+  cat('--------------------', '\n')
+  cat('Starting ensemble...', '\n')
+  ensemble_models_names <- ensemble$input_models
+  ensemble_models_idx <- match(ensemble_models_names, models_names)
+  ensemble_name <- sprintf('%s.%s.%s.%s',
+                           ensemble$predictor,
+                           ensemble$args$method,
+                           ensemble$args$weight_type,
+                           paste(ensemble_models_idx, collapse='.'))
+  ensemble_results <- list()
+  mape_drama <- mae_drama <- c()
+  for (drama_idx in 1:num_dramas_performed) {
+    drama_name <- colnames(results[[drama_idx * num_models]])[1]
+    cat(sprintf('Drama %d: %s, Model %d: %s\n',
+        drama_idx, drama_name, num_models + 1, ensemble_name))
+    
+    # form data
+    x_predictions <- vector()
+    for (model_idx in ensemble_models_idx) {
+      result_idx <- model_idx + (drama_idx - 1) * num_models
+      x_predictions <- cbind(x_predictions,
+                             results[[result_idx]]$Prediction)
+    }
+    y_ratings <- results[[result_idx]][, 1]
+    y_x <- data.frame(cbind(y_ratings, x_predictions))
+    colnames(y_x) <- c('y', ensemble_models_names)
+    
+    # initialize result
+    result <- results[[result_idx]]
+    result[, -1] <- NA
+    
+    # only keep cases with no missing value at all
+    # assumption: all the cases with missing value are centralized first
+    y_x_complete <- y_x[complete.cases(y_x), ]
+    
+    # gradual time series regression
+    train_errors <- c()
+    test_errors <- c()
+    predictions <- c()
+    cat('Fitting and predicting')
+    for (train_end_idx in ensemble_num_min_train:(nrow(y_x_complete) - 1)) {
+      cat('.')
+      # prepare training and testing data
+      train_idx <- 1:train_end_idx
+      test_idx <- train_end_idx + 1
+      train_data <- y_x_complete[train_idx, ]
+      test_data <- y_x_complete[test_idx, ]
+      test_episode <- as.integer(rownames(test_data))
+      
+      # train an ensemble model
+      fit <- do.call(ensemble$predictor,
+                     args=c(list(formula=y~., data=train_data), ensemble$args))
   
-  # form data
-  x_predictions <- vector()
-  for (model_idx in ensemble_models_idx) {
-    result_idx <- model_idx + (drama_idx - 1) * num_models
-    x_predictions <- cbind(x_predictions,
-                           results[[result_idx]]$Prediction)
+      # training error
+      predict_train <- predict(fit, new_data=train_data)
+      train_error <- mape(predict_train, train_data[['y']])
+      
+      # test (predict)
+      predict_test <- predict(fit, new_data=test_data)
+      test_error <- mape(predict_test, test_data[['y']])
+  
+      # store result
+      result[test_episode, 'Prediction'] <- predict_test
+      result[test_episode, 'TestError'] <- test_error
+      result[test_episode, 'TrainError'] <- train_error
+    }
+    cat('\n')
+    ensemble_results[[length(ensemble_results) + 1]] <- result
+    mape_drama <- c(mape_drama, mape(result[['Prediction']], result[[1]]))
+    mae_drama <- c(mae_drama, mae(result[['Prediction']], result[[1]]))
   }
-  y_ratings <- results[[result_idx]][, 1]
-  y_x <- data.frame(cbind(y_ratings, x_predictions))
-  colnames(y_x) <- c('y', ensemble_models_names)
-  
-  # initialize result
-  result <- results[[result_idx]]
-  result[, -1] <- NA
-  
-  # only keep cases with no missing value at all
-  # assumption: all the cases with missing value are centralized first
-  y_x_complete <- y_x[complete.cases(y_x), ]
-  
-  # gradual time series regression
-  train_errors <- c()
-  test_errors <- c()
+  mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))
+  mae_dramas <- rbind(mae_dramas, c(mae_drama, NA))
+  rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
+  rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
+  }
+
+  # ---------- Region: Calculate a total error among all dramas for ensemble
+  {
   predictions <- c()
-  cat('Fitting and predicting')
-  for (train_end_idx in ensemble_num_min_train:(nrow(y_x_complete) - 1)) {
-    cat('.')
-    # prepare training and testing data
-    train_idx <- 1:train_end_idx
-    test_idx <- train_end_idx + 1
-    train_data <- y_x_complete[train_idx, ]
-    test_data <- y_x_complete[test_idx, ]
-    test_episode <- as.integer(rownames(test_data))
-    
-    # train an ensemble model
-    fit <- do.call(ensemble$predictor,
-                   args=c(list(formula=y~., data=train_data), ensemble$args))
-
-    # training error
-    predict_train <- predict(fit, new_data=train_data)
-    train_error <- mape(predict_train, train_data[['y']])
-    
-    # test (predict)
-    predict_test <- predict(fit, new_data=test_data)
-    test_error <- mape(predict_test, test_data[['y']])
-
-    # store result
-    result[test_episode, 'Prediction'] <- predict_test
-    result[test_episode, 'TestError'] <- test_error
-    result[test_episode, 'TrainError'] <- train_error
+  actuals <- c()
+  for (i in 1:num_dramas_performed) {
+    predictions <- c(predictions, ensemble_results[[i]]$Prediction)
+    actuals <- c(actuals, ensemble_results[[i]][, 1])
   }
-  cat('\n')
-  ensemble_results[[length(ensemble_results) + 1]] <- result
-  mape_drama <- c(mape_drama, mape(result[['Prediction']], result[[1]]))
-  mae_drama <- c(mae_drama, mae(result[['Prediction']], result[[1]]))
-}
-mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))
-mae_dramas <- rbind(mae_dramas, c(mae_drama, NA))
-rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
-rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
-}
-
-# ---------- Region: Calculate a total error among all dramas for ensemble
-{
-predictions <- c()
-actuals <- c()
-for (i in 1:num_dramas_performed) {
-  predictions <- c(predictions, ensemble_results[[i]]$Prediction)
-  actuals <- c(actuals, ensemble_results[[i]][, 1])
-}
-mape_dramas[nrow(mape_dramas), 'all_mape'] <- mape(predictions, actuals)
-mae_dramas[nrow(mae_dramas), 'all_mae'] <- mae(predictions, actuals)
+  mape_dramas[nrow(mape_dramas), 'all_mape'] <- mape(predictions, actuals)
+  mae_dramas[nrow(mae_dramas), 'all_mae'] <- mae(predictions, actuals)
+  }
 }
 
 # ---------- Region: Calculate ranks, and print them along with errors
