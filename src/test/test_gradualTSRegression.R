@@ -1,49 +1,29 @@
 # This script is a test of SET TVR data
-# It tests performance in terms of different algorithms
-# To be specific, it tests the following learning algorithms:
-#   - weak learner (nnet and rpart for default)
-#   - AdaBoost.R2 (weak learner)
-#   - TrAdaBoost.R2 (weak learner)
-#   - various time series models
+# It tests various models and features in terms of prediction accuracy
 
-library(nnet)
-library(rpart)
-library(forecast)  # for auto.arima() and ets()
-library(hydroGOF)  # For function mae()
-#library(doParallel)
-
-# Global parameters of this script.
-# If not set before sourcing this script, use default values as below.
-r_control <- rpart.control(minsplit=2, maxdepth=30)
-r_control_ensemble <- rpart.control(minsplit=2, maxdepth=30)
-project_root <- ifelse(exists('project_root'),
-                       project_root,
+# ---------- Region: Parameters of script (use defaults if not exists)
+{
+## Parameters that control position for reading data and including libraries
+project_root <- ifelse(exists('project_root'), project_root,
                        'D:/Projects/GitHub/ntu-research/')
-test_dramas_type <- ifelse(exists('test_dramas_type'),
-                           test_dramas_type,
-                           'Idol') # Or 'Chinese'
-has_features <- ifelse(exists('has_features'),
-                       has_features,
-                       FALSE)
-window_len <- ifelse(exists('window_len'),
-                     window_len,
-                     4)
+
+## Parameters that control data set (either Idol or Chinese)
+test_dataset <- ifelse(exists('test_dataset'), test_dataset, 'Idol')
+
+## Parameters that control features 
+feature_files <- c(
+#   sprintf('data/%s_Drama_Opinion.csv', test_dataset),
+#   sprintf('data/%s_Drama_GoogleTrend.csv', test_dataset),
+#   sprintf('data/%s_Drama_FB.csv', test_dataset),
+#   sprintf('data/%s_Drama_WeekDay.csv', test_dataset)
+) 
+
+## Parameters that control control models
 seed <- ifelse(exists('seed'), seed, 0)
-if (!exists('base_predictors_args')) {
-  base_predictors_args <-list(
-#                               list(
-#                                    predictor='nnet',
-#                                    size=3, linout=T, trace=F,
-#                                    rang=0.1, decay=1e-1, maxit=100
-#                                   ),
-                              list(
-                                   predictor='rpart',
-                                   control=r_control
-                                  )
-                             )
-}
-base_predictors_args <- list() # disable boost and transfer models
-baseline_models <- 
+window_len <- ifelse(exists('window_len'), window_len, 4)
+r_control <- list(minsplit=2, maxdepth=30)
+r_control_ensemble <- list(minsplit=2, maxdepth=30)
+models <- 
   list(
       list(name='lastPeriod',
            args=list(model_type='ts', predictor='guessLastPeriod')
@@ -52,7 +32,8 @@ baseline_models <-
            args=list(model_type='ts', predictor='avgPastPeriods')
           ),
       list(name='SExpSmoothing',
-           args=list(model_type='ts', predictor='HoltWinters', beta=F, gamma=F)
+           args=list(model_type='ts',
+                     predictor='HoltWinters', beta=F, gamma=F)
           ),
       list(name='DExpSmoothing',
            args=list(model_type='ts', predictor='HoltWinters', gamma=F)
@@ -66,123 +47,74 @@ baseline_models <-
       list(name='nnetar',
            args=list(model_type='ts', predictor='nnetar')
           ),
+      list(name='rsw.rpart.equal.ns',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='equal',
+                     weighted_sampling=FALSE,
+                     method='rpart', control=r_control)
+          ),
       list(name='rsw.rpart.equal',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='equal', weighted_sampling=F,
-                     method='rpart', control=r_control)
-          ),
-      list(name='rsw.rpart.equal.ws',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='equal',
-                     method='rpart', control=r_control)
-          ),
-      list(name='rsw.rpart.linear.f',
-           args=list(model_type='ts', predictor='rsw',
-                     xreg=NULL,
-                     window_len=NULL, weight_type='linear',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='equal',
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.linear',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='linear',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='linear',
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.exp',
-           args=list(model_type='ts', predictor='rsw',
-                     window_len=NULL, weight_type='exp',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='exp',
                      method='rpart', control=r_control)
           )
       )
 ensemble <- list(predictor='rsw',
-                 input_models=c('SExpSmoothing', 'auto.arima', 'nnetar'),
-                 args=list(weight_type='linear',
-                 method='rpart', control=r_control_ensemble)
-                )
-ensemble_models_names <- ensemble$input_models
-# End of settings
-
-num_base_models <- length(base_predictors_args)
-num_baseline_models <- length(baseline_models)
-num_models <- num_base_models * 3 + num_baseline_models
-models_names <- c()
-for (base_predictor_args in base_predictors_args) {
-  base_predictor_name <- base_predictor_args$predictor
-  models_names <- c(models_names,
-                    sprintf('%s', base_predictor_name),
-                    sprintf('adaboostR2.%s', base_predictor_name),
-                    sprintf('trAdaboostR2.%s', base_predictor_name))
+                 input_models=c('auto.arima'),
+                 args=list(weight_type='exp',
+                 method='rpart', control=r_control_ensemble))
 }
-# Reference: http://stackoverflow.com/a/2803542
-baseline_models_names <- sapply(baseline_models, '[[', 1)
-models_names <- c(models_names, baseline_models_names)
 
-# Change working directory to project root to source following libs
+# ---------- Region: Include libraries and source codes
+{
+if (!require(forecast)) install.packages('forecast')
+library(forecast)  # for auto.arima() and ets()
+library(rpart)
 setwd(project_root)
-source("src/lib/windowing.R")
-source("src/lib/mape.R")
+source("src/getFeature.R")
+source("src/gradualTSRegression.R")
 source("src/guessLastPeriod.R")
 source("src/avgPastPeriods.R")
-source("src/adaboostR2.R")
-source("src/trAdaboostR2.R")
 source("src/rsw.R")
-source("src/gradualTSRegression.R")
+source("src/lib/mape.R")
+source("src/lib/mae.R")
+}
 
-# Set up parallel computing
-# registerDoParallel(cores=detectCores())
-
-# Record script start time for calculating time spent afterwards
+# Record script start time for calculating time spent
 start_time <- proc.time()
 
+# ---------- Region: Read and process input before fitting models
+{
 # Read ratings
-ratings_file <- sprintf('data/%s_Drama_Ratings_AnotherFormat.csv',
-                        test_dramas_type)
+ratings_file <- sprintf('data/%s_Drama_Ratings_AnotherFormat.csv', test_dataset)
 ratings <- read.csv(ratings_file, fileEncoding='utf-8')
 # Final output (ratings & features)
 data <- ratings
 
-# Read features and combine with ratings
-if (has_features) {
-  source("src/getFeature.R")
-  featureFiles <- c(
-#     sprintf('data/%s_Drama_Opinion.csv', test_dramas_type),
-#     sprintf('data/%s_Drama_GoogleTrend.csv', test_dramas_type),
-#     sprintf('data/%s_Drama_FB.csv', test_dramas_type),
-    sprintf('data/%s_Drama_WeekDay.csv', test_dramas_type)
-  )
-  for (featureFile in featureFiles) {
-    feature <- read.csv(featureFile, fileEncoding='utf-8')
-    # left join automatically by common variables
-    data <- merge(data, feature, sort=FALSE, all.x=TRUE)
-  }
+# Read features, and then combine them with ratings into a single data set
+for (feature_file in feature_files) {
+  feature <- read.csv(feature_file, fileEncoding='utf-8')
+  # left join automatically by common variables
+  data <- merge(data, feature, sort=FALSE, all.x=TRUE)
 }
 
-# sort (for easy view)
+# Sort (for easily viewing data while debugging)
 attach(data)
 data <- data[order(Drama, Episode),]
 detach(data)
 
-dramas <- split(data, factor(data[, "Drama"]))
-
-# Handle missing values (it is not needed because we skip them afterwards)
-# dramas_tmp <- list() # used to keep dramas that have more than one case
-# for (idx in 1:length(dramas)) {
-#   # Sort by episode and replace missing values of ratings by interpolation
-#   attach(dramas[[idx]])
-#   dramas[[idx]] <- dramas[[idx]][order(Episode),]
-#   detach(dramas[[idx]])
-#   dramas[[idx]][3] <- na.approx(dramas[[idx]][3])
-# 
-#   # Only keep complete cases (without any missing value)
-#   dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]),]
-# 
-#   # Keep dramas that have more than one case
-#   if (nrow(dramas[[idx]]) > 0) {
-#     new_idx <- length(dramas_tmp) + 1
-#     dramas_tmp[[new_idx]] <- dramas[[idx]]
-#     names(dramas_tmp)[new_idx] <- names(dramas)[idx]
-#   }
-# }
-# dramas <- dramas_tmp
+# Group data by each drama
+dramas <- split(data, factor(data[, 'Drama']))
 
 # For simplicity, skip dramas that have any missing values
 # Ref: http://stackoverflow.com/a/12615019
@@ -213,8 +145,17 @@ if (length(dramas_indices_to_skip) > 0) {
 for (idx in 1:length(dramas)) {
   dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]), ]
 }
+}
 
-# It is a list of data frames (each is returned from gradualTSRegression).
+# ---------- Region: Initialize variables used in fitting and testing models
+{
+num_dramas <- length(dramas)
+num_models <- length(models)
+# Reference of the next line: http://stackoverflow.com/a/2803542
+models_names <- sapply(models, '[[', 1)
+models_names_idx <- paste(seq(1, num_models), models_names, sep='.')
+
+# results is a list of data frames returned from gradualTSRegression().
 #   Each data frame represents the results of a drama.
 #   Each row has the following column for each episode: 
 #     1. ratings
@@ -225,105 +166,39 @@ for (idx in 1:length(dramas)) {
 #     5. error message
 results <- list()
 
+# each column is the metric results of each drama
 mape_dramas <- matrix(, nrow=num_models, ncol=0)
 mae_dramas <- matrix(, nrow=num_models, ncol=0)
-rownames(mape_dramas) <- models_names
-rownames(mae_dramas) <- models_names
+rownames(mape_dramas) <- models_names_idx
+rownames(mae_dramas) <- models_names_idx
+}
 
-num_dramas <- length(dramas)
-# There are many unresolved issues of using %dopar%
-# foreach (idx = 1:length(dramas)) %do% {
-for (idx in 1:num_dramas) {
-  dramaName <- names(dramas)[idx]
-  colnames(dramas[[idx]])[3] <- dramaName
+# ---------- Region: Fit models and test them
+for (drama_idx in 1:num_dramas) {
+  drama <- dramas[[drama_idx]]
+  dramaName <- names(dramas)[drama_idx]
+  colnames(drama)[3] <- dramaName
   
-  target_feature <- dramas[[idx]][-c(1, 2, 3)]
-  ratings <- dramas[[idx]][3]
-  
-  for (base_predictor_args in base_predictors_args) {
-    # Experiment: base predictor only
-    set.seed(seed)
+  features <- drama[-c(1, 2, 3)]
+  ratings <- drama[3]
 
+  # Run experiment for each model
+  for (model_idx in 1:num_models) {
+    model <- models[[model_idx]]
     cat('--------------------', '\n')
     cat('Starting experiment...', '\n')
-    cat(sprintf('Drama: %s, Model: %s',
-                dramaName, base_predictor_args$predictor), '\n')
+    cat(sprintf('Drama %d: %s, Model %d: %s',
+                drama_idx, dramaName, model_idx, model$name), '\n')
     
-    # Use do.call to easily add new base predictor
-    args <- c(list(x=ratings, feature=target_feature, windowLen=window_len),
-              base_predictor_args)
-    result <- do.call(gradualTSRegression, args=args)
-    results[[length(results) + 1]] <- result
-    
-    # Experiment break: Adjust args for AdaBoost.R2/TrAdaBoost.R2
-    # Add a new arg and remove old arg
-    base_predictor_args['base_predictor'] <- base_predictor_args$predictor
-    base_predictor_args['predictor'] <- NULL
-    
-    # Experiment: AdaBoost.R2 with base predictor
-    set.seed(seed)
-
-    cat('--------------------', '\n')
-    cat('Starting experiment...', '\n')
-    cat(sprintf('Drama: %s, Model: AdaBoost.R2(%s)',
-                dramaName, base_predictor_args$base_predictor), '\n')
-    
-    args <- c(list(x=ratings, feature=target_feature, windowLen=window_len,
-                   predictor='adaboostR2', verbose=T, error_fun=mape),
-              base_predictor_args)
-    result <- do.call(gradualTSRegression, args=args)
-    results[[length(results) + 1]] <- result
-    
-    # Experiment: TrAdaBoost.R2 with base predictor
-    
-    # Prepare data set for TrAdaBoost.R2
-    # Combine multiple sources into one data set:
-    src_data <- list()
-    src_indices <- 1:length(dramas)
-    src_indices <- src_indices[-idx]
-    for (src_idx in src_indices) {
-      src_drama_name <- names(dramas)[src_idx]
-      colnames(dramas[[src_idx]])[3] <- src_drama_name
-      src_data[[length(src_data) + 1]] <- dramas[[src_idx]][3]
-  
-      # Extra: Add time period as a feature into windowing data
-#       time_periods <- seq(window_len, num_cases + window_len - 1)
-#       w_data <- cbind(time_periods, w_data)
-  
-      # Add other features into windowing data
-#       features <- tail(dramas[[src_idx]][, -c(1, 2, 3)], num_cases)
-#       w_data <- cbind(features, w_data)
-    }
-
-    set.seed(seed)
-    cat('--------------------', '\n')
-    cat('Starting experiment...', '\n')
-    cat(sprintf('Drama: %s, Model: TrAdaBoost.R2(%s)',
-                dramaName, base_predictor_args$base_predictor), '\n')
-    args <- c(list(x=ratings, feature=target_feature, source_data=src_data,
-                   windowLen=window_len,
-                   predictor='trAdaboostR2', verbose=T, error_fun=mape),
-              base_predictor_args)
-    result <- do.call(gradualTSRegression, args=args)
-    results[[length(results) + 1]] <- result
-  }
-
-  # Experiments of baseline models
-  for (baseline_model in baseline_models) {
-    cat('--------------------', '\n')
-    cat('Starting experiment...', '\n')
-    cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_model$name), '\n')
-    
-    # add external feature if specified
+    # Add external feature if specified
     xreg <- NULL
-    if ('xreg' %in% names(baseline_model$args)) {
-      baseline_model$args$xreg <- target_feature
-      xreg <- target_feature
+    if ('xreg' %in% names(model$args)) {
+      model$args$xreg <- features
+      xreg <- features
     }
     
     result <- do.call(gradualTSRegression,
-                      args=c(list(x=ratings, feature=xreg),
-                             baseline_model$args))
+                      args=c(list(x=ratings, feature=xreg), model$args))
     results[[length(results) + 1]] <- result
   }
 
@@ -332,7 +207,7 @@ for (idx in 1:num_dramas) {
   mae_drama <- c()
   for (result in tail(results, num_models)) {
     mape_drama <- c(mape_drama, mape(result['Prediction'], ratings))
-    mae_drama <- c(mae_drama, round(mae(result['Prediction'], ratings), 4))
+    mae_drama <- c(mae_drama, mae(result['Prediction'], ratings))
   }
   mape_dramas <- cbind(mape_dramas, mape_drama)
   mae_dramas <- cbind(mae_dramas, mae_drama)
@@ -363,9 +238,9 @@ for (idx in 1:num_dramas) {
          pch=c(NA, 21), lty=c(2, 1))
 }
 
+# ---------- Region: Calculate a total error among all dramas for each model
+{
 num_dramas_performed <- length(results) / num_models
-
-# For each model, calculate an overall error across all dramas
 all_mape <- c()
 all_mae <- c()
 for (i in 1:num_models) {
@@ -381,10 +256,13 @@ for (i in 1:num_models) {
 }
 mape_dramas <- cbind(mape_dramas, all_mape)
 mae_dramas <- cbind(mae_dramas, all_mae)
+}
 
-# ensemble
+# ---------- Region: Fit a ensemble model and test it
+{
 cat('--------------------', '\n')
 cat('Starting ensemble...', '\n')
+ensemble_models_names <- ensemble$input_models
 ensemble_results <- list()
 mape_drama <- mae_drama <- c()
 ensemble_models_idx <- match(ensemble_models_names, models_names)
@@ -451,8 +329,10 @@ ensemble_name <- sprintf('%s.%s.%s.%s',
                          paste(ensemble_models_idx, collapse='.'))
 rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
 rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
+}
 
-# calculate an overall error for ensemble
+# ---------- Region: Calculate a total error among all dramas for ensemble
+{
 predictions <- c()
 actuals <- c()
 for (i in 1:num_dramas_performed) {
@@ -461,8 +341,10 @@ for (i in 1:num_dramas_performed) {
 }
 mape_dramas[nrow(mape_dramas), 'all_mape'] <- mape(predictions, actuals)
 mae_dramas[nrow(mae_dramas), 'all_mae'] <- round(mae(predictions, actuals), 4)
+}
 
-# Print test errors and ranks
+# ---------- Region: Calculate ranks, and print them along with errors
+{
 mape_rank_dramas <- mape_dramas
 mae_rank_dramas <- mae_dramas
 for (i in 1:ncol(mape_dramas)) {
@@ -473,14 +355,16 @@ for (i in 1:ncol(mape_dramas)) {
 }
 print(mape_rank_dramas)
 print(mae_rank_dramas)
+}
 
-# Run statistical signifance test
-# Note: When sourcing a script, output is printed only if with print() function.
+# ---------- Region: Run statistical signifance test
+{
 # print(friedman.test(mape_dramas))
 # print(quade.test(mape_dramas))
 # 
 # print(friedman.test(mae_dramas))
 # print(quade.test(mae_dramas))
+}
 
 # Print total time spent
 end_time <- proc.time()

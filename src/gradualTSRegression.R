@@ -55,10 +55,6 @@ gradualTSRegression <- function(x,
   
   numCases <- nrow(wData)
 
-#   # Add time period as a feature
-#   timePeriods <- seq(windowLen, numCases + windowLen - 1)
-#   wData <- cbind(timePeriods, wData)
-
   # Bind external regressors from input parameter if any
   if (!is.null(feature)) {
     wData <- cbind(tail(feature, numCases), wData)
@@ -71,7 +67,9 @@ gradualTSRegression <- function(x,
   # Train a model for each time period
   # Start from 2 because at least 2 training instances are needed
   # for doing leave-one-out cross-validation to tune parameters
+  cat('Fitting and predicting')
   for(trainEndIndex in 2:(numCases - 1)) {
+    cat('.')
     trainIndex <- 1:trainEndIndex
     testIndex <- trainEndIndex + 1
     train_data <- wData[trainIndex, ]  # train data = subtrain + validation
@@ -83,11 +81,6 @@ gradualTSRegression <- function(x,
     trainPeriods <- 1:(testPeriod - 1)
     train_data_ts <- x_ts[trainPeriods]
     test_data_ts <- x_ts[testPeriod]
-    cat(sprintf('--- Testing Episode: %2d --- \n', testPeriod))
-    
-    # settings of parameter tuning
-    tune_control <- tune.control(sampling='fix',
-                                 error.fun=mape_actual_first)
     
     # form regression cases for source data
     # only include same period cases as target data (EY's suggestion)
@@ -178,6 +171,7 @@ gradualTSRegression <- function(x,
     result[testPeriod, "TestError"] <- testError
     result[testPeriod, "TrainError"] <- trainError
   }
+  cat('\n')
   
   # Record end execution time
   end <- proc.time()
