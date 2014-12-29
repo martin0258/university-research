@@ -1,7 +1,7 @@
 source('src/lib/windowing.R')  # for transform time series to regression
 
 # 'R'egression with Time 'S'eries 'W'eighting (RSW)
-rsw <- function (x = NULL,
+rsw <- function (x = NULL, xreg = NULL,
                  formula = NULL, data = NULL,
                  window_len = NULL,
                  weighted_sampling = TRUE,
@@ -30,6 +30,8 @@ rsw <- function (x = NULL,
     # cast x to make sure it is time series
     x <- ts(x)
     
+    model_formula <- as.formula('Y~.')
+    
     # automatically choose optimal number of lags via AIC for a linear AR model
     # window length = number of lags + 1 (1 is for the y of one-step forecast)
     if (is.null(window_len)) {
@@ -40,10 +42,17 @@ rsw <- function (x = NULL,
     r_data <- windowing(x, window_len)
     r_data <- data.frame(r_data)
     num_cases <- nrow(r_data)
-    model_formula <- as.formula('Y~.')
+    
     # Align column names with training formula
     names(r_data) <- paste("X", seq(1, ncol(r_data)), sep="")
     names(r_data)[ncol(r_data)] <- "Y"
+    
+    # bind external regressors if any
+    if (!is.null(xreg)) {
+      xreg <- data.frame(xreg)
+      stopifnot(length(x) != nrow(xreg))
+      r_data <- cbind(tail(xreg, num_cases), r_data)
+    }
   } else {
     stop('Either x or (formula, data) must not be null.')
   }
@@ -99,7 +108,8 @@ rsw <- function (x = NULL,
   return (obj)
 }
 
-predict.rsw <- function (object, new_data = NULL, n.ahead = 1)  {
+predict.rsw <- function (object, n.ahead = 1, newxreg = NULL,
+                         new_data = NULL)  {
   if (is.null(object$window_len)) {
     stopifnot(!is.null(new_data))
     test_data <- new_data
@@ -115,6 +125,9 @@ predict.rsw <- function (object, new_data = NULL, n.ahead = 1)  {
     last_case_x <- tail(object$x, num_features)
     last_case_x <- data.frame(matrix(last_case_x, nrow=1))
     names(last_case_x) <- paste('X', seq(1, num_features), sep='')
+    if (!is.null(newxreg)) {
+      last_case_x <- cbind(newxreg, last_case_x)
+    }
     test_data <- last_case_x
     
     predictions <- c()
@@ -122,9 +135,10 @@ predict.rsw <- function (object, new_data = NULL, n.ahead = 1)  {
       prediction <- predict(fit, test_data)
       predictions <- c(predictions, prediction)
     }
-    predictions <- mean(predictions)
-    predictions <- rep(predictions, n.ahead) # flat multiple steps forecast
-    names(predictions) <- seq(length(object$x) + 1, length.out = n.ahead)
+    avg_predictions <- mean(predictions)
+    # flat multi-steps forecast
+    final_predictions <- rep(avg_predictions, n.ahead)
+    names(final_predictions) <- seq(length(object$x) + 1, length.out = n.ahead)
   }
   
   return (predictions)
@@ -160,5 +174,5 @@ example_rsw <- function () {
   # Example: regression data
   fit2 <- rsw(formula=Price ~ ., data=cu.summary, method='rpart')
   plot(cu.summary$Price, main=paste('Example:', deparse(fit2$call)))
-  points(predict(fit2, cu.summary), col='blue')
+  points(predict(fit2, new_data=cu.summary), col='blue')
 }

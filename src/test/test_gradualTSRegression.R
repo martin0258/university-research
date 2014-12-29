@@ -22,7 +22,7 @@ project_root <- ifelse(exists('project_root'),
 test_dramas_type <- ifelse(exists('test_dramas_type'),
                            test_dramas_type,
                            'Idol') # Or 'Chinese'
-has_features <- ifelse(exists('has_feautures'),
+has_features <- ifelse(exists('has_features'),
                        has_features,
                        FALSE)
 window_len <- ifelse(exists('window_len'),
@@ -74,6 +74,12 @@ baseline_models <-
       list(name='rsw.rpart.equal.ws',
            args=list(model_type='ts', predictor='rsw',
                      window_len=NULL, weight_type='equal',
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.linear.f',
+           args=list(model_type='ts', predictor='rsw',
+                     xreg=NULL,
+                     window_len=NULL, weight_type='linear',
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.linear',
@@ -137,9 +143,12 @@ data <- ratings
 # Read features and combine with ratings
 if (has_features) {
   source("src/getFeature.R")
-  featureFiles <- c(sprintf('data/%s_Drama_Opinion.csv', test_dramas_type),
-                    sprintf('data/%s_Drama_GoogleTrend.csv', test_dramas_type),
-                    sprintf('data/%s_Drama_FB.csv', test_dramas_type))
+  featureFiles <- c(
+#     sprintf('data/%s_Drama_Opinion.csv', test_dramas_type),
+#     sprintf('data/%s_Drama_GoogleTrend.csv', test_dramas_type),
+#     sprintf('data/%s_Drama_FB.csv', test_dramas_type),
+    sprintf('data/%s_Drama_WeekDay.csv', test_dramas_type)
+  )
   for (featureFile in featureFiles) {
     feature <- read.csv(featureFile, fileEncoding='utf-8')
     # left join automatically by common variables
@@ -228,7 +237,7 @@ for (idx in 1:num_dramas) {
   dramaName <- names(dramas)[idx]
   colnames(dramas[[idx]])[3] <- dramaName
   
-  target_feature <- dramas[[idx]][, -c(1, 2, 3)]
+  target_feature <- dramas[[idx]][-c(1, 2, 3)]
   ratings <- dramas[[idx]][3]
   
   for (base_predictor_args in base_predictors_args) {
@@ -304,8 +313,17 @@ for (idx in 1:num_dramas) {
     cat('--------------------', '\n')
     cat('Starting experiment...', '\n')
     cat(sprintf('Drama: %s, Model: %s', dramaName, baseline_model$name), '\n')
+    
+    # add external feature if specified
+    xreg <- NULL
+    if ('xreg' %in% names(baseline_model$args)) {
+      baseline_model$args$xreg <- target_feature
+      xreg <- target_feature
+    }
+    
     result <- do.call(gradualTSRegression,
-                      args=c(list(x=ratings), baseline_model$args))
+                      args=c(list(x=ratings, feature=xreg),
+                             baseline_model$args))
     results[[length(results) + 1]] <- result
   }
 
@@ -408,11 +426,11 @@ for (drama_idx in 1:num_dramas_performed) {
                    args=c(list(formula=y~., data=train_data), ensemble$args))
 
     # training error
-    predict_train <- predict(fit, train_data)
+    predict_train <- predict(fit, new_data=train_data)
     train_error <- mape(predict_train, train_data[['y']])
     
     # test (predict)
-    predict_test <- predict(fit, test_data)
+    predict_test <- predict(fit, new_data=test_data)
     test_error <- mape(predict_test, test_data[['y']])
 
     # store result

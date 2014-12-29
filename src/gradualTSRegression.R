@@ -59,7 +59,7 @@ gradualTSRegression <- function(x,
 #   timePeriods <- seq(windowLen, numCases + windowLen - 1)
 #   wData <- cbind(timePeriods, wData)
 
-  # Bind features from input parameter if any
+  # Bind external regressors from input parameter if any
   if (!is.null(feature)) {
     wData <- cbind(tail(feature, numCases), wData)
   }
@@ -158,7 +158,13 @@ gradualTSRegression <- function(x,
         # Reference: http://stackoverflow.com/a/22213320
         predictTest <- forecast(model, h = n.ahead)$mean[1]
       } else {
-        predictTest <- predict(model, n.ahead = n.ahead)[1]
+        # add external regressors if any
+        if(!is.null(feature)) {
+          newxreg <- tail(head(feature, testPeriod), 1)
+          predictTest <- predict(model, n.ahead, newxreg)[1]
+        } else {
+          predictTest <- predict(model, n.ahead)[1]
+        }
       }
       trainError <- NA # mape(predictTrain, train_data_ts)
       testError <- mape(predictTest, test_data_ts)
