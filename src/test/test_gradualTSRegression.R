@@ -73,6 +73,10 @@ ensemble <- list(predictor='rsw',
                  input_models=c('auto.arima'),
                  args=list(weight_type='exp',
                  method='rpart', control=r_control_ensemble))
+single_start_test_period <- 6  # hard-code, must change gradualTSRegression()
+ensemble_num_min_train <- 2
+ensemble_start_test_period <- single_start_test_period + ensemble_num_min_train
+non_evaluating_periods <- -seq(1, ensemble_start_test_period - 1)
 }
 
 # ---------- Region: Include libraries and source codes
@@ -206,8 +210,12 @@ for (drama_idx in 1:num_dramas) {
   mape_drama <- c()
   mae_drama <- c()
   for (result in tail(results, num_models)) {
-    mape_drama <- c(mape_drama, mape(result['Prediction'], ratings))
-    mae_drama <- c(mae_drama, mae(result['Prediction'], ratings))
+    error <- mape(result[non_evaluating_periods, 'Prediction'],
+                  ratings[non_evaluating_periods, ])
+    mape_drama <- c(mape_drama, error)
+    error <- mae(result[non_evaluating_periods, 'Prediction'],
+                 ratings[non_evaluating_periods, ])
+    mae_drama <- c(mae_drama, error)
   }
   mape_dramas <- cbind(mape_dramas, mape_drama)
   mae_dramas <- cbind(mae_dramas, mae_drama)
@@ -248,11 +256,14 @@ for (i in 1:num_models) {
   actuals <- c()
   for (j in 1:num_dramas_performed) {
     result_idx <- i + num_models * (j - 1)
-    predictions <- c(predictions,  results[[result_idx]]$Prediction)
-    actuals <- c(actuals, results[[result_idx]][, 1])
+    result <- results[[result_idx]]
+    predictions <- c(predictions,
+                     result[non_evaluating_periods, 'Prediction'])
+    actuals <- c(actuals,
+                 result[non_evaluating_periods, 1])
   }
   all_mape <- c(all_mape, mape(predictions, actuals))
-  all_mae <- c(all_mae, round(mae(predictions, actuals), 4))
+  all_mae <- c(all_mae, mae(predictions, actuals))
 }
 mape_dramas <- cbind(mape_dramas, all_mape)
 mae_dramas <- cbind(mae_dramas, all_mae)
@@ -263,10 +274,19 @@ mae_dramas <- cbind(mae_dramas, all_mae)
 cat('--------------------', '\n')
 cat('Starting ensemble...', '\n')
 ensemble_models_names <- ensemble$input_models
+ensemble_models_idx <- match(ensemble_models_names, models_names)
+ensemble_name <- sprintf('%s.%s.%s.%s',
+                         ensemble$predictor,
+                         ensemble$args$method,
+                         ensemble$args$weight_type,
+                         paste(ensemble_models_idx, collapse='.'))
 ensemble_results <- list()
 mape_drama <- mae_drama <- c()
-ensemble_models_idx <- match(ensemble_models_names, models_names)
 for (drama_idx in 1:num_dramas_performed) {
+  drama_name <- colnames(results[[drama_idx * num_models]])[1]
+  cat(sprintf('Drama %d: %s, Model %d: %s\n',
+      drama_idx, drama_name, num_models + 1, ensemble_name))
+  
   # form data
   x_predictions <- vector()
   for (model_idx in ensemble_models_idx) {
@@ -290,8 +310,9 @@ for (drama_idx in 1:num_dramas_performed) {
   train_errors <- c()
   test_errors <- c()
   predictions <- c()
-  num_min_train <- 2
-  for (train_end_idx in num_min_train:(nrow(y_x_complete) - 1)) {
+  cat('Fitting and predicting')
+  for (train_end_idx in ensemble_num_min_train:(nrow(y_x_complete) - 1)) {
+    cat('.')
     # prepare training and testing data
     train_idx <- 1:train_end_idx
     test_idx <- train_end_idx + 1
@@ -316,17 +337,13 @@ for (drama_idx in 1:num_dramas_performed) {
     result[test_episode, 'TestError'] <- test_error
     result[test_episode, 'TrainError'] <- train_error
   }
+  cat('\n')
   ensemble_results[[length(ensemble_results) + 1]] <- result
   mape_drama <- c(mape_drama, mape(result[['Prediction']], result[[1]]))
-  mae_drama <- c(mae_drama, round(mae(result[['Prediction']], result[[1]]), 4))
+  mae_drama <- c(mae_drama, mae(result[['Prediction']], result[[1]]))
 }
 mape_dramas <- rbind(mape_dramas, c(mape_drama, NA))
 mae_dramas <- rbind(mae_dramas, c(mae_drama, NA))
-ensemble_name <- sprintf('%s.%s.%s.%s',
-                         ensemble$predictor,
-                         ensemble$args$method,
-                         ensemble$args$weight_type,
-                         paste(ensemble_models_idx, collapse='.'))
 rownames(mape_dramas)[nrow(mape_dramas)] <- ensemble_name
 rownames(mae_dramas)[nrow(mae_dramas)] <- ensemble_name
 }
@@ -340,7 +357,7 @@ for (i in 1:num_dramas_performed) {
   actuals <- c(actuals, ensemble_results[[i]][, 1])
 }
 mape_dramas[nrow(mape_dramas), 'all_mape'] <- mape(predictions, actuals)
-mae_dramas[nrow(mae_dramas), 'all_mae'] <- round(mae(predictions, actuals), 4)
+mae_dramas[nrow(mae_dramas), 'all_mae'] <- mae(predictions, actuals)
 }
 
 # ---------- Region: Calculate ranks, and print them along with errors
