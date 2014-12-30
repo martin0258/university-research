@@ -1,4 +1,5 @@
-source('src/lib/windowing.R')  # for transform time series to regression
+source('src/lib/windowing.R')  # for transforming time series to regression
+source('src/lib/mape.R')       # for calculating val error
 
 # 'R'egression with Time 'S'eries 'W'eighting (RSW)
 rsw <- function (x = NULL, xreg = NULL,
@@ -6,8 +7,9 @@ rsw <- function (x = NULL, xreg = NULL,
                  window_len = NULL,
                  weighted_sampling = TRUE,
                  repeats = 20,
-                 weight_type = c('equal', 'linear', 'exp'),
+                 weight_type = c('equal', 'linear', 'exp', 'exp3', 'auto'),
                  prune = TRUE,
+                 error_fun = mape,
                  method, ...) {
   # Return a model that trains a regression model
   # with time series weights concepts (newer cases have more weights)
@@ -66,8 +68,31 @@ rsw <- function (x = NULL, xreg = NULL,
     case_weights <- seq(1, num_cases)
   } else if (weight_type == 'exp') {
     case_weights <- exp(1:num_cases)
+  } else if (weight_type == 'exp3') {
+    alpha <- 3
+    case_weights <- (exp(1)^alpha)^(1:num_cases)
   } else {
-    # should not be here
+    # decide weight type automatically based on validation error
+    num_val_cases <- 1
+    val_data <- tail(r_data, num_val_cases)
+    subtrain_data <- head(r_data, num_cases - num_val_cases)
+    
+    fits_type <- list()
+    val_errors <- c()
+    weight_types <- c('equal', 'linear', 'exp', 'exp3')
+    for (type in weight_types) {
+      fit <- rsw(formula=model_formula, data=subtrain_data,
+                 weight_type=type,
+                 method=method, ...)
+      fits_type[[length(fits_type) + 1]] <- fit
+      prediction <- predict(fit, new_data=val_data)
+      val_error <- error_fun(prediction, val_data[, 'Y'])
+      val_errors <- c(val_errors, val_error)
+    }
+    fit <- rsw(x=x,
+               weight_type=weight_types[which.min(val_errors)],
+               method=method, ...)
+    return (fit)
   }
   
   fits <- list()
@@ -117,7 +142,7 @@ predict.rsw <- function (object, n.ahead = 1, newxreg = NULL,
       prediction <- as.numeric(predict(fit, test_data))
       predictions <- rbind(predictions, prediction)
     }
-    predictions <- colMeans(predictions)
+    final_predictions <- colMeans(predictions)
   } else {
     num_features <- object$window_len - 1
     last_case_x <- tail(object$x, num_features)
@@ -139,7 +164,7 @@ predict.rsw <- function (object, n.ahead = 1, newxreg = NULL,
     names(final_predictions) <- seq(length(object$x) + 1, length.out = n.ahead)
   }
   
-  return (predictions)
+  return (final_predictions)
 }
 
 # Note: When using weight type of linear or exp, the training model

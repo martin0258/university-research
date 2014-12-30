@@ -20,7 +20,7 @@ feature_files <- c(
 
 ## Parameters that control control models
 seed <- ifelse(exists('seed'), seed, 0)
-window_len <- ifelse(exists('window_len'), window_len, 4)
+window_len <- switch(exists('window_len'), window_len) # default NULL
 r_control <- list(minsplit=2, maxdepth=30)
 r_control_ensemble <- list(minsplit=2, maxdepth=30)
 models <- 
@@ -51,21 +51,37 @@ models <-
            args=list(model_type='ts',
                      predictor='rsw', weight_type='equal',
                      weighted_sampling=FALSE,
+                     window_len=window_len,
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.equal',
            args=list(model_type='ts',
                      predictor='rsw', weight_type='equal',
+                     window_len=window_len,
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.linear',
            args=list(model_type='ts',
                      predictor='rsw', weight_type='linear',
+                     window_len=window_len,
                      method='rpart', control=r_control)
           ),
       list(name='rsw.rpart.exp',
            args=list(model_type='ts',
                      predictor='rsw', weight_type='exp',
+                     window_len=window_len,
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.exp3',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='exp3',
+                     window_len=window_len,
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.auto',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='auto',
+                     window_len=window_len,
                      method='rpart', control=r_control)
           )
       )
@@ -179,7 +195,6 @@ rownames(mae_dramas) <- models_names_idx
 
 # ---------- Region: Fit models and test them
 for (drama_idx in 1:num_dramas) {
-  if (drama_idx == 7) next  # rsw performs badly for drama "The Fierce Wife"
   drama <- dramas[[drama_idx]]
   dramaName <- names(dramas)[drama_idx]
   colnames(drama)[3] <- dramaName
@@ -324,6 +339,7 @@ if (length(ensemble$input_models) > 0 ) {
       test_episode <- as.integer(rownames(test_data))
       
       # train an ensemble model
+      set.seed(seed)
       fit <- do.call(ensemble$predictor,
                      args=c(list(formula=y~., data=train_data), ensemble$args))
   
