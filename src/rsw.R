@@ -5,7 +5,6 @@ rsw <- function (x = NULL, xreg = NULL,
                  formula = NULL, data = NULL,
                  window_len = NULL,
                  weighted_sampling = TRUE,
-                 seed = 1,
                  repeats = 20,
                  weight_type = c('equal', 'linear', 'exp'),
                  prune = TRUE,
@@ -74,18 +73,17 @@ rsw <- function (x = NULL, xreg = NULL,
   fits <- list()
   if (weighted_sampling) {
     # resampling data based on case weights
-    set.seed(seed)
     for (i in 1:repeats) {
       bootstrap_idx <- sample(num_cases, replace=TRUE, prob=case_weights)
       # fit a model
-      fit <- do.call(method, args=list(formula=model_formula,
-                                       data=r_data[bootstrap_idx, ], ...))
+      fit <- do.call(method, list(formula=model_formula,
+                                  data=r_data[bootstrap_idx, ], ...))
       fits[[length(fits) + 1]] <- fit
     }
   } else {
     # fit a model
-    fit <- do.call(method, args=list(formula=model_formula,
-                                     data=r_data, weights=case_weights, ...))
+    fit <- do.call(method, list(formula=model_formula,
+                                data=r_data, weights=case_weights, ...))
     fits[[1]] <- fit
   }
   

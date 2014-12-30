@@ -1,9 +1,12 @@
+source('src/lib/windowing.R')
+source('src/lib/mape.R')
+
 gradualTSRegression <- function(x,
                                 feature = NULL,
-                                source_data = NULL,
-                                windowLen = 4, n.ahead = 1,
+                                windowLen = 4, n.ahead = 1, seed = 1,
                                 verbose = FALSE,
                                 model_type = c('regression', 'ts'),
+                                error_fun = mape,
                                 predictor, ...) {
   # Forecast time series via windowing transformation and regression.
   #
@@ -46,7 +49,6 @@ gradualTSRegression <- function(x,
   start <- proc.time()
 
   # Form regression data from time series
-  #source("lib/windowing.R")
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
   
@@ -82,48 +84,15 @@ gradualTSRegression <- function(x,
     train_data_ts <- x_ts[trainPeriods]
     test_data_ts <- x_ts[testPeriod]
     
-    # form regression cases for source data
-    # only include same period cases as target data (EY's suggestion)
-    # may have multiple sources
-    train_data_src <- NULL
-    if (!is.null(source_data)) {
-      train_data_src <- c()
-      for (src_data in source_data) {
-        w_data_src <- windowing(src_data, windowLen)
-        end_idx_src <- nrow(w_data_src) #min(trainEndIndex, nrow(w_data_src))
-        # Note: changing bind order affects performance
-        train_data_src <- rbind(w_data_src[1:end_idx_src, ], train_data_src)
-      }
-      train_data_src <- data.frame(train_data_src)
-      names(train_data_src) <- paste("X", seq(1, ncol(train_data_src)), sep="")
-      names(train_data_src)[ncol(train_data_src)] <- "Y"
-    }
-    
     # Training phase
+    set.seed(seed)
     model <- tryCatch({
       # Use do.call to easily add new model in test_gradualTSRegression.R
-      if (predictor == "trAdaboostR2") {
-        do.call(predictor, args=list(formula=model_formula,
-                                     source_data=train_data_src,
-                                     num_predictors=50,
-                                     target_data=train_data,
-                                     val_data=NULL,
-                                     verbose=verbose, ...))
-      } else if (predictor == "adaboostR2") {
-        do.call(predictor, args=list(formula=model_formula,
-                                     data=train_data,
-                                     val_data=NULL,
-                                     verbose=verbose, ...))
-      } else if (model_type == 'regression') {
-        do.call(predictor, args=list(formula=model_formula,
-                                     data=train_data, ...))
-#         tune_result <- tune(predictor, model_formula, data=train_data,
-#                             ranges=list(maxdepth=seq(1, 4)),
-#                             tunecontrol=tune_control, ...)
-#         tune_result$best.model
+      if (model_type == 'regression') {
+        do.call(predictor, list(formula=model_formula, data=train_data, ...))
       } else if (model_type == 'ts') {
         # training time series model
-        do.call(predictor, args=list(train_data_ts, ...))
+        do.call(predictor, list(train_data_ts, ...))
       } else {
         # should not be here in any case
       }
@@ -143,8 +112,6 @@ gradualTSRegression <- function(x,
     if (model_type == 'regression') {
       predictTrain <- predict(model, wData[trainIndex, ])
       predictTest <- predict(model, wData[testIndex, ])
-      trainError <- mape(predictTrain, wData[trainIndex, "Y"])
-      testError <- mape(predictTest, wData[testIndex, "Y"])
     } else if (model_type == 'ts') {
       predictTrain <- NA
       if (predictor %in% c('ets', 'auto.arima', 'nnetar')) {
@@ -159,25 +126,22 @@ gradualTSRegression <- function(x,
           predictTest <- predict(model, n.ahead)[1]
         }
       }
-      trainError <- NA # mape(predictTrain, train_data_ts)
-      testError <- mape(predictTest, test_data_ts)
     } else {
       # should not be here in any case
     }
     
-    # Evaluate
-    #source("lib/mape.R")
+    # Evaluate testing performance
+    trainError <- NA # mape(predictTrain, train_data_ts)
+    testError <- error_fun(predictTest, test_data_ts)
     result[testPeriod, "Prediction"] <- predictTest
     result[testPeriod, "TestError"] <- testError
     result[testPeriod, "TrainError"] <- trainError
   }
   cat('\n')
   
-  # Record end execution time
   end <- proc.time()
-
   time_spent <- end - start
-  
   cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
+
   return(result)
 }

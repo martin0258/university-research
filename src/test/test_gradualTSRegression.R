@@ -203,7 +203,7 @@ for (drama_idx in 1:num_dramas) {
     }
     
     result <- do.call(gradualTSRegression,
-                      args=c(list(x=ratings, feature=xreg), model$args))
+                      c(list(x=ratings, feature=xreg, seed=seed), model$args))
     results[[length(results) + 1]] <- result
   }
 
