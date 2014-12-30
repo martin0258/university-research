@@ -266,8 +266,8 @@ for (i in 1:num_models) {
   all_mape <- c(all_mape, mape(predictions, actuals))
   all_mae <- c(all_mae, mae(predictions, actuals))
 }
-mape_dramas <- cbind(mape_dramas, all_mape)
-mae_dramas <- cbind(mae_dramas, all_mae)
+mape_dramas <- cbind(mape_dramas, All=all_mape)
+mae_dramas <- cbind(mae_dramas, All=all_mae)
 }
 
 # Region: Ensemble
@@ -359,8 +359,8 @@ if (length(ensemble$input_models) > 0 ) {
     predictions <- c(predictions, ensemble_results[[i]]$Prediction)
     actuals <- c(actuals, ensemble_results[[i]][, 1])
   }
-  mape_dramas[nrow(mape_dramas), 'all_mape'] <- mape(predictions, actuals)
-  mae_dramas[nrow(mae_dramas), 'all_mae'] <- mae(predictions, actuals)
+  mape_dramas[nrow(mape_dramas), 'All'] <- mape(predictions, actuals)
+  mae_dramas[nrow(mae_dramas), 'All'] <- mae(predictions, actuals)
   }
 }
 
