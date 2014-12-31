@@ -1,8 +1,13 @@
+source('src/lib/windowing.R')
+source('src/lib/mape.R')
+
 gradualTSRegression <- function(x,
                                 feature = NULL,
-                                source_data = NULL,
-                                windowLen = 4, n.ahead = 1,
-                                predictor = lm, ...) {
+                                windowLen = 4, n.ahead = 1, seed = 1,
+                                verbose = FALSE,
+                                model_type = c('regression', 'ts'),
+                                error_fun = mape,
+                                predictor, ...) {
   # Forecast time series via windowing transformation and regression.
   #
   # Arguments:
@@ -27,9 +32,12 @@ gradualTSRegression <- function(x,
   # Example:
   #  If (windowLen = 4, n.ahead = 1), each training instance has 3 predictors
   #  and 1 response variable.
+  model_type <- match.arg(model_type)
+  model_formula <- as.formula('Y~.')
   
   # Initialize a data instructure storing input data and result
   result <- data.frame(x)
+  rownames(result) <- seq(1, nrow(result))
 
   # Add new columns for storing result
   result[, "Prediction"] <- NA
@@ -37,20 +45,19 @@ gradualTSRegression <- function(x,
   result[, "TrainError"] <- NA
   result[, "ErrorMsg"] <- NA
 
-  # Recrod start execution time
+  # Record start execution time
   start <- proc.time()
 
   # Form regression data from time series
-  #source("lib/windowing.R")
   wData <- windowing(x, windowLen)
   wData <- data.frame(wData)
   
-  # Add time period as a feature
+  # Form time series data
+  x_ts <- ts(x)
+  
   numCases <- nrow(wData)
-  timePeriods <- seq(windowLen, numCases + windowLen - 1)
-  wData <- cbind(timePeriods, wData)
 
-  # Bind features from input parameter if any
+  # Bind external regressors from input parameter if any
   if (!is.null(feature)) {
     wData <- cbind(tail(feature, numCases), wData)
   }
@@ -58,29 +65,36 @@ gradualTSRegression <- function(x,
   # Align column names
   names(wData) <- paste("X", seq(1, ncol(wData)), sep="")
   names(wData)[ncol(wData)] <- "Y"  # The response variable (1 step)
-  if (!is.null(source_data)) {
-    names(source_data) <- paste("X", seq(1, ncol(source_data)), sep="")
-    names(source_data)[ncol(source_data)] <- "Y"
-  }
 
   # Train a model for each time period
-  for(trainEndIndex in 1:(numCases-2)) {
+  # Start from 2 because at least 2 training instances are needed
+  # for doing leave-one-out cross-validation to tune parameters
+  cat('Fitting and predicting')
+  for(trainEndIndex in 2:(numCases - 1)) {
+    cat('.')
     trainIndex <- 1:trainEndIndex
-    valIndex <- trainEndIndex + 1
-    testIndex <- trainEndIndex + 2
+    testIndex <- trainEndIndex + 1
+    train_data <- wData[trainIndex, ]  # train data = subtrain + validation
+    val_num_cases <- 1
+    val_data <- tail(train_data, val_num_cases)
+    subtrain_data <- wData[1:(trainEndIndex - val_num_cases), ]
+    test_data <- wData[testIndex, ]
     testPeriod <- testIndex + windowLen - 1
+    trainPeriods <- 1:(testPeriod - 1)
+    train_data_ts <- x_ts[trainPeriods]
+    test_data_ts <- x_ts[testPeriod]
     
     # Training phase
+    set.seed(seed)
     model <- tryCatch({
-      form <- as.formula("Y~.")
-      predictor_name <- as.character(substitute(predictor))
-      if (predictor_name == "trAdaboostR2") {
-        predictor(form,
-                  source_data=source_data,
-                  target_data=wData[trainIndex, ],
-                  val_data=wData[valIndex, ], ...)
+      # Use do.call to easily add new model in test_gradualTSRegression.R
+      if (model_type == 'regression') {
+        do.call(predictor, list(formula=model_formula, data=train_data, ...))
+      } else if (model_type == 'ts') {
+        # training time series model
+        do.call(predictor, list(train_data_ts, ...))
       } else {
-        predictor(form, wData[trainIndex, ], ...)
+        # should not be here in any case
       }
     }, error = function(err) {
       return(err)
@@ -89,30 +103,45 @@ gradualTSRegression <- function(x,
     # Something went wrong during training.
     if(inherits(model, "error"))
     {
-      result[testPeriod, "ErrorMsg"] <- c(phase='train',
-                                        period=testPeriod,
-                                        errMsg=paste(model))
+      result[testPeriod, "ErrorMsg"] <- paste('Training: ', model)
       # Skip testing phase
       next
     }
     
     # Testing phase
-    predictTrain <- predict(model, wData[trainIndex, ])
-    predictTest <- predict(model, wData[testIndex, ])
+    if (model_type == 'regression') {
+      predictTrain <- predict(model, wData[trainIndex, ])
+      predictTest <- predict(model, wData[testIndex, ])
+    } else if (model_type == 'ts') {
+      predictTrain <- NA
+      if (predictor %in% c('ets', 'auto.arima', 'nnetar')) {
+        # Reference: http://stackoverflow.com/a/22213320
+        predictTest <- forecast(model, h = n.ahead)$mean[1]
+      } else {
+        # add external regressors if any
+        if(!is.null(feature)) {
+          newxreg <- tail(head(feature, testPeriod), 1)
+          predictTest <- predict(model, n.ahead, newxreg)[1]
+        } else {
+          predictTest <- predict(model, n.ahead)[1]
+        }
+      }
+    } else {
+      # should not be here in any case
+    }
     
-    # Evaluate
-    #source("lib/mape.R")
-    trainError <- mape(predictTrain, wData[trainIndex, "Y"])
-    testError <- mape(predictTest, wData[testIndex, "Y"])
+    # Evaluate testing performance
+    trainError <- NA # mape(predictTrain, train_data_ts)
+    testError <- error_fun(predictTest, test_data_ts)
     result[testPeriod, "Prediction"] <- predictTest
     result[testPeriod, "TestError"] <- testError
     result[testPeriod, "TrainError"] <- trainError
   }
+  cat('\n')
   
-  # Recrod end execution time
   end <- proc.time()
-  
-  cat("[Time Spent]\n")
-  print(end - start)
+  time_spent <- end - start
+  cat(sprintf("Done! Time spent: %.2f (s)", time_spent["elapsed"]), '\n')
+
   return(result)
 }

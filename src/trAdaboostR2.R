@@ -1,5 +1,6 @@
-library(nnet)
-library(Defaults)
+library(rpart)
+library(hydroGOF) # for default error_fun
+library(lattice)  # for plotting errors over iterations
 
 trAdaboostR2 <- function( formula, source_data, target_data,
                           val_data = NULL,
@@ -8,7 +9,9 @@ trAdaboostR2 <- function( formula, source_data, target_data,
                           loss = 'linear',
                           weighted_sampling = TRUE,
                           verbose = FALSE,
-                          base_predictor = nnet, ...
+                          error_fun = mse,
+                          monitor_errors = FALSE,
+                          base_predictor = rpart, ...
                         ) {
   # Fits and returns a TrAdaBoost.R2 model.
   #
@@ -66,43 +69,34 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   #   An object of class "adaboostR2".
   #   The object contains the following components:
   #     - predictors: predictors trained at each iteration
-  #     - predictor_weights: weight of each predictor
+  #     - predictors_weights: weight of each predictor
   #     - num_predictors: number of predictors
   #     - avg_losses: average loss of each predictor
   #
   # References:
-  #   - David Pardoe and Peter Stone.
+  #   - [1] David Pardoe and Peter Stone.
   #     Boosting for Regression Transfer.
   #     ICML 2010.
   #
-  #   - Dai,Wenyuan, Yang, Qiang, Xue, Gui-rong, and Yu, Yong.
+  #   - [2] Dai,Wenyuan, Yang, Qiang, Xue, Gui-rong, and Yu, Yong.
   #     Boosting for transfer learning.
   #     ICML 2007.
 
-  # Cast formula.
-  form <- as.formula(formula, env=environment())
-
-  # get dependent variable name from formula
-  # what if there are multiple responses?
-  response <- all.vars(form[[2]])
-
-  # Adjust option of printing message.
-  if (!verbose) {
-    if (.Platform$OS.type == "windows") {
-      setDefaults(cat, file='nul')
-    } else {
-      # this only works for linux
-      # for windows we need to use NUL or nul
-      setDefaults(cat, file='/dev/null')
-    }
-  } else {
-    setDefaults(cat, file='')
-  }
-
   # initialize return values
   predictors <- list()
-  predictor_weights <- list()
+  predictors_weights <- list()
   avg_losses <- list()
+  params <- match.call()
+
+  model_formula <- as.formula(formula, env=environment())
+  # get dependent variable name from formula
+  # TODO: consider the case of multiple responses
+  response <- all.vars(model_formula[[2]])
+  
+  val_errors <- c()
+  train_errors <- c()
+  val_base_predictions_cache <- vector()
+  train_base_predictions_cache <- vector()
 
   # combine source and target data to a single dataset
   data <- rbind(source_data, target_data)
@@ -113,113 +107,182 @@ trAdaboostR2 <- function( formula, source_data, target_data,
   target_idx <- (num_src_cases + 1):num_cases
 
   # set initial data weights
+  # Note: based on [1], equally initial weights may not be the best sometimes
   data_weights <- rep(1 / num_cases, num_cases)
 
-  # store validation error at each iteration
-  val_errors <- c()
-
-  max_num_itrs <- num_predictors
-  for (i in 1:max_num_itrs)
+  for (t in 1:num_predictors)
   {
+    # progress indicator: a dot indicates a training iteration got started
+    cat_verbose(verbose, '.')
+
     # train a weak hypothesis of base predictor
     if (weighted_sampling) {
       # instead of training with data_weights,
       # we can do weighted sampling of the training set with replacement,
       # and fit on the bootstrapped sample and obtain a prediction.
       bootstrap_idx <- sample(num_cases, replace=TRUE, prob=data_weights)
-      predictor <- base_predictor(form, data[bootstrap_idx, ], ...)
+      predictor <- do.call(base_predictor,
+                           args=list(formula=model_formula,
+                           data=data[bootstrap_idx, ], ...))
     } else {
-      predictor <- base_predictor(form, data, weights=data_weights, ...)
-    }
-
-    # predict on validation data (if any)
-    # compared with previous iteration, early stop if validation error increases
-    if (!is.null(val_data)) {
-      val_prediction <- predict(predictor, val_data)
-      val_error <-  mape(val_prediction, val_data[response])
-      val_errors <- c(val_errors, val_error)
-      last_two_errors <- tail(val_errors, 2)
-      if (length(last_two_errors) >= 2 &
-          last_two_errors[2] > last_two_errors[1]) {
-        # early stop
-        msg <- "Early termination at iteration %d because val error increases."
-        cat('\n', sprintf(msg, i))
-        break
-      }
-      pre_val_error <- val_error
+      # By using do.call can resolve the env scope issue of 'weights'
+      # Reference: http://stackoverflow.com/a/6957900
+      predictor <- do.call(base_predictor,
+                           list(formula=form,
+                                data=data,
+                                weights=data_weights, ...))
     }
 
     prediction <- predict(predictor, data)
+
     errors <- abs(prediction - data[response])
-    errors_max <- max(errors, na.rm=TRUE)
-    if (errors_max == 0) {
+    errors_max_source <- max(errors[source_idx, ], na.rm=TRUE)
+    errors_max_target <- max(errors[target_idx, ], na.rm=TRUE)
+    if (errors_max_target == 0) {
       # early termination:
       #   if the fit is perfect, store the predictor info and stop
-      predictors[[i]] <- predictor
-      predictor_weights[[i]] <- 1
-      msg <- "Early terminaion because fit at iteration %d is perfect."
-      cat('\n', sprintf(msg, i))
-      break
-    }
-    errors <- errors / errors_max
-
-    if (loss == 'square') {
-      errors <- errors ^ 2
-    } else if (loss == 'exponential') {
-      errors <- 1 - exp(- errors)
-    }
-
-    avg_loss <- sum(data_weights * errors, na.rm=TRUE)
-    avg_losses[[i]] <- avg_loss
-
-    if (avg_loss >= 0.5) {
-      # early termination:
-      #   stop if the fit is too "terrible"
-      #   TODO: fix the case of similar small errors
-      msg <- "Early termination at iteration %d because avg loss >= 0.5"
-      cat('\n', sprintf(msg, i))
-      break
+      predictors[[t]] <- predictor
+      predictors_weights[[t]] <- 1
+      cat_verbose(verbose, '\n')
+      msg <- "Training: Stop at itr %d because fit is perfect, loss = 0"
+      cat_verbose(verbose, sprintf(msg, t))
     } else {
-      beta_confidence <- avg_loss / (1 - avg_loss)
-      # TODO: confirm N (in paper) to used during early termination.
-      beta <- 1 / (1 + sqrt(2 * log(num_src_cases / max_num_itrs)))
-
-      ## update weights of source instances
-      data_weights[source_idx] <-
-        data_weights[source_idx] *
-        beta ^ (errors[source_idx,] * learning_rate)
-
-      ## update weights of target instances
-      data_weights[target_idx] <-
-        data_weights[target_idx] *
-        beta_confidence ^ (-errors[target_idx,] * learning_rate)
-
-      # normalize
-      data_weights <- data_weights / sum(data_weights)
-
-      # store the predictor info
-      predictors[[i]] <- predictor
-      predictor_weights[[i]] <- learning_rate * log(1 / beta_confidence)
+      # normalize errors
+      errors[target_idx, ] <- errors[target_idx, ] / errors_max_target
+      if (errors_max_source != 0) {
+        errors[source_idx, ] <- errors[source_idx, ] / errors_max_source
+      }
+  
+      if (loss == 'square') {
+        errors <- errors ^ 2
+      } else if (loss == 'exponential') {
+        errors <- 1 - exp(- errors)
+      }
+  
+      avg_loss <- sum(data_weights[target_idx] * errors[target_idx, ],
+                      na.rm=TRUE)
+      avg_losses[[t]] <- avg_loss
+  
+      if (avg_loss >= 0.5) {
+        # early termination:
+        #   stop if the fit is too "terrible"
+        #   TODO: fix the case of similar small errors
+        cat_verbose(verbose, '\n')
+        msg <- "Training: Stop at itr %d because fit is too bad, loss (%.2f) >= 0.5"
+        cat_verbose(verbose, sprintf(msg, t, avg_loss))
+        break
+      } else {
+        beta_t <- avg_loss / (1 - avg_loss)
+        # TODO: confirm N (in paper) to used during early termination.
+        beta <- 1 / (1 + sqrt(2 * log(num_src_cases / num_predictors)))
+  
+        ## update weights of source instances
+        data_weights[source_idx] <-
+          data_weights[source_idx] *
+          beta ^ (errors[source_idx, ] * learning_rate)
+  
+        ## update weights of target instances
+        data_weights[target_idx] <-
+          data_weights[target_idx] *
+          beta_t ^ (-errors[target_idx, ] * learning_rate)
+  
+        # normalize
+        data_weights <- data_weights / sum(data_weights)
+  
+        # store the predictor info
+        predictors[[t]] <- predictor
+        predictors_weights[[t]] <- learning_rate * log(1 / beta_t)
+      }
     }
+
+    # monitor performance of current ensemble
+    # WARNING: very time-consuming due to prediction performance!!
+    if (monitor_errors) {
+      fit <- construct.trAdaboostR2(predictors, predictors_weights)
+      predictions <- predict(fit, target_data, verbose=F,
+                             train_base_predictions_cache)
+      train_prediction <- predictions[['final_predictions']]
+      train_base_predictions_cache <- predictions[['base_predictions_cache']]
+      train_error <- error_fun(train_prediction, target_data[, response])
+      train_errors <- c(train_errors, train_error)
+  
+      if (!is.null(val_data)) {
+        predictions <- predict(fit, val_data, verbose=F,
+                               val_base_predictions_cache)
+        val_prediction <- predictions[['final_predictions']]
+        val_base_predictions_cache <- predictions[['base_predictions_cache']]
+        val_error <- error_fun(val_prediction, val_data[, response])
+        val_errors <- c(val_errors, val_error)
+      }
+    }
+
+    # early stop if fit of this iteration is perfect
+    if (errors_max_target == 0) break
+  }
+  
+  # newline after printing one or more dots
+  cat_verbose(verbose, '\n')
+  
+  # plot errors over iterations
+  if (monitor_errors) {
+    if (is.null(val_data)) val_errors <- rep(NA, length(train_errors))
+    errors_over_itrs <- data.frame(val_errors, train_errors)
+    p <- xyplot(ts(errors_over_itrs), superpose=T, type='o', lwd=2,
+                main='Errors over iterations', xlab='Iteration', ylab='Error')
+    print(p)
+  }
+  
+  # re-train with full data, and num_predictors is determined by min val error
+  if (!is.null(val_data)) {
+    full_target_data <- rbind(target_data, val_data)
+    min_val_error_itr <- which.min(val_errors)
+    cat_verbose(verbose, sprintf('Trained %d predictors.\n', length(predictors)))
+    cat_verbose(verbose,
+                sprintf('Retrain %d predictors with all data based on min val error.\n',
+                min_val_error_itr))
+    model <- trAdaboostR2(model_formula,
+                          source_data = source_data,
+                          target_data = full_target_data,
+                          num_predictors = min_val_error_itr,
+                          learning_rate = learning_rate,
+                          weighted_sampling = weighted_sampling,
+                          loss = loss,
+                          verbose = verbose,
+                          error_fun = error_fun,
+                          base_predictor = base_predictor, ... )
+    model$errors <- errors_over_itrs
+    return(model)
   }
 
   final_predictor <- list(predictors=predictors,
-                          predictor_weights=predictor_weights,
+                          predictors_weights=predictors_weights,
                           num_predictors=length(predictors),
                           input_num_predictors=num_predictors,
                           avg_losses=avg_losses)
   class(final_predictor) <- "trAdaboostR2"
 
-  # restore option to default value
-  if (!verbose) {
-    setDefaults(cat, file='')
-  }
-
   return (final_predictor)
 }
 
-predict.trAdaboostR2 <- function( object, new_data,
-                                  verbose = TRUE ) {
+construct.trAdaboostR2 <- function (predictors,
+                                    predictors_weights,
+                                    params = NULL,
+                                    errors = NULL,
+                                    avg_losses = NULL
+                                   ) {
+  # Return an adaboostR2 object
+  predictor <- list(predictors = predictors,
+                    predictors_weights = predictors_weights,
+                    params = params,
+                    num_predictors = length(predictors),
+                    errors = errors,
+                    avg_losses = avg_losses)
+  class(predictor) <- 'trAdaboostR2'
+  return (predictor)
+}
+
+predict.trAdaboostR2 <- function( object, new_data, verbose = FALSE,
+                                  base_predictions_cache = NULL) {
   # Returns predictions for new data.
   #
   # Arguments:
@@ -232,38 +295,40 @@ predict.trAdaboostR2 <- function( object, new_data,
   #     Defaul FALSE.
   #
   # Returns: The predictions for new data.
-  if (!verbose) {
-    if (.Platform$OS.type == "windows") {
-      setDefaults(cat, file='nul')
-    } else {
-      # this only works for linux
-      # for windows we need to use NUL or nul
-      setDefaults(cat, file='/dev/null')
-    }
-  } else {
-    setDefaults(cat, file='')
-  }
 
   if (object$num_predictors == 0) {
-    cat('\n', 'No prediction because there is no base predictor.', '\n')
+    msg <- 'Prediction: Unable to predict because of no base predictor.'
+    cat_verbose(verbose, msg, '\n')
     return (rep(as.numeric(NA), nrow(new_data)))
   }
   # the newline is for beautifying testthat output
-  cat('\n')
+  #cat('\n')
 
-  # build a prediction matrix: (row = cases, col = predictors)
-  predictions <- vector()
+  # initialize return values
   final_predictions <- vector()
+  
+  # Based on [1], only consider the final ceiling(N/2) predictors
+  num_predictors_consider <- ceiling(object$num_predictors / 2)
+  predictors_idx <- tail(1:object$num_predictors, num_predictors_consider)
+  predictors <- tail(object$predictors, num_predictors_consider)
+  predictors_weights <- tail(object$predictors_weights, num_predictors_consider)
+  
+  # build a base prediction matrix: (row = cases, col = predictors)
+  base_predictions <- vector()
 
-  # TODO: confirm N (in paper) to used
-  predictor_start_idx <-
-    object$num_predictors - ceiling(object$num_predictors / 2) + 1
-  predictor_range <- predictor_start_idx:object$num_predictors
-  for(idx in predictor_range)
+  for(i in predictors_idx)
   {
-    predictor <- object$predictors[[idx]]
-    prediction <- predict(predictor, new_data)
-    predictions <- cbind(predictions, prediction)
+    colname <- sprintf('%s', i)
+    if (colname %in% colnames(base_predictions_cache)) {
+      # cache hits
+      base_predictions <- cbind(base_predictions,
+                                base_predictions_cache[, colname])
+    } else {
+      predictor <- object$predictors[[i]]
+      base_prediction <- predict(predictor, new_data)
+      base_predictions <- cbind(base_predictions, base_prediction)
+      colnames(base_predictions)[ncol(base_predictions)] <- colname
+    }
   }
 
   # for each case, get the weighted median as the final prediction
@@ -271,17 +336,16 @@ predict.trAdaboostR2 <- function( object, new_data,
   for(i in 1:nrow(new_data))
   {
     final_prediction <-
-      weighted_median(predictions[i, ],
-                      object$predictor_weights[predictor_range])
+      weighted_median(base_predictions[i, ], predictors_weights)
     final_predictions <- c(final_predictions, final_prediction)
   }
 
-  # restore option to default value
-  if (!verbose) {
-    setDefaults(cat, file='')
+  if (is.null(base_predictions_cache)) {
+    return (final_predictions)
+  } else {
+    return (list(final_predictions=final_predictions,
+                 base_predictions_cache=base_predictions))
   }
-
-  return (final_predictions)
 }
 
 summary.trAdaboostR2 <- function( object ) {
@@ -336,4 +400,12 @@ trAdaboostR2._weighted_median <- function( x, weights ) {
 #   stopifnot(result == expected_result)
 
   return (result)
+}
+
+cat_verbose <- function (verbose, ...) {
+  if (verbose) {
+    do.call('cat', args=list(..., file=''))
+  } else {
+    # do (print) nothing
+  }
 }
