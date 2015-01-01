@@ -58,6 +58,9 @@ rsw <- function (x = NULL, xreg = NULL,
     stop('Either x or (formula, data) must not be null.')
   }
   
+  # Ref: http://stackoverflow.com/a/13217491
+  response_name <- all.vars(model_formula)[1]
+  
   # Give more weights for newer cases
   # Options: linear increase, exponential increase
   
@@ -86,12 +89,19 @@ rsw <- function (x = NULL, xreg = NULL,
                  method=method, ...)
       fits_type[[length(fits_type) + 1]] <- fit
       prediction <- predict(fit, new_data=val_data)
-      val_error <- error_fun(prediction, val_data[, 'Y'])
+      val_error <- error_fun(prediction, val_data[, response_name])
       val_errors <- c(val_errors, val_error)
     }
-    fit <- rsw(x=x,
-               weight_type=weight_types[which.min(val_errors)],
-               method=method, ...)
+    best_weight_type <- weight_types[which.min(val_errors)]
+    if (is.null(x)) {
+      fit <- rsw(formula=model_formula, data=r_data,
+                 weight_type=best_weight_type,
+                 method=method, ...)
+    } else {
+      fit <- rsw(x=x,
+                 weight_type=best_weight_type,
+                 method=method, ...)
+    }
     return (fit)
   }
   
