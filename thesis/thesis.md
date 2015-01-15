@@ -248,7 +248,7 @@ Table 1. Basic information about dramas
 
 Figure 1. Time series plot for ratings of dramas
 
-![](media/image1.png)
+![Ratings of Dramas](../images/ratings-of-idol-dramas.png)
 
 4.2 Evaluation metric
 ---------------------
