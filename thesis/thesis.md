@@ -120,31 +120,37 @@ Keywords: time series prediction, TV ratings prediction, regression.
 
 英文摘要…………………………………………………………………………. iv
 
-第一章 Introduction…………………………………………………………….. 1
+第一章 Introduction…………………………………………………………….. 8
 
-> 1.1 Importance of TV ratings prediction
->
-> 1.2 Contribution and solution overview
+第二章 Related Work……………………………………………………….. 9
 
-第二章 Related Work……………………………………………………….. \#
+第三章 Method……………………………………………………………….. 10
 
-第三章 Method……………………………………………………………….. \#
+第四章 Experiments………………………………………………………….. 12
 
-第四章 Experiments………………………………………………………….. \#
+第五章 Conclusion…………………………………………………………….. 14
 
-第五章 Conclusion…………………………………………………………….. \#
+第六章 Future Work…………………………………………………………… 14
 
-第六章 Future Work…………………………………………………………….. \#
-
-參考文獻…………………………………………………………………….…… \#
+參考文獻…………………………………………………………………….…… 14
 
 附錄………………………………………………………………………………. \#
 
-圖目錄（待放）
-==============
+圖目錄
+======
 
-表目錄（待放）
-==============
+Figure 1. Time series plot for ratings of dramas…………………………………… 12
+
+表目錄
+======
+
+Table 1. Basic information about dramas……………….………………………… 12
+
+Table 2. List of models……………….…………………………………………….. 13
+
+Table 3. MAPE of experiment results……………….…………………………...… 14
+
+Table 4. MAE of experiement results……………….……………………………... 14
 
 第一章 Introduction
 ===================
@@ -166,6 +172,14 @@ Gradually making one-step forecasts for newer periods.
 
 第二章 Related Work
 ===================
+
+In [1], it argues that TV industry is dying because people are switching from TV to other devices such as mobile which provides content via the Internet. Even though it is true, we believe our solution can be easily adapted to the Internet context because the only assumption on which the solution is based is likely to hold for weekly dramas, regardless of the broadcasting platform.
+
+In [2, 3], eight different models and one novel logit model for predicting TV ratings are studied, but we do not consider them in our study due to different characteristic of data set in terms of type of programs. Concretely, in their data set, many TV programs are broadcast only once, which is largely different from our problem of predicting ratings for weekly dramas.
+
+In [4, 5, 6], their data sets are similar to ours in terms of type of programs, but we do not rely on any web or social info as features as they did, which makes our solution more general and easily applied to new dramas.
+
+In [7], its data set only consists of one TV program with ten weekly ratings, which is too small to be compared with ours.
 
 第三章 Method
 =============
@@ -248,7 +262,7 @@ Table 1. Basic information about dramas
 
 Figure 1. Time series plot for ratings of dramas
 
-![Ratings of Dramas](../images/ratings-of-idol-dramas.png)
+![](media/image1.png)
 
 4.2 Evaluation metric
 ---------------------
@@ -258,7 +272,7 @@ We evaluate performance via 2 commonly used metrics in literature: mean absolute
 4.3 Models
 ----------
 
-We choose 7 competitors from 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. The 4<sup>th</sup> category is our proposed solution with different growth function settings. All models are summarized in Table 2.
+We choose 7 competitors from 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. The 4<sup>th</sup> category is our proposed solution with different growth function settings. All the models are implemented in R or just using existing R packages, which are summarized in Table 2. For TWR, package rpart is used.
 
 Table 2. List of models
 
@@ -282,7 +296,7 @@ Table 2. List of models
 
 In this section, we show results of models and dramas in terms of MAPE and MAE. The results show that TWR with auto-selected growth outperforms all the other models in terms of overall MAPE and MAE among all dramas.
 
-Table 3. MAPE
+Table 3. MAPE of experiment results
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -299,7 +313,7 @@ Table 3. MAPE
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 
-Table 4. MAE
+Table 4. MAE of experiment results
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -323,3 +337,24 @@ In this thesis, we present a novel solution called TWR to the problem of TV rati
 
 第六章 Future Work
 ==================
+
+When applying TWR to our data set, experimental results show that different dramas need different growth functions to result in good prediction accuracy, so it is worth extending the search space of growth functions and choosing it with a better way.
+
+參考文獻
+========
+
+1.  Death Of TV, *http://www.businessinsider.com/category/death-of-tv*
+
+2.  Danaher, P.J., Dagger, T.S., Smith, M.S.: Forecasting television ratings. International Journal of Forecasting 27(4), 1215–1240 (2011)
+
+3.  Danaher, P., Dagger, T.: Using a nested logit model to forecast television ratings. International Journal of Forecasting 28(3), 607–622 (2012)
+
+4.  Cheng, Y.H., Wu, C.M., Ku, T., Chen, G.D.: A predicting model of TV audience rating based on the Facebook. International Conference on Social Computing (SocialCom), pp. 1034–1037. IEEE (2013)
+
+5.  Hsieh, W.T., Chou, S.C.T., Cheng, Y.H., Wu, C.M.: Predicting TV audience rating with social media. Proceedings of the IJCNLP 2013 Workshop on Natural Language Processing for Social Media (SocialNLP), pp. 1–5. Asian Federation of Natural Language Processing, Nagoya (2013)
+
+6.  Yu-Yang Huang, Yu-An Yen, Ting-Wei Ku, Shou-De Lin, Wen-Tai Hsieh, Tsun Ku: A Weight-Sharing Gaussian Process Model Using Web-Based Information for Audience Rating Prediction. TAAI, LNAI 8916, pp. 198-208 (2014)
+
+7.  Yilei, Zheng: Audience Rating Prediction of New TV Programs Based on GM (1.1) Envelopment Model. IEEE International Conference on Grey Systems and Intelligent Services (2009)
+
+
