@@ -270,7 +270,9 @@ In fact, In TV industry, programs of higher ratings are more valuable. Thus, we 
 
 4.3 Models
 
-We choose 7 competitors from 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. The 4<sup>th</sup> category is our proposed solution with different growth function settings. All the models are implemented in R or just using existing R packages, which are summarized in Table 2. For TWR, package rpart is used.
+We compare our solution with 7 competitors which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different growth functions.
+
+We choose language R as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For example, as we said in the previous section, we choose regression tree as the base model for our solution, so package rpart, a well-known R implementation of decision tree that supports regression, is used. For models that don’t have published packages, they are implemented by ourselves.
 
 Table 2. List of models
 
@@ -283,7 +285,7 @@ Table 2. List of models
 | 5   | 2        | Exponential Smoothing State Space (ETS) | Package: ets {forecast}              |
 | 6   | 2        | ARIMA                                   | Package: auto.arima {forecast}       |
 | 7   | 3        | Neural network auto-regression (NNA)    | Package: nnetar {forecast}           |
-| 8   | 4        | TWR with no growth (TWR.N)              | It equals to no TWR tuning.          |
+| 8   | 4        | TWR with no growth (TWR.N)              | It equals to no TWR at all.          |
 | 9   | 4        | TWR with linear growth (TWR.L)          | g(x) = x                             |
 | 10  | 4        | TWR with exponential growth (TWR.E)     | g(x) = e<sup>x</sup>                 |
 | 11  | 4        | TWR with e<sup>3x</sup> growth (TWR.E3) | g(x) = e<sup>3x</sup>                |
@@ -291,7 +293,15 @@ Table 2. List of models
 
 4.4 Results
 
-In this section, we show results of models and dramas in terms of MAPE and MAE. The results show that TWR with auto-selected growth outperforms all the other models in terms of overall MAPE and MAE among all dramas.
+In this section, we show how well the models predict ratings in terms of MAPE and MAE.
+
+Surprisingly, the most naïve and simplest model, LP, already performs pretty well. Among all competitors, it has the lowest overall MAPE of 0.1218, which sets a very challenging baseline. On the other hand, another naïve baseline, PA, perform pretty bad. It has much larger MAPE and MAE than all the other models. From results of two baselines, we can infer that value of next ratings has much to do with recent ratings, while has little or nothing to do with older ratings. This observation is very similar to the idea of Simple Exponential Smoothing: forecast is the weighted average of past observations, and the weights decay exponentially as observations get older.
+
+As for the models of the 2<sup>nd</sup> category, SES has the best overall performance in this category. Among all competitors, it has the 2<sup>nd</sup> lowest overall MAPE of 0.1222 and the lowest overall MAE of 0.2893. Because SES is suitable for data with no trend or seasonal pattern, this result is as expected because from Figure 1 we already know that all dramas have no seasonal pattern, while only 2 out of 8 have trend pattern.
+
+As for NNA, the only model of the 3<sup>rd</sup> category, its performance is neither very good nor very bad. However, it is worth noting that it has the lowest MAPE and MAE for D7, probably the most difficult drama to be predicted well due to its widest range of ratings.
+
+Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE and MAE among all dramas, which gives us more confidence that our idea is valid.
 
 Table 3. MAPE of experiment results
 
