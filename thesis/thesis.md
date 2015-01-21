@@ -138,20 +138,20 @@ Keywords: time series prediction, TV ratings prediction, regression.
 圖目錄
 ======
 
-Figure 1. Time series plot for ratings of dramas…………………………………… 12
+Figure 1. Time series plot for ratings of dramas…………………………………… 13
 
-Figure 2. Box plots for ratings of dramas…………………………………………... 12
+Figure 2. Box plots for ratings of dramas…………………………………………... 13
 
 表目錄
 ======
 
 Table 1. Basic information about dramas……………….………………………….. 12
 
-Table 2. List of models……………….…………………………………………….. 13
+Table 2. List of models……………….…………………………………………….. 15
 
-Table 3. MAPE of TV ratings predictions…..……….…………………………...… 14
+Table 3. MAPE of TV ratings predictions…..……….…………………………...… 16
 
-Table 4. MAE of TV ratings predictions…..……….…………………………..…... 14
+Table 4. MAE of TV ratings predictions…..……….…………………………..…... 16
 
 第一章 Introduction
 ===================
