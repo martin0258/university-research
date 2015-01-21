@@ -51,7 +51,6 @@ Jan 2015
 
 *
 *
-
 國立臺灣大學（碩）博士學位論文
 
 口試委員會審定書
@@ -79,6 +78,7 @@ TV Ratings Prediction with Time Weighting Based Regression
 （是否須簽章依各院系所規定）
 
 誌謝
+====
 
 Many thanks to the following people that help me complete this research:
 
@@ -95,18 +95,21 @@ Many thanks to the following people that help me complete this research:
 I also want to thank my parents who gave me the freedom to complete research at my own pace. Finally, thank God for giving my opportunity to meet all the people above.
 
 中文摘要
+========
 
-此論文主要貢獻為提出一個簡單且實驗結果準確的電視收視率預測方法，名為 Time Weighting Regression (TWR)。基於「越新的資料對預測接續的收視率越重要」的假設，TWR 唯一做的事情為：賦予資料符合假設的權重，然後用賦予權重後的資料建立回歸模型。以真實世界的電視收視率資料進行實驗，其預測準度贏過許多有名的時間序列模型（例如 Exponential Smoothing 和 ARIMA）。
+此論文主要貢獻為提出一個簡單且實驗結果準確的電視收視率預測方法，名為 Time Weighting Regression (TWR)。基於「越新的資料對預測接下來的收視率越重要」的假設，TWR 主要做的事情為：根據資料的時間賦予權重，再以帶有權重的資料建立回歸模型，最後用建立的模型預測接下來的收視率。我們以真實世界的電視收視率資料進行實驗，結果顯示它的預測比知名的時間序列模型（例如 Exponential Smoothing 和 ARIMA）和回歸模型（類神經網路）還準。
 
 關鍵詞：時間序列預測、電視收視率預測、回歸。
 
 英文摘要
+========
 
-In this thesis, the primary contribution is proposing a simple and experimentally accurate solution, named Time Weighting Regression (TWR), to the problem of TV ratings prediction. Based on the assumption that newer data are more important for predicting ratings, the only thing that TWR does is: weighing data based on time, and then building regression model with the weighted data. In the experiments on a real-world TV ratings data set, it outperforms many well-known time series models (e.g., Exponential Smoothing and ARIMA).
+In this thesis, the primary contribution is proposing a simple and experimentally accurate solution, named Time Weighting Regression (TWR), to the problem of TV ratings prediction. Based on the assumption that newer data are more important for predicting upcoming ratings, what TWR does is: weighing data based on time, and then using weighted data to build regression model for predicting upcoming ratings. In the experiments on a real-world TV ratings data set, it outperforms well-known time series models (e.g., Exponential Smoothing and ARIMA) and regression model (neural network).
 
 Keywords: time series prediction, TV ratings prediction, regression.
 
 目錄
+====
 
 口試委員會審定書……………………………………………………………… i
 
@@ -133,36 +136,60 @@ Keywords: time series prediction, TV ratings prediction, regression.
 附錄………………………………………………………………………………. \#
 
 圖目錄
+======
 
 Figure 1. Time series plot for ratings of dramas…………………………………… 12
 
+Figure 2. Box plots for ratings of dramas…………………………………………... 12
+
 表目錄
+======
 
 Table 1. Basic information about dramas……………….………………………….. 12
 
 Table 2. List of models……………….…………………………………………….. 13
 
-Table 3. MAPE of experiment results……………….…………………………...… 14
+Table 3. MAPE of TV ratings predictions…..……….…………………………...… 14
 
-Table 4. MAE of experiment results……………….…………………………..…... 14
+Table 4. MAE of TV ratings predictions…..……….…………………………..…... 14
 
 第一章 Introduction
+===================
 
-1.1 Importance of TV ratings prediction
+1.1 Contribution
+----------------
 
-In TV industry, because the price of advertising time is mainly defined as ratings, predicting ratings accurately is very important to broadcasters and advertisers. That is, accurate predictions help them make money, while inaccurate predictions cause money loss. However, as more and more channels, programs and platforms (e.g., Internet, tablet, and mobile phone) appear, the complexity of broadcasting and viewing environment increases, which makes accurately predicting TV ratings increasingly complex. In sum, solving this complex ratings prediction problem help TV industry make money and reduce loss.
+The main contributions of the thesis are summarized as below:
 
-1.2 Solution overview
+-   A solution named Time Weighting Regression (TWR) is proposed to improve the results of TV ratings prediction.
 
-TV ratings prediction can be viewed as time series forecasting. The solutions to time series forecasting can be divided into two main categories: time series models (e.g., ARIMA) and regression models (e.g., neural network). Our proposed solution (TWR) falls into the latter. Details of TWR are described in section 3.
+-   Experiments on a real-world TV ratings data set are conducted to show that our solution really gives us better results.
 
-1.3 Problem settings
+1.2 Background and importance of TV ratings prediction
+------------------------------------------------------
 
-Gradually making one-step forecasts for newer periods.
+Why is TV ratings prediction important? In TV industry, because the price of advertising time is mainly defined as ratings, predicting ratings accurately is very important to broadcasters and advertisers. Accurate predictions help them make money, while inaccurate predictions cause money loss.
+
+How complex is TV ratings prediction? First, it is complex because TV ratings is an aggregated measurement of a lot of people’s watching choices. Second, generally speaking, TV is competing with every other platform/service that tries to grab eyeballs. As more such platforms/services appear and grow, the competition becomes more complex, which probably makes accurately predicting TV ratings increasingly difficult. For example, we may need to consider whether people prefer watching YouTube videos via mobile to watching programs via TV.
+
+Although TV ratings prediction seems important and complex, it may become less and less important and complex. In [1], it argues that TV industry is dying because people are switching from TV to other devices such as mobile which provides content via the Internet. If TV is no longer a popular media, it is not important to predict TV ratings accurately.
+
+1.3 Overview of the problem and solution
+----------------------------------------
+
+In this thesis, our goal is to accurately predict the ratings of an upcoming episode. Because ratings of a TV program is a time series, the problem can be viewed as one-step time series forecasting. When it comes to solutions to time series forecasting, commonly used models can be divided into two main categories: time series models (e.g., ARIMA) and regression models (e.g., regression tree), where our proposed solution (TWR) falls into the latter. In addition to model, features used by model also largely affects prediction, but we choose to only use historical ratings of a TV program as features to avoid losing focus because our focus is models not features, and TWR can be used with any features, which is superior to some time series models (e.g., Exponential Smoothing) since they are not able to incorporate external features except historical time series values.
+
+How does TWR work? Briefly speaking, it weighs training instances for regression analysis based on time, and then uses weighted instances to build regression model for predicting upcoming ratings. Thus, what makes TWR special is the idea of weighs training instances for regression analysis based on time before training. For building a base model with weighted instances, it can use any regression model, but among the models we have tried, regression tree gives us the best results. Details of how TWR works are described in section 3.
+
+Why TWR works? That is, why the step of weighing training instances based on time in TWR gives us better predictions? We think it is because the following assumption holds: newer training instances are more important for predicting upcoming ratings. This assumption comes from our own experience on watching TV programs (especially dramas because our data set is ratings of dramas). When watching dramas, I don’t watch them due to past episodes long time ago, but I do watch them due to their recent episodes. For example, I may watch a drama because I hear that it is hot recently.
+
+1.4 Motivation of solution
+--------------------------
+
+TWR is motivated by a well-known time series model called Simple Exponential Smoothing (SES). SES’s idea is that forecast is the weighted average of all past observations, and the weights decay exponentially as observations get older. The key difference is that TWR weighs training instances by time, while SES weighs training features (past observations) by time. Another difference is that TWR automatically tries different types of growth functions and decides the best one, not only the exponential function, which is the case of SES.
 
 第二章 Related Work
-
-In [1], it argues that TV industry is dying because people are switching from TV to other devices such as mobile which provides content via the Internet. Even though it is true, we believe our solution can be easily adapted to the Internet context because the only assumption on which the solution is based is likely to hold for weekly dramas, regardless of the broadcasting platform.
+===================
 
 In [2, 3], eight different models and one novel logit model for predicting TV ratings are studied, but we do not consider them in our study due to different characteristic of data set in terms of type of programs. Concretely, in their data set, many TV programs are broadcast only once, which is largely different from our problem of predicting ratings for weekly dramas.
 
@@ -171,6 +198,7 @@ In [4, 5, 6], their data sets are similar to ours in terms of type of programs, 
 In [7], its data set only consists of one TV program with ten weekly ratings, which is too small to be compared with ours.
 
 第三章 Method
+=============
 
 In this section, we describe our proposed solution (TWR) in detail. As every learning algorithm, TWR consists of two stages: fitting and predicting, i.e., building model with training data and making prediction on testing data with trained model.
 
@@ -181,6 +209,7 @@ For predicting, it makes a one-step forecast by providing trained model with inp
 In the following sub-sections, we provide pseudo-code and describe each stage and step in detail.
 
 3.1 Pseudo-code of Time Weighting Algorithm
+-------------------------------------------
 
 Input data: A time series **x** with length **t**
 
@@ -205,10 +234,12 @@ Predicting process: Input data **w<sub>4</sub>** = (x<sub>4</sub>, x<sub>5</sub>
 Output: one-step forecast **x<sub>6</sub>’** = **Learner.Predict**(**m**, **w<sub>4</sub>**)
 
 3.2 Fitting step 1: Windowing transformation
+--------------------------------------------
 
 Windowing transformation is needed to apply regression models to time series forecasting. This process has 1 parameter: window size. It can be decided either by user or model-selection techniques such as AIC (Akaike information criterion) or cross-validation.
 
 3.3 Fitting step 2: Weighing training instances
+-----------------------------------------------
 
 Mathematically speaking, because there are infinite “strictly increasing” functions, there are infinite growth functions that match our assumption, i.e., the newer, the more important. Take illustration in 3.1 for example, importance order is w<sub>1</sub> \< w<sub>2</sub> \< w<sub>3</sub>. So, what is the best growth function and how to find it from infinite possibilities? We define the best growth function as the one that minimizes the testing error of one-step forecast, and we start from studying some well-known types of growth functions: **linear** (x = { 2, 4, 6,… }), **exponential** (e<sup>x</sup> ), and **cubic exponential** (e<sup>3x</sup>) growth. Because testing data/error is unknown during training, we choose the growth function that minimizes the validation error of one-step forecast.
 
@@ -217,18 +248,22 @@ Although other growth functions should be considered, there is a technique that 
 Resampling implements weighting step at data level instead of learning algorithm level, which has the benefit of combing with any base algorithm. However, it introduces randomness, so reduce the variance by applying bagging, i.e., we repeat the iteration of this step and step of building a base model over many runs (20 times in our experiment).
 
 3.4 Fitting step 3: Building a base model
+-----------------------------------------
 
 We choose regression tree (regression version of decision tree) as our base model because it is sensitive to different data distribution.
 
 3.5 Predicting stage of TWR
+---------------------------
 
 Taking average of predictions from multiple base models.
 
 第四章 Experiments
+==================
 
 In this section, we describe data set, evaluation metric, models, and results.
 
 4.1 Data set
+------------
 
 Our data set contains 8 weekly Idol dramas broadcasting in Taiwan. They are so-called Nielsen ratings, which is the most frequently used ratings in TV industry. Normally, the ratings are only available for Nielsen’s customers. Fortunately, some of them are announced in news and organized into Wikipedia, which is the case of all the dramas in our data set.
 
@@ -246,7 +281,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-Table 1. Basic information about dramas
+Table . Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -256,25 +291,31 @@ Table 1. Basic information about dramas
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-Figure 1. Time series plot for ratings of dramas
+Figure . Time series plot for ratings of dramas
 
-Figure 2. Box plots for ratings of dramas
+![](media/image1.png)
+
+Figure . Box plots for ratings of dramas
+
+![](media/image2.png)
 
 In our experiments, each drama is treated independently, i.e., ratings from other dramas are not considered and only historical ratings of the drama itself are used to predict its future ratings. For each drama, only 1 rating is predicted at one time, a.k.a., one-step forecast. Ratings are predicted from the 6<sup>th</sup> episode. For each rating to be predicted, say k<sup>th</sup> episode, ratings ranging from the 1<sup>st</sup> episode to the k-2<sup>th</sup> episode are for training, and the k-1<sup>th</sup> episode for performing validation to choose the parameter growth function. For example, for testing the 10<sup>th</sup> episode, the first 8 episodes are for training, and the 9<sup>th</sup> episode for validation. We call this experiment scenario “sequential one-step forecast”. In this scenario, a model is trained for testing each episode.
 
 4.2 Evaluation metric
+---------------------
 
 We evaluate performance via 2 commonly used metrics in literature: mean absolute percentage error (MAPE) and mean absolute error (MAE). It is worth noting that by MAPE alone the result probably is somewhat misleading for programs of small ratings. For small ratings, it is easier to get bad MAPE, but probably by MAE the predictions are only a bit different from the actual.
 
 In fact, In TV industry, programs of higher ratings are more valuable. Thus, we should focus on how accurate the predictions are in terms of the programs of higher ratings.
 
 4.3 Models
+----------
 
 We compare our solution with 7 competitors which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different growth functions.
 
 We choose language R as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For example, as we said in the previous section, we choose regression tree as the base model for our solution, so package rpart, a well-known R implementation of decision tree that supports regression, is used. For models that don’t have published packages, they are implemented by ourselves.
 
-Table 2. List of models
+Table . List of models
 
 | \#  | Category | Name                                    | Summary                              |
 |-----|----------|-----------------------------------------|--------------------------------------|
@@ -292,6 +333,7 @@ Table 2. List of models
 | 12  | 4        | TWR with auto-selected growth (TWR.A)   | Pick growth with min validation err. |
 
 4.4 Results
+-----------
 
 In this section, we show how well the models predict ratings in terms of MAPE and MAE.
 
@@ -303,7 +345,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE and MAE among all dramas, which gives us more confidence that our idea is valid.
 
-Table 3. MAPE of experiment results
+Table . MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -320,7 +362,7 @@ Table 3. MAPE of experiment results
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 
-Table 4. MAE of experiment results
+Table . MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -338,16 +380,19 @@ Table 4. MAE of experiment results
 | TWR.A  | 0.0497 | 0.4429 | 0.1712 | 0.1756 | 0.2440 | 0.1173 | 0.6094 | 0.3248 | **0.2883** |
 
 第五章 Conclusion
+=================
 
 In this thesis, we present a novel solution called TWR to the problem of TV ratings prediction problem. Experiment results show that the auto-selected growth version of TWR outperforms all the other models in terms of overall MAPE and MAE among all dramas.
 
 第六章 Future Work
+==================
 
 When applying TWR to our data set, experimental results show that different dramas need different growth functions to result in good prediction accuracy, so it is worth extending the search space of growth functions and choosing it with a better way.
 
 參考文獻
+========
 
-1.  Death Of TV, *http://www.businessinsider.com/category/death-of-tv*
+1.  Death Of TV, [*http://www.businessinsider.com/category/death-of-tv*](http://www.businessinsider.com/category/death-of-tv)
 
 2.  Danaher, P.J., Dagger, T.S., Smith, M.S.: Forecasting television ratings. International Journal of Forecasting 27(4), 1215–1240 (2011)
 
