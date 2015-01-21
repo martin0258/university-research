@@ -54,6 +54,7 @@ Jan 2015
 國立臺灣大學（碩）博士學位論文
 
 口試委員會審定書
+================
 
 以基於時間比重之回歸預測電視收視率
 TV Ratings Prediction with Time Weighting Based Regression
@@ -108,50 +109,26 @@ In this thesis, the primary contribution is proposing a simple and experimentall
 
 Keywords: time series prediction, TV ratings prediction, regression.
 
-目錄
-====
+<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"></span></span>目錄
+==================================================================================================
 
-口試委員會審定書……………………………………………………………… i
+<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"></span></span>圖目錄
+====================================================================================================
 
-誌謝………………………………………………………………………………. ii
+[*Figure 1. Time series plot for ratings of dramas* 13](#_Toc409634079)
 
-中文摘要………………………………………………………………………… i ii
+[*Figure 2. Box plots for ratings of dramas* 13](#_Toc409634080)
 
-英文摘要…………………………………………………………………………. iv
+<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"></span></span>表目錄
+====================================================================================================
 
-第一章 Introduction…………………………………………………………….. 8
+[*Table 1. Basic information about dramas* 12](#_Toc409634137)
 
-第二章 Related Work……………………………………………………….. 9
+[*Table 2. List of models* 15](#_Toc409634138)
 
-第三章 Method……………………………………………………………….. 10
+[*Table 3. MAPE of TV ratings predictions* 16](#_Toc409634139)
 
-第四章 Experiments………………………………………………………….. 12
-
-第五章 Conclusion…………………………………………………………….. 14
-
-第六章 Future Work…………………………………………………………… 14
-
-參考文獻…………………………………………………………………….…… 14
-
-附錄………………………………………………………………………………. \#
-
-圖目錄
-======
-
-Figure 1. Time series plot for ratings of dramas…………………………………… 13
-
-Figure 2. Box plots for ratings of dramas…………………………………………... 13
-
-表目錄
-======
-
-Table 1. Basic information about dramas……………….………………………….. 12
-
-Table 2. List of models……………….…………………………………………….. 15
-
-Table 3. MAPE of TV ratings predictions…..……….…………………………...… 16
-
-Table 4. MAE of TV ratings predictions…..……….…………………………..…... 16
+[*Table 4. MAE of TV ratings predictions* 16](#_Toc409634140)
 
 第一章 Introduction
 ===================
@@ -281,7 +258,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-Table . Basic information about dramas
+<span id="_Toc409634137" class="anchor"></span>Table . Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -291,11 +268,11 @@ Table . Basic information about dramas
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-Figure . Time series plot for ratings of dramas
+<span id="_Toc409634079" class="anchor"></span>Figure . Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-Figure . Box plots for ratings of dramas
+<span id="_Toc409634080" class="anchor"></span>Figure . Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -315,7 +292,7 @@ We compare our solution with 7 competitors which can be categorized into 3 categ
 
 We choose language R as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For example, as we said in the previous section, we choose regression tree as the base model for our solution, so package rpart, a well-known R implementation of decision tree that supports regression, is used. For models that don’t have published packages, they are implemented by ourselves.
 
-Table . List of models
+<span id="_Toc409634138" class="anchor"></span>Table . List of models
 
 | \#  | Category | Name                                    | Summary                              |
 |-----|----------|-----------------------------------------|--------------------------------------|
@@ -345,7 +322,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE and MAE among all dramas, which gives us more confidence that our idea is valid.
 
-Table . MAPE of TV ratings predictions
+<span id="_Toc409634139" class="anchor"></span>Table . MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -362,7 +339,7 @@ Table . MAPE of TV ratings predictions
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 
-Table . MAE of TV ratings predictions
+<span id="_Toc409634140" class="anchor"></span>Table . MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -406,4 +383,7 @@ When applying TWR to our data set, experimental results show that different dram
 
 7.  Yilei, Zheng: Audience Rating Prediction of New TV Programs Based on GM (1.1) Envelopment Model. IEEE International Conference on Grey Systems and Intelligent Services (2009)
 
+附錄
+====
 
+N/A
