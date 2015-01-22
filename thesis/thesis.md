@@ -109,18 +109,18 @@ In this thesis, the primary contribution is proposing a simple and experimentall
 
 Keywords: time series prediction, TV ratings prediction, regression.
 
-<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"></span></span>目錄
-==================================================================================================
+<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"><span id="_Toc409722018" class="anchor"></span></span></span>目錄
+=================================================================================================================================================
 
-<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"></span></span>圖目錄
-====================================================================================================
+<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"><span id="_Toc409722019" class="anchor"></span></span></span>圖目錄
+===================================================================================================================================================
 
 [*Figure 1. Time series plot for ratings of dramas* 13](#_Toc409634079)
 
 [*Figure 2. Box plots for ratings of dramas* 13](#_Toc409634080)
 
-<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"></span></span>表目錄
-====================================================================================================
+<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"><span id="_Toc409722020" class="anchor"></span></span></span>表目錄
+===================================================================================================================================================
 
 [*Table 1. Basic information about dramas* 12](#_Toc409634137)
 
@@ -138,25 +138,25 @@ Keywords: time series prediction, TV ratings prediction, regression.
 
 The main contributions of the thesis are summarized as below:
 
--   A solution named Time Weighting Regression (TWR) is proposed to improve the results of TV ratings prediction.
+-   We propose a solution named Time Weighting Regression (TWR) to improve the results of TV ratings prediction.
 
--   Experiments on a real-world TV ratings data set are conducted to show that our solution really gives us better results.
+-   We conduct experiments on a real-world TV ratings data set to compare TWR with well-known time series models (e.g., Exponential Smoothing and ARIMA) and regression model (neural network). Experiment results show that TWR gives us the best overall results (lowest overall errors in terms of MAPE and MAE).
 
-1.2 Background and importance of TV ratings prediction
-------------------------------------------------------
+1.2 Background and importance of problem
+----------------------------------------
 
-Why is TV ratings prediction important? In TV industry, because the price of advertising time is mainly defined as ratings, predicting ratings accurately is very important to broadcasters and advertisers. Accurate predictions help them make money, while inaccurate predictions cause money loss.
+Why is TV ratings prediction important? In TV industry, because the price of advertising time is mainly based on ratings, predicting ratings accurately is very important to broadcasters and advertisers. Accurate predictions help them make money, while inaccurate predictions cause money loss.
 
 How complex is TV ratings prediction? First, it is complex because TV ratings is an aggregated measurement of a lot of people’s watching choices. Second, generally speaking, TV is competing with every other platform/service that tries to grab eyeballs. As more such platforms/services appear and grow, the competition becomes more complex, which probably makes accurately predicting TV ratings increasingly difficult. For example, we may need to consider whether people prefer watching YouTube videos via mobile to watching programs via TV.
 
-Although TV ratings prediction seems important and complex, it may become less and less important and complex. In [1], it argues that TV industry is dying because people are switching from TV to other devices such as mobile which provides content via the Internet. If TV is no longer a popular media, it is not important to predict TV ratings accurately.
+Although TV ratings prediction seems important and complex, it may become less and less important and complex. In [1], it argues that TV industry is dying because people are switching from TV to other devices such as mobile which enables people to watch content from the Internet. If TV is no longer a popular media, it is not important to predict TV ratings accurately.
 
-1.3 Overview of the problem and solution
-----------------------------------------
+1.3 Overview of problem and solution
+------------------------------------
 
-In this thesis, our goal is to accurately predict the ratings of an upcoming episode. Because ratings of a TV program is a time series, the problem can be viewed as one-step time series forecasting. When it comes to solutions to time series forecasting, commonly used models can be divided into two main categories: time series models (e.g., ARIMA) and regression models (e.g., regression tree), where our proposed solution (TWR) falls into the latter. In addition to model, features used by model also largely affects prediction, but we choose to only use historical ratings of a TV program as features to avoid losing focus because our focus is models not features, and TWR can be used with any features, which is superior to some time series models (e.g., Exponential Smoothing) since they are not able to incorporate external features except historical time series values.
+In this thesis, our goal is to accurately predict the ratings of an upcoming episode. Because ratings of a TV program is a time series, the problem can be viewed as one-step time series forecasting. When it comes to solutions to time series forecasting, commonly used models can be divided into two main categories: time series models (e.g., ARIMA) and regression models (e.g., neural network), where our proposed solution (TWR) falls into the latter. In addition to model, features used by model also largely affect prediction, but we choose to only use historical ratings of a TV program as features to avoid losing focus. However, TWR can incorporate any external features to improve predictions whenever appropriate, which is superior to some time series models (e.g., Exponential Smoothing) that can only take features of historical time series values.
 
-How does TWR work? Briefly speaking, it weighs training instances for regression analysis based on time, and then uses weighted instances to build regression model for predicting upcoming ratings. Thus, what makes TWR special is the idea of weighs training instances for regression analysis based on time before training. For building a base model with weighted instances, it can use any regression model, but among the models we have tried, regression tree gives us the best results. Details of how TWR works are described in section 3.
+How does TWR work? Briefly speaking, it weighs newer training instances more (the most important part), and then uses weighted instances to build a base model for predicting upcoming ratings. Recall that in machine learning, an instance is a record in data set, consisting of features and labels. In our problem, features are historical ratings, and label is current ratings. Details of how TWR works are described in section 3.
 
 Why TWR works? That is, why the step of weighing training instances based on time in TWR gives us better predictions? We think it is because the following assumption holds: newer training instances are more important for predicting upcoming ratings. This assumption comes from our own experience on watching TV programs (especially dramas because our data set is ratings of dramas). When watching dramas, I don’t watch them due to past episodes long time ago, but I do watch them due to their recent episodes. For example, I may watch a drama because I hear that it is hot recently.
 
@@ -177,16 +177,16 @@ In [7], its data set only consists of one TV program with ten weekly ratings, wh
 第三章 Method
 =============
 
-In this section, we describe our proposed solution (TWR) in detail. As every learning algorithm, TWR consists of two stages: fitting and predicting, i.e., building model with training data and making prediction on testing data with trained model.
+In this section, we describe our proposed solution (TWR) in detail. We first provide a summary of TWR. Then in the following sub-sections, pseudo-code and details of steps in TWR are provided.
 
-For fitting, it consists of three main steps: (1) transforming a time series into a set of training instances with a window size (this step is known as windowing transformation), (2) weighing training instances with a time-based growth function, and finally (3) building a model for one-step forecasting with a base learning algorithm (like decision tree) and weighted training instances.
+As every learning algorithm, TWR consists of two stages: fitting and predicting, i.e., building model with training data and making prediction on testing data with trained model, respectively.
 
-For predicting, it makes a one-step forecast by providing trained model with input features from training data. Multi-step forecasts are computed recursively, e.g., taking one-step forecast as input to make the second-step forecast.
+At stage of fitting, it consists of three main steps: (1) transforming a time series into a set of instances suitable for regression analysis with a window size (this step is known as windowing transformation [8]), (2) weighing training instances with a growth function, and finally (3) building a model for one-step forecasting with a base learning algorithm and weighted training instances.
 
-In the following sub-sections, we provide pseudo-code and describe each stage and step in detail.
+At stage of predicting, it makes a one-step forecast by providing trained model with input features from training data. Although multi-step forecasts are out of our problem scope, they can be computed recursively by treating forecasts as input features, e.g., taking one-step forecast as input to make the second-step forecast.
 
-3.1 Pseudo-code of Time Weighting Algorithm
--------------------------------------------
+3.1 Pseudo-code of TWR
+----------------------
 
 Input data: A time series **x** with length **t**
 
@@ -213,26 +213,30 @@ Output: one-step forecast **x<sub>6</sub>’** = **Learner.Predict**(**m**, **w<
 3.2 Fitting step 1: Windowing transformation
 --------------------------------------------
 
-Windowing transformation is needed to apply regression models to time series forecasting. This process has 1 parameter: window size. It can be decided either by user or model-selection techniques such as AIC (Akaike information criterion) or cross-validation.
+Before applying a regression model to time series forecasting, first we need to transform a time series into a set of instances with a window size. Therefore, in this step, we need to decide window size. It can be decided either subjectively by people, or by model-selection techniques such as AIC (Akaike information criterion) and cross-validation. In our experiments, we decide to use AIC for fairness because other time series models also use it or similar model-selection technique, e.g., ARIMA uses AICc, a variation of AIC, to decide how many past observations to include as features.
 
 3.3 Fitting step 2: Weighing training instances
 -----------------------------------------------
 
-Mathematically speaking, because there are infinite “strictly increasing” functions, there are infinite growth functions that match our assumption, i.e., the newer, the more important. Take illustration in 3.1 for example, importance order is w<sub>1</sub> \< w<sub>2</sub> \< w<sub>3</sub>. So, what is the best growth function and how to find it from infinite possibilities? We define the best growth function as the one that minimizes the testing error of one-step forecast, and we start from studying some well-known types of growth functions: **linear** (x = { 2, 4, 6,… }), **exponential** (e<sup>x</sup> ), and **cubic exponential** (e<sup>3x</sup>) growth. Because testing data/error is unknown during training, we choose the growth function that minimizes the validation error of one-step forecast.
+This step is to weigh training instances (output of previous step) with a growth function that match our assumption (newer instances are more important). Mathematically speaking, because there are infinite strictly increasing functions, there are infinite valid choices. Take illustration in 3.1 for example, the importance order is w<sub>1</sub> \< w<sub>2</sub> \< w<sub>3</sub>. So, what is the best growth function and how to find it from infinite possibilities? First, we define the best growth function as the one that minimizes the testing error of one-step forecast. Second, we consider three growth functions: **linear** (x = { 1, 2, 3,… }), **exponential** (e<sup>x</sup> ), and **cubic exponential** (e<sup>3x</sup>) growth. Because testing error is unknown during training, we choose the growth function that minimizes the validation error of one-step forecast. Although other growth functions should be considered, the three functions above are enough for our data set.
 
-Although other growth functions should be considered, there is a technique that can narrow down the search space: resampling. By resampling training instances with given weights as probability (sampling with replacement), many weights assignments actually produce the same resampling result in most cases. For example, 10x and 11x produces probability p<sup>10</sup> = { 0.09%, 0.9%, 9%, 90% }, p11 = { 0.06%, 0.75%, 8.26%, 90.9% }, respectively. For a time series of length 20 (average of our data set for experiment), the maximum number of training instances is 19. By resampling them with p10 and p11, it is very likely that their results have little or no difference (sample the last instance with over 90%).
+After a growth function is decided, there are two ways to weighs training instances: resampling instances with weights or infuse weights into the fitting process of base learning algorithm. Not all learning algorithms support instance weights during fitting, but resampling always work because it is an approach at data level. Since we want TWR to be general, we choose resampling.
 
-Resampling implements weighting step at data level instead of learning algorithm level, which has the benefit of combing with any base algorithm. However, it introduces randomness, so reduce the variance by applying bagging, i.e., we repeat the iteration of this step and step of building a base model over many runs (20 times in our experiment).
+There is a small side benefit by using resampling: it narrows down the search space of growth functions. By resampling training instances with given weights as probability (sampling with replacement, i.e., bootstrap sampling), many weights assignments actually produce the same resampling result. For example, e<sup>3x</sup> and e<sup>4x</sup> produces probability p3 = { 0.01%, 0.23%, 4.73%, 95.02% }, p4 = { 6.03e-2%, 0.03%, 1.79%, 98.16% }, respectively. By resampling 4 instances with p3 and p4, it is very likely that their results are the same because over 95% the 4<sup>th</sup> instance is sampled.
+
+Although resampling has its advantages, it also has a downside: it introduces randomness and variance into results. To avoid this side effect, bagging [9] is used, i.e., we resample many data sets from the same probability, build a base model from each data set, and then aggregate all the base models to make prediction. In our experiment, 20 models are built and they are averaged when making predictions.
 
 3.4 Fitting step 3: Building a base model
 -----------------------------------------
 
-We choose regression tree (regression version of decision tree) as our base model because it is sensitive to different data distribution.
+This step is just calling a base learning algorithm to make it fit on the weighted data. Therefore, we need to make decisions of base learning algorithm and its parameters. Although any regression model can be used, regression tree should be our best choice because it is sensitive to different data [10], i.e., a small change in the data set may cause a large change in its built model. This characteristic is important for the weighted data to make impact on the built model and prediction.
+
+As for parameters of regression tree, our principle is to use default settings as much as possible, and allow tree to grow as depth as possible, and prune it based on validation error. Detail settings are provided in section 4.
 
 3.5 Predicting stage of TWR
 ---------------------------
 
-Taking average of predictions from multiple base models.
+Because TWR uses bagging with sampling probability as growth function, many base models are averaged to make prediction. Note that because TWR is trained on weighted instances, it is very likely to produce bad predictions for most past observations, especially for those that are not sampled. TWR is designed to make one-step forecast only, but it can also compute multi-step forecasts by recursively treating forecasts as input features. However, if using for multi-step forecasts, the number of episodes for validation also need to increase.
 
 第四章 Experiments
 ==================
@@ -258,7 +262,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Toc409634137" class="anchor"></span>Table . Basic information about dramas
+<span id="_Toc409634137" class="anchor"></span>Table 1. Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -268,11 +272,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Toc409634079" class="anchor"></span>Figure . Time series plot for ratings of dramas
+<span id="_Toc409634079" class="anchor"></span>Figure 1. Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-<span id="_Toc409634080" class="anchor"></span>Figure . Box plots for ratings of dramas
+<span id="_Toc409634080" class="anchor"></span>Figure 2. Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -292,7 +296,7 @@ We compare our solution with 7 competitors which can be categorized into 3 categ
 
 We choose language R as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For example, as we said in the previous section, we choose regression tree as the base model for our solution, so package rpart, a well-known R implementation of decision tree that supports regression, is used. For models that don’t have published packages, they are implemented by ourselves.
 
-<span id="_Toc409634138" class="anchor"></span>Table . List of models
+<span id="_Toc409634138" class="anchor"></span>Table 2. List of models
 
 | \#  | Category | Name                                    | Summary                              |
 |-----|----------|-----------------------------------------|--------------------------------------|
@@ -322,7 +326,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE and MAE among all dramas, which gives us more confidence that our idea is valid.
 
-<span id="_Toc409634139" class="anchor"></span>Table . MAPE of TV ratings predictions
+<span id="_Toc409634139" class="anchor"></span>Table 3. MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -339,7 +343,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 
-<span id="_Toc409634140" class="anchor"></span>Table . MAE of TV ratings predictions
+<span id="_Toc409634140" class="anchor"></span>Table 4. MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -364,7 +368,9 @@ In this thesis, we present a novel solution called TWR to the problem of TV rati
 第六章 Future Work
 ==================
 
-When applying TWR to our data set, experimental results show that different dramas need different growth functions to result in good prediction accuracy, so it is worth extending the search space of growth functions and choosing it with a better way.
+When applying TWR to our data set, experiment results show that different dramas need different growth functions to result in good prediction accuracy, so it is worth extending the search space of growth functions and choosing it with a better way, e.g., model it with objective function and solve it as an optimization problem.
+
+Besides, our data set for experiments is small and specific. We consider collecting more data and testing TWR with more types of TV programs such as daily dramas.
 
 參考文獻
 ========
@@ -382,6 +388,12 @@ When applying TWR to our data set, experimental results show that different dram
 6.  Yu-Yang Huang, Yu-An Yen, Ting-Wei Ku, Shou-De Lin, Wen-Tai Hsieh, Tsun Ku: A Weight-Sharing Gaussian Process Model Using Web-Based Information for Audience Rating Prediction. TAAI, LNAI 8916, pp. 198-208 (2014)
 
 7.  Yilei, Zheng: Audience Rating Prediction of New TV Programs Based on GM (1.1) Envelopment Model. IEEE International Conference on Grey Systems and Intelligent Services (2009)
+
+8.  C.Meek, D.M. Chichering, D. Heckerman: Autoregressive Tree Models for Time-Series Analysis. Proceedings of the Second International SIAM Conference on Data Mining, pp. 229-244 (2002)
+
+9.  Leo Breiman: Bagging predictors. Machine Learning Volume 24, Issue 2, pp, 123-140 (1996)
+
+10. H Drucker: Improving regressors using boosting techniques. ICML (1997)
 
 附錄
 ====
