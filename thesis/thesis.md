@@ -168,9 +168,11 @@ TWR is motivated by a well-known time series model called Simple Exponential Smo
 第二章 Related Work
 ===================
 
-In [2, 3], eight different models and one novel logit model for predicting TV ratings are studied, but we do not consider them in our study due to different characteristic of data set in terms of type of programs. Concretely, in their data set, many TV programs are broadcast only once, which is largely different from our problem of predicting ratings for weekly dramas.
+In [2, 3], TV ratings forecasting abilities of eight different models and one novel logit model are studied using 5,000 programs and 48,000 ratings, but we do not consider them in our study due to different characteristic of data set in terms of TV programs. Concretely, in their data set, many TV programs do not run continuously every day or week, and many programs (e.g., movies) are broadcast only once, so they have no time series information. On the other hand, in our data set, all TV programs are weekly dramas that have time series information.
 
-In [4, 5, 6], their data sets are similar to ours in terms of type of programs, but we do not rely on any web or social info as features as they did, which makes our solution more general and easily applied to new dramas.
+In [4, 5], their data sets are also weekly dramas, and their focus is to include the count of posts and comments from Facebook fan page of dramas as external features to improve predictions. Because in our study the focus is model not feature, we choose to only use historical ratings (i.e., no external features) to make our solution more general and thus easily applied to new dramas.
+
+In [6], the data set is daily dramas, and the focus is proposing a novel weight-sharing Gaussian Process model and external features, such as opinion of comments from Facebook fan page and popularity of dramas’ search terms from Google Trends. Because the difference of data set (ours is weekly not daily) and our research focus is model not external feature, we do not compare our results with this study.
 
 In [7], its data set only consists of one TV program with ten weekly ratings, which is too small to be compared with ours.
 
@@ -236,7 +238,7 @@ As for parameters of regression tree, our principle is to use default settings a
 3.5 Predicting stage of TWR
 ---------------------------
 
-Because TWR uses bagging with sampling probability as growth function, many base models are averaged to make prediction. Note that because TWR is trained on weighted instances, it is very likely to produce bad predictions for most past observations, especially for those that are not sampled. TWR is designed to make one-step forecast only, but it can also compute multi-step forecasts by recursively treating forecasts as input features. However, if using for multi-step forecasts, the number of episodes for validation also need to increase.
+Because TWR uses bagging with sampling probability as growth function, many base models are averaged to make prediction. Note that because TWR is trained on weighted instances, it is very likely to produce bad predictions for most past observations, especially for those that are not sampled. TWR is designed to make one-step forecast only, but it can also compute multi-step forecasts by recursively treating forecasts as input features. However, if using for multi-step forecasts, the number of episodes for validation also needs to increase.
 
 第四章 Experiments
 ==================
@@ -262,7 +264,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Toc409634137" class="anchor"></span>Table 1. Basic information about dramas
+<span id="_Toc409634137" class="anchor"></span>Table . Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -272,11 +274,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Toc409634079" class="anchor"></span>Figure 1. Time series plot for ratings of dramas
+<span id="_Toc409634079" class="anchor"></span>Figure . Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-<span id="_Toc409634080" class="anchor"></span>Figure 2. Box plots for ratings of dramas
+<span id="_Toc409634080" class="anchor"></span>Figure . Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -296,7 +298,7 @@ We compare our solution with 7 competitors which can be categorized into 3 categ
 
 We choose language R as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For example, as we said in the previous section, we choose regression tree as the base model for our solution, so package rpart, a well-known R implementation of decision tree that supports regression, is used. For models that don’t have published packages, they are implemented by ourselves.
 
-<span id="_Toc409634138" class="anchor"></span>Table 2. List of models
+<span id="_Toc409634138" class="anchor"></span>Table . List of models
 
 | \#  | Category | Name                                    | Summary                              |
 |-----|----------|-----------------------------------------|--------------------------------------|
@@ -326,7 +328,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE and MAE among all dramas, which gives us more confidence that our idea is valid.
 
-<span id="_Toc409634139" class="anchor"></span>Table 3. MAPE of TV ratings predictions
+<span id="_Toc409634139" class="anchor"></span>Table . MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -343,7 +345,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 
-<span id="_Toc409634140" class="anchor"></span>Table 4. MAE of TV ratings predictions
+<span id="_Toc409634140" class="anchor"></span>Table . MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
