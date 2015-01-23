@@ -233,7 +233,7 @@ Although resampling has its advantages, it also has a downside: it introduces ra
 
 This step is just calling a base learning algorithm to make it fit on the weighted data. Therefore, we need to make decisions of base learning algorithm and its parameters. Although any regression model can be used, regression tree should be our best choice because it is sensitive to different data [10], i.e., a small change in the data set may cause a large change in its built model. This characteristic is important for the weighted data to make impact on the built model and prediction.
 
-As for parameters of regression tree, our principle is to use default settings as much as possible, and allow tree to grow as depth as possible, and prune it based on validation error. Detail settings are provided in section 4.
+As for parameters of regression tree, our principle is to use default settings as much as possible, and allow tree to grow as depth as possible, and <span id="OLE_LINK22" class="anchor"><span id="OLE_LINK23" class="anchor"></span></span>prune it based on validation error. Detail settings are provided in section 4.
 
 3.5 Predicting stage of TWR
 ---------------------------
@@ -250,7 +250,7 @@ In this section, we describe data set, evaluation metric, models, and results.
 
 Our data set contains 8 weekly Idol dramas broadcasting in Taiwan. They are so-called Nielsen ratings, which is the most frequently used ratings in TV industry. Normally, the ratings are only available for Nielsen’s customers. Fortunately, some of them are announced in news and organized into Wikipedia, which is the case of all the dramas in our data set.
 
-Simple data analysis results are presented via Table 1 and Figure 1 – 2. From the time series plot (Figure 1), the following things are observed:
+Simple data analysis results are presented via Table 1, Figure 1 and Figure 2. From the time series plot (Figure 1), the following things are observed:
 
 -   D2 and D7 have clear increasing trend, while all the others don’t have any obvious increasing or decreasing trend.
 
@@ -264,7 +264,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Toc409634137" class="anchor"></span>Table . Basic information about dramas
+<span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"><span id="_Ref409774398" class="anchor"></span></span></span>Table 1. Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -274,11 +274,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Toc409634079" class="anchor"></span>Figure . Time series plot for ratings of dramas
+<span id="_Toc409634079" class="anchor"><span id="_Ref409774502" class="anchor"></span></span>Figure 1. Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-<span id="_Toc409634080" class="anchor"></span>Figure . Box plots for ratings of dramas
+<span id="_Toc409634080" class="anchor"><span id="_Ref409774506" class="anchor"></span></span>Figure 2. Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -296,43 +296,109 @@ In fact, In TV industry, programs of higher ratings are more valuable. Thus, we 
 
 We compare our solution with 7 competitors which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different growth functions.
 
-We choose language R as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For example, as we said in the previous section, we choose regression tree as the base model for our solution, so package rpart, a well-known R implementation of decision tree that supports regression, is used. For models that don’t have published packages, they are implemented by ourselves.
+In the rest of this section, we briefly describe how each competitor works, the parameter settings of models in our experiments, and how we implement them.
 
-<span id="_Toc409634138" class="anchor"></span>Table . List of models
+Each competitor works as below (recall that **x** is the time series of ratings):
 
-| \#  | Category | Name                                    | Summary                              |
-|-----|----------|-----------------------------------------|--------------------------------------|
-| 1   | 1        | Last period (LP)                        | Guess value of the last period       |
-| 2   | 1        | Past average (PA)                       | Guess average of all the previous    |
-| 3   | 2        | Simple Exponential Smoothing (SES)      | Package: HoltWinters {stats}         |
-| 4   | 2        | Double Exponential Smoothing (DES)      | Package: HoltWinters {stats}         |
-| 5   | 2        | Exponential Smoothing State Space (ETS) | Package: ets {forecast}              |
-| 6   | 2        | ARIMA                                   | Package: auto.arima {forecast}       |
-| 7   | 3        | Neural network auto-regression (NNA)    | Package: nnetar {forecast}           |
-| 8   | 4        | TWR with no growth (TWR.N)              | It equals to no TWR at all.          |
-| 9   | 4        | TWR with linear growth (TWR.L)          | g(x) = x                             |
-| 10  | 4        | TWR with exponential growth (TWR.E)     | g(x) = e<sup>x</sup>                 |
-| 11  | 4        | TWR with e<sup>3x</sup> growth (TWR.E3) | g(x) = e<sup>3x</sup>                |
-| 12  | 4        | TWR with auto-selected growth (TWR.A)   | Pick growth with min validation err. |
+1.  **Previous period**: the forecast is exactly the ratings of previous episode.
+
+    -   Equation: x<sub>t+1</sub> = x<sub>t</sub>
+
+2.  **Past average**: the forecast is the average <span id="OLE_LINK4" class="anchor"></span>ratings of all previous episodes.
+
+    -   Equation: <span id="OLE_LINK5" class="anchor"><span id="OLE_LINK6" class="anchor"></span></span>x<sub>t+1</sub> = (x<sub>t</sub> + x<sub>t-1</sub> + <sub>…</sub>+ x<sub>1</sub>) / (t-1)
+
+3.  **Simple Exponential Smoothing (SES) [11]**: the forecast is the weighted average of all previous ratings, and the weights decay exponentially as ratings get older.
+
+    -   Equation: x<sub>t+1</sub> = <span id="OLE_LINK7" class="anchor"></span>αx<sub>t</sub> + <span id="OLE_LINK9" class="anchor"><span id="OLE_LINK10" class="anchor"></span></span>α(1 - α)x<sub>t-1</sub> + α(1 - α)<sup>2</sup>x<sub>t-2\\ …</sub>, where α is the smoothing parameter.
+
+    -   Settings: α is determined by minimizing the squared prediction error.
+
+    -   Implementation: package HoltWinters {stats} in R [12]
+
+4.  **Double Exponential Smoothing (DES) [13]**: the forecast extends SES with estimated trend (b<sup>t</sup>).
+
+    -   Equation: x<sub>t+1</sub> = a<sub>t</sub> + b<sub>t,
+        </sub><span id="OLE_LINK11" class="anchor"><span id="OLE_LINK12" class="anchor"><span id="OLE_LINK13" class="anchor"></span></span></span>a<sub>t</sub> = αx<sub>t</sub> + α(1 - α)(a<sub>t-1</sub> + b<sub>t-1</sub>),
+        b<sub>t</sub> = β(a<sub>t\\ -</sub> a<sub>t-1</sub>) + (1 - β)b<sub>t-1</sub>, where α, β are the smoothing parameters.
+
+    -   Settings: α, β are determined by minimizing the squared prediction error.
+
+    -   Implementation: package HoltWinters {stats} in R [12]
+
+5.  **Exponential Smoothing State Space (ETS) [14]**: automatically select the best exponential smoothing model according to information criterion from 30 state space models. State is defined by the unobserved error, trend, and seasonal components. The possibilities for each component are: Error = {A, M}, Trend = {N, A, A<sub>d</sub>, M, M<sub>d</sub>} and Seasonal = {N, A, M}, where A is additive, M is multiplicative, N means no trend or seasonal component, and subscript d means damped trend.
+
+    -   Equation: too tedious to put equations of all 30 state models here. Please refer to [14].
+
+    -   Settings: <span id="OLE_LINK18" class="anchor"><span id="OLE_LINK19" class="anchor"></span></span>all parameters are determined via information criterion AICc.
+
+    -   Implementation: package ets {forecast} in R [14]
+
+6.  **ARIMA [15]**: Autoregressive Integrated Moving Average model, where integrated is the reverse of differencing of time series.
+
+    -   Equation: x<sub>t+1</sub> = a<sub>1</sub>x<sub>t</sub> + <sub>…</sub>+ a<sub>p</sub>x<sub>t-1-p</sub> + e<sub>t+1</sub> + b<sub>1</sub>e<sub>t</sub> + <sub>…</sub>+ b<sub>p</sub>e<sub>t-1-q</sub>, where a, b are the fitted coefficients for autoregressive and moving average models, e is the unobserved error term, and p, q are the orders of autoregressive and moving models. If having differencing, the differenced time series (d times) is fitted.
+
+    -   Settings: all parameters (p, q, d) are determined via information criterion AICc.
+
+    -   <span id="OLE_LINK20" class="anchor"><span id="OLE_LINK21" class="anchor"></span></span>Implementation: package auto.arima {forecast} in R [16]
+
+7.  **Neural network auto-regression (NNA)**: feed-forward neural networks with a single hidden layer and past observations as inputs. 20 models are built and then averaged when making prediction.
+
+    -   Equation: neural network equations with past observations as inputs.
+
+    -   Settings: the optimal number of past observations is determined according to the AIC for a linear autoregressive model with order p model.
+
+    -   Implementation: package nnetar {forecast} in R [16]
+
+As for TWR, we have already described how it works in previous sections. Now we present its parameter settings and implementation as below:
+
+-   Settings: base model is regression tree with the following settings:
+
+    -   minsplit = 2
+
+    -   maxdepth = 30
+
+    -   After tree is grown, it is pruned based on validation error.
+
+-   Implementation: package rpart {rpart} in R [17]
+
+We choose language R [12] as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For models that don’t have published packages, they are implemented by ourselves.
+
+<span id="_Toc409634138" class="anchor"><span id="_Ref409774726" class="anchor"></span></span>Table 2. List of models
+
+| \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
+|-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| 1   | 1        | Previous period (PP)                                                                                                            | <span id="OLE_LINK2" class="anchor"><span id="OLE_LINK3" class="anchor"></span></span>Guess value of the last period |
+| 2   | 1        | Past average (PA)                                                                                                               | Guess average of all the previous                                                                                    |
+| 3   | 2        | Simple Exponential Smoothing (SES)                                                                                              | Exponential weighted average                                                                                         |
+| 4   | 2        | Double Exponential Smoothing (DES)                                                                                              | SES with trend                                                                                                       |
+| 5   | 2        | <span id="OLE_LINK14" class="anchor"><span id="OLE_LINK15" class="anchor"></span></span>Exponential Smoothing State Space (ETS) | Best one from 30 state space models                                                                                  |
+| 6   | 2        | ARIMA                                                                                                                           | A model of autocorrelations                                                                                          |
+| 7   | 3        | <span id="OLE_LINK16" class="anchor"><span id="OLE_LINK17" class="anchor"></span></span>Neural network auto-regression (NNA)    | Feed-forward with a hidden layer                                                                                     |
+| 8   | 4        | TWR with no growth (TWR.N)                                                                                                      | It equals to no TWR at all.                                                                                          |
+| 9   | 4        | TWR with linear growth (TWR.L)                                                                                                  | g(x) = x                                                                                                             |
+| 10  | 4        | TWR with exponential growth (TWR.E)                                                                                             | g(x) = e<sup>x</sup>                                                                                                 |
+| 11  | 4        | TWR with e<sup>3x</sup> growth (TWR.E3)                                                                                         | g(x) = e<sup>3x</sup>                                                                                                |
+| 12  | 4        | TWR with auto-selected growth (TWR.A)                                                                                           | Pick growth with min validation error.                                                                               |
 
 4.4 Results
 -----------
 
-In this section, we show how well the models predict ratings in terms of MAPE and MAE.
+In this section, we show how well our solution and other competitive models predict ratings in terms of MAPE and MAE, via Table 3 and Table 4, respectively. Then provide our interpretation of the results.
 
-Surprisingly, the most naïve and simplest model, LP, already performs pretty well. Among all competitors, it has the lowest overall MAPE of 0.1218, which sets a very challenging baseline. On the other hand, another naïve baseline, PA, perform pretty bad. It has much larger MAPE and MAE than all the other models. From results of two baselines, we can infer that value of next ratings has much to do with recent ratings, while has little or nothing to do with older ratings. This observation is very similar to the idea of Simple Exponential Smoothing: forecast is the weighted average of past observations, and the weights decay exponentially as observations get older.
+Surprisingly, the most naïve and simplest model, PP, already performs pretty well. Among all competitors, it has the lowest overall MAPE of 12.18%, which sets a very challenging baseline. On the other hand, another naïve baseline, PA, perform pretty bad. It has much larger MAPE and MAE than all the other models. From results of two baselines, we can infer that ratings of last period is a good predictor, while ratings of older ratings are not, so what we need may be somewhere in between with more emphasis on recent ratings. In fact, Simple Exponential Smoothing (SES), one of our competitors from the 2<sup>nd</sup> category, is one way to capture this nature.
 
-As for the models of the 2<sup>nd</sup> category, SES has the best overall performance in this category. Among all competitors, it has the 2<sup>nd</sup> lowest overall MAPE of 0.1222 and the lowest overall MAE of 0.2893. Because SES is suitable for data with no trend or seasonal pattern, this result is as expected because from Figure 1 we already know that all dramas have no seasonal pattern, while only 2 out of 8 have trend pattern.
+As for the models of the 2<sup>nd</sup> category, SES has the best overall performance in this category. Among all competitors, it has the 2<sup>nd</sup> lowest overall MAPE of 12.22% and the lowest overall MAE of 0.2893. Because SES is suitable for data with no trend or seasonal pattern, this result is as expected because from Figure 1 we already know that all dramas have no seasonal pattern, while only 2 out of 8 have trend pattern.
 
 As for NNA, the only model of the 3<sup>rd</sup> category, its performance is neither very good nor very bad. However, it is worth noting that it has the lowest MAPE and MAE for D7, probably the most difficult drama to be predicted well due to its widest range of ratings.
 
-Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE and MAE among all dramas, which gives us more confidence that our idea is valid.
+Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid.
 
-<span id="_Toc409634139" class="anchor"></span>Table . MAPE of TV ratings predictions
+<span id="_Toc409634139" class="anchor"><span id="_Ref409774931" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
-| LP     | 0.2427 | 0.0853 | 0.0859 | 0.1395 | 0.1265 | 0.1263 | 0.1307 | 0.0898 | 0.1218     |
+| PP     | 0.2427 | 0.0853 | 0.0859 | 0.1395 | 0.1265 | 0.1263 | 0.1307 | 0.0898 | 0.1218     |
 | PA     | 0.6017 | 0.1937 | 0.0647 | 0.1072 | 0.1398 | 0.2077 | 0.4609 | 0.1375 | 0.2248     |
 | SES    | 0.3247 | 0.0821 | 0.0633 | 0.1194 | 0.1235 | 0.1257 | 0.1307 | 0.0890 | 0.1222     |
 | DES    | 0.3016 | 0.0841 | 0.0688 | 0.1859 | 0.1515 | 0.1266 | 0.1215 | 0.1322 | 0.1377     |
@@ -345,11 +411,11 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 
-<span id="_Toc409634140" class="anchor"></span>Table . MAE of TV ratings predictions
+<span id="_Toc409634140" class="anchor"><span id="_Ref409774935" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
-| LP     | 0.0518 | 0.4775 | 0.1965 | 0.2250 | 0.2569 | 0.1286 | 0.5950 | 0.3272 | 0.3044     |
+| PP     | 0.0518 | 0.4775 | 0.1965 | 0.2250 | 0.2569 | 0.1286 | 0.5950 | 0.3272 | 0.3044     |
 | PA     | 0.0882 | 1.1048 | 0.1439 | 0.1681 | 0.2764 | 0.1900 | 2.3341 | 0.4646 | 0.6589     |
 | SES    | 0.0598 | 0.4604 | 0.1410 | 0.1909 | 0.2520 | 0.1280 | 0.5950 | 0.3202 | 0.2893     |
 | DES    | 0.0627 | 0.4644 | 0.1589 | 0.2880 | 0.3158 | 0.1370 | 0.5679 | 0.4904 | 0.3331     |
@@ -365,7 +431,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 第五章 Conclusion
 =================
 
-In this thesis, we present a novel solution called TWR to the problem of TV ratings prediction problem. Experiment results show that the auto-selected growth version of TWR outperforms all the other models in terms of overall MAPE and MAE among all dramas.
+In this thesis, we present a novel solution called TWR to the problem of TV ratings prediction problem. Experiment results show that the auto-selected growth version of TWR outperforms all the other models in terms of overall MAPE and MAE among all dramas. Thus, we conclude that weighing instances with growth function before fitting regression model largely helps improve predictions of next ratings for weekly dramas, and with high probability our only assumption on which TWR is based is valid.
 
 第六章 Future Work
 ==================
@@ -396,6 +462,20 @@ Besides, our data set for experiments is small and specific. We consider collect
 9.  Leo Breiman: Bagging predictors. Machine Learning Volume 24, Issue 2, pp, 123-140 (1996)
 
 10. H Drucker: Improving regressors using boosting techniques. ICML (1997)
+
+11. Brown, Robert G.: Exponential Smoothing for Predicting Demand. Cambridge, Massachusetts: Arthur D. Little Inc. p. 15 (1956)
+
+12. R Core Team. R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. R version 3.1.2. (2014)
+
+13. C. C. Holt: Forecasting trends and seasonals by exponentially weighted moving averages, ONR Research Memorandum, Carnegie Institute of Technology 52 (1957)
+
+14. Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D: Forecasting with exponential smoothing: the state space approach, Springer-Verlag (2008)
+
+15. Box, George, Jenkins, Gwilym: Time series analysis: Forecasting and control. San Francisco: Holden-Day (1970)
+
+16. Hyndman, R.J. and Khandakar, Y.: Automatic time series forecasting: The forecast package for R. Journal of Statistical Software, 26(3). R package version 5.7. (2008)
+
+17. Terry Therneau, Beth Atkinson and Brian Ripley: rpart: Recursive Partitioning and Regression Trees. R package version 4.1-8. (2014)
 
 附錄
 ====
