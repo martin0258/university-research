@@ -13,4 +13,11 @@ The installation command is as below:
 install.packages("PATH_TO_SOURCE_FOLDER/Defaults_1.1-1.tar.gz", repos = NULL, type="source")
 ```
 
+# Presentation
+Write in markdown, and generate PDF with pandoc.
+
+```
+pandoc oral.md -o oral.pdf -t beamer -V theme:Madrid -V toc:true
+```
+
 [Defaults]: http://cran.r-project.org/web/packages/Defaults/index.html
