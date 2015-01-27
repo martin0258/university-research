@@ -101,11 +101,11 @@ $endif$
   \let\partname\relax
   \frame{\partpage}
 }
-\AtBeginSection{
-  \let\insertsectionnumber\relax
-  \let\sectionname\relax
-  \frame{\sectionpage}
-}
+%\AtBeginSection{
+  %\let\insertsectionnumber\relax
+  %\let\sectionname\relax
+  %\frame{\sectionpage}
+%}
 \AtBeginSubsection{
   \let\insertsubsectionnumber\relax
   \let\subsectionname\relax
@@ -147,6 +147,14 @@ $endif$
 $if(institute)$
 \institute{$institute$}
 $endif$
+
+\AtBeginSection[]{
+  \begin{frame}
+  \frametitle{Agenda}
+  \setcounter{tocdepth}{2} % This does not work for unknown reason
+  \tableofcontents[currentsection]
+  \end{frame}
+}
 
 \begin{document}
 $if(title)$

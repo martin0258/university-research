@@ -13,7 +13,7 @@ if "%1" == "help" (
 
 
 if "%1" == "oral" (
-	pandoc oral.md -o oral.pdf -t beamer -V theme:Madrid -V toc:true --template=mydefault.beamer
+	pandoc oral.md -o oral.pdf -t beamer -V theme:Madrid --template=mydefault.beamer
 	if errorlevel 1 exit /b 1
 	echo.
 	echo.Build finished.
