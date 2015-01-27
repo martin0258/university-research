@@ -9,9 +9,42 @@ date: Feb 2, 2015
 institute: National Taiwan University \newline Department of Computer Science & Information Engineering \newline Machine Discovery & Social Network Mining Lab
 ...
 
-# Thesis Goal: Solve the Problem of TV Ratings Prediction
+# Thesis Goal: Improve TV Ratings Prediction with X (TWR!)
 
-## Thesis Goal: Solve the Problem of TV Ratings Prediction
+## Why TV ratings prediction?
+
+It is an important, complex, real-world problem with money.
+
+- It's important because TV ratings decide **price of advertising time**.
+- It's complex because...
+    - TV ratings are **aggregate** measure of **many people's choices**.
+    - TV is **competing** with many platforms/services (mobile/YouTube).
+
+## What TV ratings to predict/improve?
+
+- **Data set**: 8 weekly dramas, 170 ratings
+- Predict next ratings of each drama
+- Start making predictions from the 6th episode
+
+\note{
+Why only 8 dramas?
+Why weekly dramas?
+Why start from the 6th episode?
+}
+
+## Time Series Plot of Data Set
+![Time series plot of ratings](../images/ratings-of-idol-dramas.png)
+
+## Box Plot of Data Set
+![Box plot of ratings](../images/Box plots of Idol Dramas Ratings.png)
+
+## Basic Info of Data Set
+
+## Observations of Data Set
+
+# Related Work
+
+## TV Ratings Prediction
 
 \note{
 We can add speaker note here.
@@ -25,14 +58,7 @@ We can add speaker note here.
 
 ## How does TWR work?
 
-# Related Work
-
-## TV Ratings Prediction
-
 # Experiments
-
-## Data Set
-![Box plots of ratings](../images/Box plots of Idol Dramas Ratings.png)
 
 # Conclusion
 
@@ -54,3 +80,7 @@ if (weight_type == 'equal') {
 }
 ```
 
+---
+\begin{center}
+  \Large{Thank you! Any question?}
+\end{center}
