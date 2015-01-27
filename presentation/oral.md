@@ -27,7 +27,7 @@ One day, III asked Prof.Shou-De to help improve TV ratings prediction for SET.
 So, Prof.Shou-De assigned III's request to me.
 }
 
-## MY NOVELTY (Contribution): TWR
+## MY NOVELTY (Contribution) is TWR
 - **Key idea**: Fit regression model with time-weighted instances.
 - **Example**: Given x is a time series of ratings,
     - (x1, x2, x3, x4=y4), t=4, weight=4
