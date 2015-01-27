@@ -144,6 +144,9 @@ $if(author)$
 \author{$for(author)$$author$$sep$ \and $endfor$}
 $endif$
 \date{$date$}
+$if(institute)$
+\institute{$institute$}
+$endif$
 
 \begin{document}
 $if(title)$
@@ -156,6 +159,7 @@ $include-before$
 $endfor$
 $if(toc)$
 \begin{frame}
+\frametitle{Agenda}
 \tableofcontents[hideallsubsections]
 \end{frame}
 

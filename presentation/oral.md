@@ -1,6 +1,13 @@
-% TV Ratings Prediction with Time Weighting Based Regression
-% Ting-Wei Ku (Martin)
-% Feb 2, 2015
+---
+author:
+- Student — Ting-Wei Ku (Martin) \newline\newline
+- Advisor — Prof. Shou-De Lin \newline\newline
+- Committee — Prof. Pu-Jen Cheng, Ph.D. Cheng-Te Li
+title: TV Ratings Prediction with \newline Time Weighting Based Regression
+subtitle: Master Thesis Defense
+date: Feb 2, 2015
+institute: National Taiwan University \newline Department of Computer Science & Information Engineering \newline Machine Discovery & Social Network Mining Lab
+...
 
 # Thesis Goal: Solve the Problem of TV Ratings Prediction
 
