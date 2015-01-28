@@ -28,7 +28,10 @@ So, Prof.Shou-De assigned III's request to me.
 }
 
 ## MY NOVELTY (Contribution) is TWR
-- **Key idea**: Fit regression model with time-weighted instances.
+\begin{alertblock}{Key idea of TWR}
+  Fit regression model with time-weighted instances.
+\end{alertblock}
+
 - **Example**: Given x is a time series of ratings,
     - (x1, x2, x3, x4=y4), t=4, weight=4
     - (x2, x3, x4, x5=y5), t=5, weight=5
@@ -37,15 +40,50 @@ So, Prof.Shou-De assigned III's request to me.
     - (x6, x7, x8, x9=y9), t=9, testing instance
 - **Assumption**: Intuitively, newer instances are more important.
 
-We'll show how **effective** this **simple** solution is.
+We'll show how **effective** this **simple** solution is via experiments later.
 
 # Related Work
 
-## TV Ratings Prediction
+## TV Ratings Prediction (1/3)
+- Forecasting television ratings \newline (IJF 2011, Danaher et al.)
+    - Compared 8 regression models such as Bayesian model averaging
+    - Suggested features such as seasonal factors and program genre
+    - Found that modeling ratings directly is better than as total_audience×channel_share
+    - Relatively large data: 5,000 programs and 48,000 ratings from 2004-2008
+- Using a nested logit model to forecast television ratings \newline (IJF 2012, Danaher et al.)
+    - Applied nested logit model to TV ratings prediction
+    - Same relatively large data
+
+Both works are not compared to ours due to key difference in data.
 
 \note{
-We can add speaker note here.
+We do not consider them in our study due to different characteristic of data set in terms of TV programs.
+Concretely, in their data set, many TV programs do not run continuously every day or week, 
+and many programs (e.g., movies) are broadcast only once, so they have no time series information. 
+On the other hand, in our data set, all TV programs are weekly dramas that have time series information.
 }
+
+## TV Ratings Prediction (2/3)
+- Predicting TV audience rating with social media \newline (SocialNLP 2013, Hsieh et al.) \newline
+  A predicting model of TV audience rating based on the Facebook \newline (SocialCom 2013, Cheng et al.)
+    - Introduced Facebook features such as # of likes on the fan page
+    - Fit data with neural network
+    - 4 weekly dramas (78 ratings) broadcast in TW
+
+\begin{block}{Key difference between they and us}
+  We only use historical ratings as features, i.e., no external features at all.
+\end{block}
+
+## TV Ratings Prediction (3/3)
+- A weight-sharing gaussian process model using web-based information for audience rating prediction \newline (TAAI 2014, Huang et al.)
+    - Proposed a novel GP model
+    - Introduced Google Trends features (search-term frequency)
+    - 4 daily dramas (336 ratings) broadcast in TW
+
+\begin{block}{Key difference between they and us}
+  We only use historical ratings as features, i.e., no external features at all. \newline
+  Besides, we only focus on weekly dramas broadcast in TW.
+\end{block}
 
 # Solution: Time Weighting Based Regression (TWR)
 
@@ -107,7 +145,7 @@ if (weight_type == 'equal') {
 }
 ```
 
----
+----
 \begin{center}
-  \Large{Thank you! Any question?}
+  \Huge{Thank you!}
 \end{center}
