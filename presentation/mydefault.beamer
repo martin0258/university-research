@@ -106,11 +106,11 @@ $endif$
   %\let\sectionname\relax
   %\frame{\sectionpage}
 %}
-\AtBeginSubsection{
-  \let\insertsubsectionnumber\relax
-  \let\subsectionname\relax
-  \frame{\subsectionpage}
-}
+%\AtBeginSubsection{
+  %\let\insertsubsectionnumber\relax
+  %\let\subsectionname\relax
+  %\frame{\subsectionpage}
+%}
 
 $if(strikeout)$
 \usepackage[normalem]{ulem}
@@ -148,11 +148,18 @@ $if(institute)$
 \institute{$institute$}
 $endif$
 
+% Reduce spacing in table of contents
+% Reference: http://tex.stackexchange.com/a/51458
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\beamer@sectionintoc}{\vskip1.5em}{\vskip0.5em}{}{}
+\makeatother
+
 \AtBeginSection[]{
   \begin{frame}
   \frametitle{Agenda}
-  \setcounter{tocdepth}{2} % This does not work for unknown reason
-  \tableofcontents[currentsection]
+  \setcounter{tocdepth}{2}
+  \tableofcontents[currentsection,hideothersubsections]
   \end{frame}
 }
 

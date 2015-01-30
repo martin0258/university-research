@@ -1,6 +1,6 @@
 ---
 author:
-- Student — Ting-Wei Ku (Martin) \newline\newline
+- Ting-Wei Ku (Martin) \newline\newline
 - Advisor — Prof. Shou-De Lin \newline\newline
 - Committee — Prof. Pu-Jen Cheng, Ph.D. Cheng-Te Li
 title: TV Ratings Prediction with \newline Time Weighting Based Regression (TWR)
@@ -11,7 +11,7 @@ institute: National Taiwan University \newline Department of Computer Science & 
 
 # Thesis Goal: Improve TV Ratings Prediction with NOVELTY
 
-## Why TV ratings prediction?
+### Why TV ratings prediction?
 It is an important, complex, and real-world problem with money.
 
 - It's important because TV ratings decide **price of advertising time**.
@@ -27,24 +27,11 @@ One day, III asked Prof.Shou-De to help improve TV ratings prediction for SET.
 So, Prof.Shou-De assigned III's request to me.
 }
 
-## NOVELTY (Contribution) is TWR
-\begin{alertblock}{Key idea of TWR}
-  Fit regression model with time-weighted instances.
-\end{alertblock}
-
-- **Example**: Given x (x1,...,xN) is a time series of ratings,
-    - (x1, x2, x3, x4=y4), t=4, weight=4
-    - (x2, x3, x4, x5=y5), t=5, weight=5
-    - (x3, x4, x5, x6=y6), t=6, weight=6
-    - ...more weighted training instances
-    - (x6, x7, x8, x9=y9), t=9, testing instance
-- **Assumption**: Intuitively, newer instances are more important.
-
-We'll show how **effective** this **simple** solution is via experiments later.
-
 # Related Work
 
-## TV Ratings Prediction (1/3)
+## 5 Works of TV Ratings Prediction
+
+### TV Ratings Prediction (1/3)
 - Forecasting television ratings \newline (IJF 2011, Danaher et al.)
     - Compared 8 regression models such as Bayesian model averaging
     - Suggested features such as seasonal factors and program genre
@@ -63,31 +50,47 @@ and many programs (e.g., movies) are broadcast only once, so they have no time s
 On the other hand, in our data set, all TV programs are weekly dramas that have time series information.
 }
 
-## TV Ratings Prediction (2/3)
+### TV Ratings Prediction (2/3)
 - Predicting TV audience rating with social media \newline (SocialNLP 2013, Hsieh et al.) \newline
   A predicting model of TV audience rating based on the Facebook \newline (SocialCom 2013, Cheng et al.)
     - Introduced Facebook features such as # of likes on the fan page
     - Fit data with neural network
     - 4 weekly dramas (78 ratings) broadcast in TW
 
-\begin{block}{Key difference between they and us}
-  We only use historical ratings as features, i.e., no external features at all.
-\end{block}
+#### Key difference between they and us
+We only use historical ratings as features, i.e., no external features at all.
 
-## TV Ratings Prediction (3/3)
+### TV Ratings Prediction (3/3)
 - A weight-sharing gaussian process model using web-based information for audience rating prediction \newline (TAAI 2014, Huang et al.)
     - Proposed a novel GP model
     - Introduced Google Trends features (search-term frequency)
     - 4 daily dramas (336 ratings) broadcast in TW
 
-\begin{block}{Key difference between they and us}
-  We only use historical ratings as features, i.e., no external features at all. \newline
-  Besides, we only focus on weekly dramas broadcast in TW.
-\end{block}
+#### Key difference between they and us
+We only use historical ratings as features, i.e., no external features at all. \newline
+Besides, we only focus on weekly dramas broadcast in TW.
 
 # Solution: Time Weighting Based Regression (TWR)
 
+## TWR Overview
+
+### TWR Overview
+\begin{alertblock}{Key idea of TWR}
+  Fit regression model with time-weighted instances.
+\end{alertblock}
+
+- **Example**: Given x (x1,...,xN) is a time series of ratings,
+    - (x1, x2, x3, x4=y4), t=4, weight=4
+    - (x2, x3, x4, x5=y5), t=5, weight=5
+    - (x3, x4, x5, x6=y6), t=6, weight=6
+    - ...more weighted training instances
+    - (x6, x7, x8, x9=y9), t=9, testing instance
+- **Assumption**: Intuitively, newer instances are more important.
+
+We'll show how **effective** this **simple** solution is via experiments later.
+
 ## Motivation: Exponential Smoothing
+### Motivation: Exponential Smoothing
 \begin{block}{Key idea of Exponential Smoothing (ES)}
   Forecast is the weighted average of past values, \newline
   and the weights decay exponentially as values get older.
@@ -99,6 +102,7 @@ On the other hand, in our data set, all TV programs are weekly dramas that have 
 \end{alertblock}
 
 ## How does TWR work?
+### How does TWR work?
 Pseudo-code of TWR is as below...
 
 - **Input data**: a time series x with length N
@@ -116,6 +120,7 @@ Pseudo-code of TWR is as below...
 2. One-step forecast = Learner.Predict(m, testing instance)
 
 ## Deciding Parameters of TWR
+### Deciding Parameters of TWR
 - Window size
     - Decide via AIC (Akaike Information Criterion) for fair comparison
     - ARIMA pacakge decides its parameters via AICc.
@@ -130,6 +135,7 @@ Pseudo-code of TWR is as below...
     - `minsplit=2` (min # of instances on leaf for allowing split)
 
 ## Implementation of Weighting
+### Implementation of Weighting
 Q: Re-sample instances or infuse weights as cost? \newline
 A: We choose the former because...
 
@@ -139,6 +145,7 @@ A: We choose the former because...
 # Experiments
 
 ## What TV ratings to predict?
+### What TV ratings to predict?
 - **Data**: 8 real-world weekly dramas (170 ratings) broadcast in TW
     - Originally from SET but now also available at Wikipedia
 - Predict next ratings of each drama (one-step forecasting)
@@ -150,13 +157,14 @@ Why weekly dramas?
 Why start from the 6th episode?
 }
 
-## Time Series Plot of Data
+## Data
+### Time Series Plot of Data
 ![Time series plot of ratings](../images/ratings-of-idol-dramas.png)
 
-## Box Plot of Data
+### Box Plot of Data
 ![Box plot of ratings](../images/Box plots of Idol Dramas Ratings.png)
 
-## Basic Info of Data
+### Basic Info of Data
 Drama | # Episode | Start | Avg(ratings) | Std(ratings)
 ----- | --------- | ----- | ------------ | ------------
 D1 | 16 | 2013/2/28 | 0.21 | 0.08
@@ -169,12 +177,14 @@ D7 | 23 | 2010/11/5 | 3.36 | 2.75
 D8 | 23 | 2012/7/22 | 3.47 | 0.56
 
 ## Evaluation Metric
+### Evaluation Metric
 Two commonly used metrics in literature of TV ratings prediction:
 
 - MAPE = avg(|actual-predicted| / actual)
 - MAE = |actual-predicted| / actual
 
 ## Competitors (Other Models)
+### Competitors (Other Models)
 We compare our solution with 7 models:
 
 - Previous period (PP)
@@ -186,13 +196,15 @@ We compare our solution with 7 models:
 - Neural network auto-regression (NNA)
 
 ## TWR Settings
+### TWR Settings
 - TWR with no growth (TWR.N)
 - TWR with linear growth (TWR.L)
 - TWR with exponential growth (TWR.E)
 - TWR with e\textsuperscript{3x} growth (TWR.E3)
 - TWR with auto-selected growth (TWR.A)
 
-## Results (MAPE %)
+## Results
+### Results (MAPE %)
 \small{}
 
 |        | D1     | D2    | D3    | D4    | D5    | D6    | D7    | D8    | All       |
@@ -210,7 +222,7 @@ We compare our solution with 7 models:
 | TWR.E3 | 24.28  | 8.39  | 8.42  | 13.58 | 12.55 | 12.63 | 13.34 | 8.84  | 12.09     |
 | TWR.A  | 25.47  | 7.86  | 7.59  | 10.81 | 12.11 | 11.67 | 13.44 | 8.97  | **11.54** |
 
-## Results (MAE)
+### Results (MAE)
 \scriptsize{}
 
 |        | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
@@ -228,20 +240,20 @@ We compare our solution with 7 models:
 | TWR.E3 | 0.0515 | 0.4699 | 0.1928 | 0.2190 | 0.2550 | 0.1288 | 0.6055 | 0.3208 | 0.3023     |
 | TWR.A  | 0.0497 | 0.4429 | 0.1712 | 0.1756 | 0.2440 | 0.1173 | 0.6094 | 0.3248 | **0.2883** |
 
-## Discussion (Competitors)
+### Discussion (Competitors)
 - PP is a challenging baseline.
 - PA performs badly, which indicates older ratings are not important.
 - SES performs well because ratings lack of seasonal/trend pattern.
 - NNA performs normally overall, but its predictions of D7 are the best.
 
-## Discussion (TWR)
+### Discussion (TWR)
 - Results of TWR.N, TWR.L and TWR.E indicate as weighing more on the newer instances, the better results we get.
 - Results of TWR.E3 are mixed, which indicates it's important to find the best growth function.
 - Results of TWR.A improves 8% MAPE from TWR.N and outperforms all models overall, which indicates the effectiveness of our idea.
 
 # Conclusion
 
-## Contributions and Future Work
+### Contributions and Future Work
 Contributions:
 
 - Propose TWR, which is a novel, simple, effective, and extensible solution to TV ratings prediction.
