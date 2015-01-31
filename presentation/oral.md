@@ -185,7 +185,7 @@ Two commonly used metrics in literature of TV ratings prediction:
 
 ## Competitors (Other Models)
 ### Competitors (Other Models)
-We compare our solution with 7 models:
+We compare our solution with 8 models:
 
 - Previous period (PP)
 - Past average (PA)
@@ -194,9 +194,24 @@ We compare our solution with 7 models:
 - Exponential Smoothing State Space (ETS)
 - Autoregressive Integrated Moving Average (ARIMA)
 - Neural network auto-regression (NNA)
+- Support Vector Regression with external features (SVR.EF)
 
-## TWR Settings
-### TWR Settings
+\note{
+SVR's internal features include:
+- Ratings of previous three episodes
+- Ratings of the 1st episode
+
+SVR's external features include:
+- opinion of comments on Facebook fan page
+- dramas related search-term index from Google Trends
+- number of shares, posts, likes, comments on Facebook fan page
+
+Feature selection was done to find the best feature combination.
+Data from other dramas were also included.
+}
+
+## Our Models with Different Settings
+### Our Models with Different Settings
 - TWR with no growth (TWR.N)
 - TWR with linear growth (TWR.L)
 - TWR with exponential growth (TWR.E)
@@ -216,11 +231,18 @@ We compare our solution with 7 models:
 | ETS    | 40.39  | 9.12  | 6.49  | 10.67 | 12.22 | 13.50 | 13.30 | 8.94  | 13.02     |
 | ARIMA  | 34.12  | 8.34  | 7.18  | 10.72 | 13.02 | 13.01 | 13.58 | 9.58  | 12.64     |
 | NNA    | 55.36  | 9.22  | 7.65  | 12.52 | 12.46 | 13.78 | 11.71 | 10.81 | 14.78     |
+| SVR.EF | NA     | 6.34  | 6.69  | 11.72 | NA    | 11.75 | 12.14 | 11.79 | NA        |
 | TWR.N  | 56.93  | 14.75 | 6.49  | 12.82 | 13.43 | 17.61 | 36.59 | 11.51 | 19.72     |
 | TWR.L  | 44.23  | 11.30 | 6.61  | 11.88 | 12.41 | 15.43 | 27.51 | 11.12 | 16.35     |
 | TWR.E  | 25.60  | 7.65  | 7.91  | 11.93 | 11.22 | 12.69 | 15.88 | 8.52  | 11.97     |
 | TWR.E3 | 24.28  | 8.39  | 8.42  | 13.58 | 12.55 | 12.63 | 13.34 | 8.84  | 12.09     |
 | TWR.A  | 25.47  | 7.86  | 7.59  | 10.81 | 12.11 | 11.67 | 13.44 | 8.97  | **11.54** |
+
+Average MAPE of 6 dramas: SVR.EF is 10.07; TWR.A is **10.06**.
+
+\note{
+The results of SVR.ER are from Yu-An's 2014 defense slides put on mslab's wiki.
+}
 
 ### Results (MAE)
 \scriptsize{}
