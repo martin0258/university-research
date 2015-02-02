@@ -264,7 +264,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"><span id="_Ref409774398" class="anchor"></span></span></span>Table 1. Basic information about dramas
+<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table . Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -274,11 +274,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Toc409634079" class="anchor"><span id="_Ref409774502" class="anchor"></span></span>Figure 1. Time series plot for ratings of dramas
+<span id="_Ref409774502" class="anchor"><span id="_Toc409634079" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-<span id="_Toc409634080" class="anchor"><span id="_Ref409774506" class="anchor"></span></span>Figure 2. Box plots for ratings of dramas
+<span id="_Ref409774506" class="anchor"><span id="_Toc409634080" class="anchor"></span></span>Figure . Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -294,7 +294,7 @@ In fact, In TV industry, programs of higher ratings are more valuable. Thus, we 
 4.3 Models
 ----------
 
-We compare our solution with 7 competitors which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different growth functions.
+We compare our solution with 8 competitors which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different growth functions.
 
 In the rest of this section, we briefly describe how each competitor works, the parameter settings of models in our experiments, and how we implement them.
 
@@ -319,7 +319,7 @@ Each competitor works as below (recall that **x** is the time series of ratings)
 4.  **Double Exponential Smoothing (DES) [13]**: the forecast extends SES with estimated trend (b<sup>t</sup>).
 
     -   Equation: x<sub>t+1</sub> = a<sub>t</sub> + b<sub>t,
-        </sub><span id="OLE_LINK11" class="anchor"><span id="OLE_LINK12" class="anchor"><span id="OLE_LINK13" class="anchor"></span></span></span>a<sub>t</sub> = αx<sub>t</sub> + α(1 - α)(a<sub>t-1</sub> + b<sub>t-1</sub>),
+        </sub><span id="OLE_LINK13" class="anchor"><span id="OLE_LINK11" class="anchor"><span id="OLE_LINK12" class="anchor"></span></span></span>a<sub>t</sub> = αx<sub>t</sub> + α(1 - α)(a<sub>t-1</sub> + b<sub>t-1</sub>),
         b<sub>t</sub> = β(a<sub>t\\ -</sub> a<sub>t-1</sub>) + (1 - β)b<sub>t-1</sub>, where α, β are the smoothing parameters.
 
     -   Settings: α, β are determined by minimizing the squared prediction error.
@@ -350,6 +350,14 @@ Each competitor works as below (recall that **x** is the time series of ratings)
 
     -   Implementation: package nnetar {forecast} in R [16]
 
+8.  **Support Vector Regression with external features (SVR.EF)**: Standard SVR with a modification of objective function (instances are weighted by their target value).
+
+    -   Equation: \(\operatorname{}{\frac{1}{2}w^{T}w + C\sum_{i = 1}^{N}{\frac{\mathbf{1}}{\mathbf{y}_{\mathbf{i}}}\xi_{\epsilon}}}(w;x_{i},y_{i})\)
+
+    -   Settings: External features include opinion polarity (number of positive/negative posts and comments on Facebook fan page), Google Trends (search-term popularity of drama’s keywords), Facebook fan page statistics (number of posts, comments, likes, shares).
+
+    -   Implementation: LIBLINEAR
+
 As for TWR, we have already described how it works in previous sections. Now we present its parameter settings and implementation as below:
 
 -   Settings: base model is regression tree with the following settings:
@@ -364,7 +372,7 @@ As for TWR, we have already described how it works in previous sections. Now we 
 
 We choose language R [12] as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For models that don’t have published packages, they are implemented by ourselves.
 
-<span id="_Toc409634138" class="anchor"><span id="_Ref409774726" class="anchor"></span></span>Table 2. List of models
+<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table . List of models
 
 | \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
 |-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -380,6 +388,7 @@ We choose language R [12] as our implementation platform. For most models, we ju
 | 10  | 4        | TWR with exponential growth (TWR.E)                                                                                             | g(x) = e<sup>x</sup>                                                                                                 |
 | 11  | 4        | TWR with e<sup>3x</sup> growth (TWR.E3)                                                                                         | g(x) = e<sup>3x</sup>                                                                                                |
 | 12  | 4        | TWR with auto-selected growth (TWR.A)                                                                                           | Pick growth with min validation error.                                                                               |
+| 13  | 4        | TWR.A with external features (T.A.EF)                                                                                           | Include opinion polarity features.                                                                                   |
 
 4.4 Results
 -----------
@@ -392,9 +401,9 @@ As for the models of the 2<sup>nd</sup> category, SES has the best overall perfo
 
 As for NNA, the only model of the 3<sup>rd</sup> category, its performance is neither very good nor very bad. However, it is worth noting that it has the lowest MAPE and MAE for D7, probably the most difficult drama to be predicted well due to its widest range of ratings.
 
-Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid.
+Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution can be combined with external features.
 
-<span id="_Toc409634139" class="anchor"><span id="_Ref409774931" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
+<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table . MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -405,13 +414,15 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | ETS    | 0.4039 | 0.0912 | 0.0649 | 0.1067 | 0.1222 | 0.1350 | 0.1330 | 0.0894 | 0.1302     |
 | ARIMA  | 0.3412 | 0.0834 | 0.0718 | 0.1072 | 0.1302 | 0.1301 | 0.1358 | 0.0958 | 0.1264     |
 | NNA    | 0.5536 | 0.0922 | 0.0765 | 0.1252 | 0.1246 | 0.1378 | 0.1171 | 0.1081 | 0.1478     |
+| SVR.EF | NA     | 0.0634 | 0.0690 | 0.1172 | NA     | 0.1175 | 0.1214 | 0.1179 | NA         |
 | TWR.N  | 0.5693 | 0.1475 | 0.0649 | 0.1282 | 0.1343 | 0.1761 | 0.3659 | 0.1151 | 0.1972     |
 | TWR.L  | 0.4423 | 0.1130 | 0.0661 | 0.1188 | 0.1241 | 0.1543 | 0.2751 | 0.1112 | 0.1635     |
 | TWR.E  | 0.2560 | 0.0765 | 0.0791 | 0.1193 | 0.1122 | 0.1269 | 0.1588 | 0.0852 | 0.1197     |
 | TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
+| T.A.EF | 0.2547 | 0.0755 | 0.0764 | 0.1063 | 0.1211 | 0.1134 | 0.1350 | 0.0911 | **0.1147** |
 
-<span id="_Toc409634140" class="anchor"><span id="_Ref409774935" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
+<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table . MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -427,6 +438,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.E  | 0.0510 | 0.4335 | 0.1800 | 0.1915 | 0.2286 | 0.1283 | 0.6919 | 0.3035 | 0.2979     |
 | TWR.E3 | 0.0515 | 0.4699 | 0.1928 | 0.2190 | 0.2550 | 0.1288 | 0.6055 | 0.3208 | 0.3023     |
 | TWR.A  | 0.0497 | 0.4429 | 0.1712 | 0.1756 | 0.2440 | 0.1173 | 0.6094 | 0.3248 | **0.2883** |
+| T.A.EF | 0.0497 | 0.4252 | 0.1723 | 0.1733 | 0.2440 | 0.1135 | 0.6119 | 0.3292 | **0.2860** |
 
 第五章 Conclusion
 =================
