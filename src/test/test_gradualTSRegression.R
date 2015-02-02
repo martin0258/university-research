@@ -12,9 +12,9 @@ test_dataset <- ifelse(exists('test_dataset'), test_dataset, 'Idol')
 
 ## Parameters that control features 
 feature_files <- c(
-#   sprintf('data/%s_Drama_Opinion.csv', test_dataset),
-#   sprintf('data/%s_Drama_GoogleTrend.csv', test_dataset),
-#   sprintf('data/%s_Drama_FB.csv', test_dataset),
+    sprintf('data/%s_Drama_Opinion.csv', test_dataset)
+#    sprintf('data/%s_Drama_GoogleTrend.csv', test_dataset),
+#    sprintf('data/%s_Drama_FB.csv', test_dataset)
 #   sprintf('data/%s_Drama_WeekDay.csv', test_dataset)
 ) 
 
@@ -82,6 +82,13 @@ models <-
            args=list(model_type='ts',
                      predictor='rsw', weight_type='auto',
                      window_len=window_len,
+                     method='rpart', control=r_control)
+          ),
+      list(name='rsw.rpart.auto.f',
+           args=list(model_type='ts',
+                     predictor='rsw', weight_type='auto',
+                     window_len=window_len,
+                     xreg=NULL,
                      method='rpart', control=r_control)
           )
       )
@@ -162,9 +169,9 @@ if (length(dramas_indices_to_skip) > 0) {
 }
 
 # Hotfix: remove episodes that have missing values in features
-for (idx in 1:length(dramas)) {
-  dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]), ]
-}
+# for (idx in 1:length(dramas)) {
+#   dramas[[idx]] <- dramas[[idx]][complete.cases(dramas[[idx]]), ]
+# }
 }
 
 # ---------- Region: Initialize variables used in fitting and testing models
@@ -215,6 +222,12 @@ for (drama_idx in 1:num_dramas) {
     if ('xreg' %in% names(model$args)) {
       model$args$xreg <- features
       xreg <- features
+      
+      # hot fix: skip missing features
+      if (drama_idx == 5) {
+        model$args$xreg <- NULL
+        xreg <- NULL
+      }
     }
     
     result <- do.call(gradualTSRegression,

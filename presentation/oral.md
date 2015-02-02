@@ -202,7 +202,7 @@ SVR's internal features include:
 - Ratings of the 1st episode
 
 SVR's external features include:
-- opinion of comments on Facebook fan page
+- opinion of posts and comments on Facebook fan page
 - dramas related search-term index from Google Trends
 - number of shares, posts, likes, comments on Facebook fan page
 
@@ -217,10 +217,16 @@ Data from other dramas were also included.
 - TWR with exponential growth (TWR.E)
 - TWR with e\textsuperscript{3x} growth (TWR.E3)
 - TWR with auto-selected growth (TWR.A)
+- TWR with auto-selected growth and external features (T.A.EF)
+
+\note{
+External features include:
+- 16 opinion polarity features (num of positive/negative posts and comments) * (current day,...,3 days ago)
+}
 
 ## Results
 ### Results (MAPE %)
-\small{}
+\scriptsize{}
 
 |        | D1     | D2    | D3    | D4    | D5    | D6    | D7    | D8    | All       |
 |--------|--------|-------|-------|-------|-------|-------|-------|-------|-----------|
@@ -237,11 +243,13 @@ Data from other dramas were also included.
 | TWR.E  | 25.60  | 7.65  | 7.91  | 11.93 | 11.22 | 12.69 | 15.88 | 8.52  | 11.97     |
 | TWR.E3 | 24.28  | 8.39  | 8.42  | 13.58 | 12.55 | 12.63 | 13.34 | 8.84  | 12.09     |
 | TWR.A  | 25.47  | 7.86  | 7.59  | 10.81 | 12.11 | 11.67 | 13.44 | 8.97  | **11.54** |
+| T.A.EF | 25.47  | 7.55  | 7.64  | 10.63 | 12.11 | 11.34 | 13.50 | 9.11  | **11.47** | 
 
 Average MAPE of 6 dramas: SVR.EF is 10.07; TWR.A is **10.06**.
 
 \note{
-The results of SVR.ER are from Yu-An's 2014 defense slides put on mslab's wiki.
+- The results of SVR.ER are from Yu-An's 2014 defense slides put on mslab's wiki.
+- No external features for D5 due to missing values.
 }
 
 ### Results (MAE)
@@ -261,6 +269,7 @@ The results of SVR.ER are from Yu-An's 2014 defense slides put on mslab's wiki.
 | TWR.E  | 0.0510 | 0.4335 | 0.1800 | 0.1915 | 0.2286 | 0.1283 | 0.6919 | 0.3035 | 0.2979     |
 | TWR.E3 | 0.0515 | 0.4699 | 0.1928 | 0.2190 | 0.2550 | 0.1288 | 0.6055 | 0.3208 | 0.3023     |
 | TWR.A  | 0.0497 | 0.4429 | 0.1712 | 0.1756 | 0.2440 | 0.1173 | 0.6094 | 0.3248 | **0.2883** |
+| T.A.EF | 0.0497 | 0.4252 | 0.1723 | 0.1733 | 0.2440 | 0.1135 | 0.6119 | 0.3292 | **0.2860** |
 
 ### Discussion (Competitors)
 - PP is a challenging baseline.
