@@ -224,7 +224,7 @@ In this section, we briefly describe 5 related works of TV ratings prediction ch
 
 We compare our solution with 7 models which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different settings.
 
-<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table 2. List of models
+<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table . List of models
 
 | \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
 |-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -390,7 +390,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table 1. Basic information about dramas
+<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table . Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -400,11 +400,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Ref409774502" class="anchor"><span id="_Toc409634079" class="anchor"></span></span>Figure 1. Time series plot for ratings of dramas
+<span id="_Ref409774502" class="anchor"><span id="_Toc409634079" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-<span id="_Ref409774506" class="anchor"><span id="_Toc409634080" class="anchor"></span></span>Figure 2. Box plots for ratings of dramas
+<span id="_Ref409774506" class="anchor"><span id="_Toc409634080" class="anchor"></span></span>Figure . Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -447,7 +447,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution can be combined with external features.
 
-<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
+<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table . MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -458,7 +458,6 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | ETS    | 0.4039 | 0.0912 | 0.0649 | 0.1067 | 0.1222 | 0.1350 | 0.1330 | 0.0894 | 0.1302     |
 | ARIMA  | 0.3412 | 0.0834 | 0.0718 | 0.1072 | 0.1302 | 0.1301 | 0.1358 | 0.0958 | 0.1264     |
 | NNA    | 0.5536 | 0.0922 | 0.0765 | 0.1252 | 0.1246 | 0.1378 | 0.1171 | 0.1081 | 0.1478     |
-| SVR.EF | NA     | 0.0634 | 0.0690 | 0.1172 | NA     | 0.1175 | 0.1214 | 0.1179 | NA         |
 | TWR.N  | 0.5693 | 0.1475 | 0.0649 | 0.1282 | 0.1343 | 0.1761 | 0.3659 | 0.1151 | 0.1972     |
 | TWR.L  | 0.4423 | 0.1130 | 0.0661 | 0.1188 | 0.1241 | 0.1543 | 0.2751 | 0.1112 | 0.1635     |
 | TWR.E  | 0.2560 | 0.0765 | 0.0791 | 0.1193 | 0.1122 | 0.1269 | 0.1588 | 0.0852 | 0.1197     |
@@ -466,7 +465,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 | T.A.EF | 0.2547 | 0.0755 | 0.0764 | 0.1063 | 0.1211 | 0.1134 | 0.1350 | 0.0911 | **0.1147** |
 
-<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
+<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table . MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
