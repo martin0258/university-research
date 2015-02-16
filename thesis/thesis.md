@@ -224,7 +224,7 @@ In this section, we briefly describe 5 related works of TV ratings prediction ch
 
 We compare our solution with 7 models which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different settings.
 
-<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table . List of models
+<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table 2. List of models
 
 | \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
 |-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -313,6 +313,10 @@ At stage of fitting, it consists of three main steps: (1) transforming a time se
 
 At stage of predicting, it makes a one-step forecast by providing trained model with input features from training data. Although multi-step forecasts are out of our problem scope, they can be computed recursively by treating forecasts as input features, e.g., taking one-step forecast as input to make the second-step forecast.
 
+Figure . Activity diagram of TWR
+
+![](media/image1.png)
+
 3.1 Pseudo-code of TWR
 ----------------------
 
@@ -390,7 +394,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table . Basic information about dramas
+<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table 1. Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -400,13 +404,13 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Ref409774502" class="anchor"><span id="_Toc409634079" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
-
-![](media/image1.png)
-
-<span id="_Ref409774506" class="anchor"><span id="_Toc409634080" class="anchor"></span></span>Figure . Box plots for ratings of dramas
+<span id="_Toc409634079" class="anchor"><span id="_Ref409774502" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
 
 ![](media/image2.png)
+
+<span id="_Toc409634080" class="anchor"><span id="_Ref409774506" class="anchor"></span></span>Figure . Box plots for ratings of dramas
+
+![](media/image3.png)
 
 In our experiments, each drama is treated independently, i.e., ratings from other dramas are not considered and only historical ratings of the drama itself are used to predict its future ratings. For each drama, only 1 rating is predicted at one time, a.k.a., one-step forecast. Ratings are predicted from the 6<sup>th</sup> episode. For each rating to be predicted, say k<sup>th</sup> episode, ratings ranging from the 1<sup>st</sup> episode to the k-2<sup>th</sup> episode are for training, and the k-1<sup>th</sup> episode for performing validation to choose the parameter growth function. For example, for testing the 10<sup>th</sup> episode, the first 8 episodes are for training, and the 9<sup>th</sup> episode for validation. We call this experiment scenario “sequential one-step forecast”. In this scenario, a model is trained for testing each episode.
 
@@ -447,7 +451,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution can be combined with external features.
 
-<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table . MAPE of TV ratings predictions
+<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -465,7 +469,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 | T.A.EF | 0.2547 | 0.0755 | 0.0764 | 0.1063 | 0.1211 | 0.1134 | 0.1350 | 0.0911 | **0.1147** |
 
-<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table . MAE of TV ratings predictions
+<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -536,7 +540,7 @@ Besides, our data set for experiments is small and specific. We consider collect
 A: Equations of 30 state space models for ETS
 ---------------------------------------------
 
-![](media/image3.png)
+![](media/image4.png)
 
 B: Equations of neural network auto-regression
 ----------------------------------------------
