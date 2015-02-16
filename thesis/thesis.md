@@ -165,16 +165,142 @@ Why TWR works? That is, why the step of weighing training instances based on tim
 
 TWR is motivated by a well-known time series model called Simple Exponential Smoothing (SES). SES’s idea is that forecast is the weighted average of all past observations, and the weights decay exponentially as observations get older. The key difference is that TWR weighs training instances by time, while SES weighs training features (past observations) by time. Another difference is that TWR automatically tries different types of growth functions and decides the best one, not only the exponential function, which is the case of SES.
 
-第二章 Related Work
-===================
+第二章 Related Works
+====================
 
-In [2, 3], TV ratings forecasting abilities of eight different models and one novel logit model are studied using 5,000 programs and 48,000 ratings, but we do not consider them in our study due to different characteristic of data set in terms of TV programs. Concretely, in their data set, many TV programs do not run continuously every day or week, and many programs (e.g., movies) are broadcast only once, so they have no time series information. On the other hand, in our data set, all TV programs are weekly dramas that have time series information.
+2.1 TV ratings prediction
+-------------------------
 
-In [4, 5], their data sets are also weekly dramas, and their focus is to include the count of posts and comments from Facebook fan page of dramas as external features to improve predictions. Because in our study the focus is model not feature, we choose to only use historical ratings (i.e., no external features) to make our solution more general and thus easily applied to new dramas.
+In this section, we briefly describe 5 related works of TV ratings prediction chronologically. For each related work, a list of highlights and how it differs to our work are provided.
 
-In [6], the data set is daily dramas, and the focus is proposing a novel weight-sharing Gaussian Process model and external features, such as opinion of comments from Facebook fan page and popularity of dramas’ search terms from Google Trends. Because the difference of data set (ours is weekly not daily) and our research focus is model not external feature, we do not compare our results with this study.
+1.  [2] Forecasting television ratings (IJF 2011)
 
-In [7], its data set only consists of one TV program with ten weekly ratings, which is too small to be compared with ours.
+    -   Used large real-world data set to compare forecasting capability of 8 regression models, including Bayesian model averaging, a state-of-the-art model.
+
+    -   Suggested useful external features such as seasonal factors and program genre.
+
+    -   Found that modeling ratings directly is better than as total\_audience×channel\_share.
+
+    -   Data set: 70 channels, 5,000 programs and 48,000 ratings from 2004-2008.
+
+    -   <span id="OLE_LINK8" class="anchor"></span>Differences between it and our work: It has very different characteristic of data set in terms of TV programs, which makes no sense for it to compare with our work in terms of performance. Concretely, in their data set, many TV programs do not run continuously every day or week, and many programs (e.g., movies) are broadcast only once, so they have no time series information. On the other hand, in our data set, all TV programs are weekly dramas that have time series information.
+
+2.  [3] Using a nested logit model to forecast television ratings (IJF 2012)
+
+    -   Applied a little-known version of the nested logit model that is suitable for aggregate choice decision data (TV ratings are aggregate measures) to TV ratings prediction.
+
+    -   Extended model to include TV program random effects, and developed a novel method for predicting program random effects for programs that have not previously been broadcast.
+
+    -   Data set: Same as [2].
+
+    -   Differences between it and our work: Same as the differences between [2] and our work because it used same data set as [2].
+
+3.  [4] Predicting TV audience rating with social media (SocialNLP 2013)
+
+    -   Included external features from Facebook such as count of posts and number of likes on the fan page of dramas.
+
+    -   Fit data with neural network.
+
+    -   Data set: 4 weekly dramas with 78 ratings broadcast in Taiwan.
+
+    -   Differences between it and our work: Its focus is the usefulness of external features from Facebook, while the focus of our work is model not feature. We can achieve competitive performance only using historical ratings to make our solution more general, and thus easily applied to new dramas. Not every drama has a fan page, but every drama has ratings.
+
+4.  [5] A predicting model of TV audience rating based on the Facebook (SocialCom 2013)
+
+    -   Almost same as [4].
+
+5.  [6] A weight-sharing Gaussian process model using web-based information for audience ratings prediction (TAAI 2014)
+
+    -   Proposed a novel Gaussian process model.
+
+    -   Included external features from Facebook and Google, such as opinion of comments from Facebook fan page and popularity of dramas’ search terms from Google Trends.
+
+    -   Data set: 4 daily dramas with 336 ratings broadcast in Taiwan.
+
+    -   Differences between it and our work: Its data set is long daily dramas, while ours is short weekly dramas. Also it focused on the usefulness of external features, while we focus on the usefulness of our proposed model TWR.
+
+2.2 Models compared to TWR in experiments
+-----------------------------------------
+
+We compare our solution with 7 models which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different settings.
+
+<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table 2. List of models
+
+| \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
+|-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| 1   | 1        | Previous period (PP)                                                                                                            | <span id="OLE_LINK2" class="anchor"><span id="OLE_LINK3" class="anchor"></span></span>Guess value of the last period |
+| 2   | 1        | Past average (PA)                                                                                                               | Guess average of all the previous                                                                                    |
+| 3   | 2        | Simple Exponential Smoothing (SES)                                                                                              | Exponential weighted average                                                                                         |
+| 4   | 2        | Double Exponential Smoothing (DES)                                                                                              | SES with trend                                                                                                       |
+| 5   | 2        | <span id="OLE_LINK14" class="anchor"><span id="OLE_LINK15" class="anchor"></span></span>Exponential Smoothing State Space (ETS) | Best one from 30 state space models                                                                                  |
+| 6   | 2        | ARIMA                                                                                                                           | A model of autocorrelations                                                                                          |
+| 7   | 3        | <span id="OLE_LINK16" class="anchor"><span id="OLE_LINK17" class="anchor"></span></span>Neural network auto-regression (NNA)    | Feed-forward with a hidden layer                                                                                     |
+| 8   | 4        | TWR with no growth (TWR.N)                                                                                                      | It equals to no TWR at all.                                                                                          |
+| 9   | 4        | TWR with linear growth (TWR.L)                                                                                                  | g(x) = x                                                                                                             |
+| 10  | 4        | TWR with exponential growth (TWR.E)                                                                                             | g(x) = e<sup>x</sup>                                                                                                 |
+| 11  | 4        | TWR with e<sup>3x</sup> growth (TWR.E3)                                                                                         | g(x) = e<sup>3x</sup>                                                                                                |
+| 12  | 4        | TWR with auto-selected growth (TWR.A)                                                                                           | Pick growth with min validation error.                                                                               |
+| 13  | 4        | TWR.A with external features (T.A.EF)                                                                                           | Include opinion polarity features.                                                                                   |
+
+In the rest of this section, we briefly describe how each competitor works, their parameters settings used in our experiments, and their implementation.
+
+We choose language R [11] as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For models that don’t have published packages, they are implemented by ourselves.
+
+Each competitor works as below (recall that **x** is the time series of ratings):
+
+1.  **Previous period**: the forecast is exactly the ratings of previous episode.
+
+    -   Equation: x<sub>t+1</sub> = x<sub>t</sub>
+
+    -   Implementation: Our own implementation in R
+
+2.  **Past average**: the forecast is the average ratings of all previous episodes.
+
+    -   Equation: x<sub>t+1</sub> = (x<sub>t</sub> + x<sub>t-1</sub> + <sub>…</sub>+ x<sub>1</sub>) / (t-1)
+
+    -   Implementation: Our own implementation in R
+
+3.  **Simple Exponential Smoothing (SES) [10]**: the forecast is the weighted average of all previous ratings, and the weights decay exponentially as ratings get older.
+
+    -   Equation: x<sub>t+1</sub> = αx<sub>t</sub> + α(1 - α)x<sub>t-1</sub> + α(1 - α)<sup>2</sup>x<sub>t-2\\ …</sub>, where α is the smoothing parameter.
+
+    -   Settings: α is determined by minimizing the squared prediction error.
+
+    -   Implementation: package HoltWinters {stats} in R [11]
+
+4.  **Double Exponential Smoothing (DES) [12]**: the forecast extends SES with estimated trend (b<sup>t</sup>).
+
+    -   Equation: x<sub>t+1</sub> = a<sub>t</sub> + b<sub>t,
+        </sub>a<sub>t</sub> = αx<sub>t</sub> + α(1 - α)(a<sub>t-1</sub> + b<sub>t-1</sub>),
+        b<sub>t</sub> = β(a<sub>t\\ -</sub> a<sub>t-1</sub>) + (1 - β)b<sub>t-1</sub>, where α, β are the smoothing parameters.
+
+    -   Settings: α, β are determined by minimizing the squared prediction error.
+
+    -   Implementation: package HoltWinters {stats} in R [11]
+
+5.  **Exponential Smoothing State Space (ETS) [13]**: automatically select the best exponential smoothing model according to information criterion from 30 state space models. State is defined by the unobserved error, trend, and seasonal components. The possibilities for each component are: Error = {A, M}, Trend = {N, A, A<sub>d</sub>, M, M<sub>d</sub>} and Seasonal = {N, A, M}, where A is additive, M is multiplicative, N means no trend or seasonal component, and subscript d means damped trend.
+
+    -   Equation: Please refer to Appendix A.
+
+    -   Settings: all parameters are determined via information criterion AICc.
+
+    -   Implementation: package ets {forecast} in R [15]
+
+6.  **ARIMA [14]**: Autoregressive Integrated Moving Average model, where integrated is the reverse of differencing of time series.
+
+    -   Equation: x<sub>t+1</sub> = a<sub>1</sub>x<sub>t</sub> + <sub>…</sub>+ a<sub>p</sub>x<sub>t-1-p</sub> + e<sub>t+1</sub> + b<sub>1</sub>e<sub>t</sub> + <sub>…</sub>+ b<sub>p</sub>e<sub>t-1-q</sub>, where a, b are the fitted coefficients for autoregressive and moving average models, e is the unobserved error term, and p, q are the orders of autoregressive and moving models. If having differencing, the differenced time series (d times) is fitted.
+
+    -   Settings: all parameters (p, q, d) are determined via information criterion AICc.
+
+    -   Implementation: package auto.arima {forecast} in R [15]
+
+7.  **Neural network auto-regression (NNA)**: feed-forward neural networks with a single hidden layer and past observations as inputs. 20 models are built and then averaged when making prediction.
+
+    -   Equation: Neural network equations with past observations as inputs. Please refer to Appendix B for detail.
+
+    -   Settings: the optimal number of past observations is determined according to the AIC for a linear autoregressive model with order p model.
+
+    -   Implementation: package nnetar {forecast} in R [15]
 
 第三章 Method
 =============
@@ -183,7 +309,7 @@ In this section, we describe our proposed solution (TWR) in detail. We first pro
 
 As every learning algorithm, TWR consists of two stages: fitting and predicting, i.e., building model with training data and making prediction on testing data with trained model, respectively.
 
-At stage of fitting, it consists of three main steps: (1) transforming a time series into a set of instances suitable for regression analysis with a window size (this step is known as windowing transformation [8]), (2) weighing training instances with a growth function, and finally (3) building a model for one-step forecasting with a base learning algorithm and weighted training instances.
+At stage of fitting, it consists of three main steps: (1) transforming a time series into a set of instances suitable for regression analysis with a window size (this step is known as windowing transformation [7]), (2) weighing training instances with a growth function, and finally (3) building a model for one-step forecasting with a base learning algorithm and weighted training instances.
 
 At stage of predicting, it makes a one-step forecast by providing trained model with input features from training data. Although multi-step forecasts are out of our problem scope, they can be computed recursively by treating forecasts as input features, e.g., taking one-step forecast as input to make the second-step forecast.
 
@@ -226,12 +352,12 @@ After a growth function is decided, there are two ways to weighs training instan
 
 There is a small side benefit by using resampling: it narrows down the search space of growth functions. By resampling training instances with given weights as probability (sampling with replacement, i.e., bootstrap sampling), many weights assignments actually produce the same resampling result. For example, e<sup>3x</sup> and e<sup>4x</sup> produces probability p3 = { 0.01%, 0.23%, 4.73%, 95.02% }, p4 = { 6.03e-2%, 0.03%, 1.79%, 98.16% }, respectively. By resampling 4 instances with p3 and p4, it is very likely that their results are the same because over 95% the 4<sup>th</sup> instance is sampled.
 
-Although resampling has its advantages, it also has a downside: it introduces randomness and variance into results. To avoid this side effect, bagging [9] is used, i.e., we resample many data sets from the same probability, build a base model from each data set, and then aggregate all the base models to make prediction. In our experiment, 20 models are built and they are averaged when making predictions.
+Although resampling has its advantages, it also has a downside: it introduces randomness and variance into results. To avoid this side effect, bagging [8] is used, i.e., we resample many data sets from the same probability, build a base model from each data set, and then aggregate all the base models to make prediction. In our experiment, 20 models are built and they are averaged when making predictions.
 
 3.4 Fitting step 3: Building a base model
 -----------------------------------------
 
-This step is just calling a base learning algorithm to make it fit on the weighted data. Therefore, we need to make decisions of base learning algorithm and its parameters. Although any regression model can be used, regression tree should be our best choice because it is sensitive to different data [10], i.e., a small change in the data set may cause a large change in its built model. This characteristic is important for the weighted data to make impact on the built model and prediction.
+This step is just calling a base learning algorithm to make it fit on the weighted data. Therefore, we need to make decisions of base learning algorithm and its parameters. Although any regression model can be used, regression tree should be our best choice because it is sensitive to different data [9], i.e., a small change in the data set may cause a large change in its built model. This characteristic is important for the weighted data to make impact on the built model and prediction.
 
 As for parameters of regression tree, our principle is to use default settings as much as possible, and allow tree to grow as depth as possible, and <span id="OLE_LINK22" class="anchor"><span id="OLE_LINK23" class="anchor"></span></span>prune it based on validation error. Detail settings are provided in section 4.
 
@@ -264,7 +390,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table . Basic information about dramas
+<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table 1. Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -274,11 +400,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Ref409774502" class="anchor"><span id="_Toc409634079" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
+<span id="_Ref409774502" class="anchor"><span id="_Toc409634079" class="anchor"></span></span>Figure 1. Time series plot for ratings of dramas
 
 ![](media/image1.png)
 
-<span id="_Ref409774506" class="anchor"><span id="_Toc409634080" class="anchor"></span></span>Figure . Box plots for ratings of dramas
+<span id="_Ref409774506" class="anchor"><span id="_Toc409634080" class="anchor"></span></span>Figure 2. Box plots for ratings of dramas
 
 ![](media/image2.png)
 
@@ -291,72 +417,8 @@ We evaluate performance via 2 commonly used metrics in literature: mean absolute
 
 In fact, In TV industry, programs of higher ratings are more valuable. Thus, we should focus on how accurate the predictions are in terms of the programs of higher ratings.
 
-4.3 Models
-----------
-
-We compare our solution with 8 competitors which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different growth functions.
-
-In the rest of this section, we briefly describe how each competitor works, the parameter settings of models in our experiments, and how we implement them.
-
-Each competitor works as below (recall that **x** is the time series of ratings):
-
-1.  **Previous period**: the forecast is exactly the ratings of previous episode.
-
-    -   Equation: x<sub>t+1</sub> = x<sub>t</sub>
-
-2.  **Past average**: the forecast is the average <span id="OLE_LINK4" class="anchor"></span>ratings of all previous episodes.
-
-    -   Equation: <span id="OLE_LINK5" class="anchor"><span id="OLE_LINK6" class="anchor"></span></span>x<sub>t+1</sub> = (x<sub>t</sub> + x<sub>t-1</sub> + <sub>…</sub>+ x<sub>1</sub>) / (t-1)
-
-3.  **Simple Exponential Smoothing (SES) [11]**: the forecast is the weighted average of all previous ratings, and the weights decay exponentially as ratings get older.
-
-    -   Equation: x<sub>t+1</sub> = <span id="OLE_LINK7" class="anchor"></span>αx<sub>t</sub> + <span id="OLE_LINK9" class="anchor"><span id="OLE_LINK10" class="anchor"></span></span>α(1 - α)x<sub>t-1</sub> + α(1 - α)<sup>2</sup>x<sub>t-2\\ …</sub>, where α is the smoothing parameter.
-
-    -   Settings: α is determined by minimizing the squared prediction error.
-
-    -   Implementation: package HoltWinters {stats} in R [12]
-
-4.  **Double Exponential Smoothing (DES) [13]**: the forecast extends SES with estimated trend (b<sup>t</sup>).
-
-    -   Equation: x<sub>t+1</sub> = a<sub>t</sub> + b<sub>t,
-        </sub><span id="OLE_LINK13" class="anchor"><span id="OLE_LINK11" class="anchor"><span id="OLE_LINK12" class="anchor"></span></span></span>a<sub>t</sub> = αx<sub>t</sub> + α(1 - α)(a<sub>t-1</sub> + b<sub>t-1</sub>),
-        b<sub>t</sub> = β(a<sub>t\\ -</sub> a<sub>t-1</sub>) + (1 - β)b<sub>t-1</sub>, where α, β are the smoothing parameters.
-
-    -   Settings: α, β are determined by minimizing the squared prediction error.
-
-    -   Implementation: package HoltWinters {stats} in R [12]
-
-5.  **Exponential Smoothing State Space (ETS) [14]**: automatically select the best exponential smoothing model according to information criterion from 30 state space models. State is defined by the unobserved error, trend, and seasonal components. The possibilities for each component are: Error = {A, M}, Trend = {N, A, A<sub>d</sub>, M, M<sub>d</sub>} and Seasonal = {N, A, M}, where A is additive, M is multiplicative, N means no trend or seasonal component, and subscript d means damped trend.
-
-    -   Equation: too tedious to put equations of all 30 state models here. Please refer to [14].
-
-    -   Settings: <span id="OLE_LINK18" class="anchor"><span id="OLE_LINK19" class="anchor"></span></span>all parameters are determined via information criterion AICc.
-
-    -   Implementation: package ets {forecast} in R [14]
-
-6.  **ARIMA [15]**: Autoregressive Integrated Moving Average model, where integrated is the reverse of differencing of time series.
-
-    -   Equation: x<sub>t+1</sub> = a<sub>1</sub>x<sub>t</sub> + <sub>…</sub>+ a<sub>p</sub>x<sub>t-1-p</sub> + e<sub>t+1</sub> + b<sub>1</sub>e<sub>t</sub> + <sub>…</sub>+ b<sub>p</sub>e<sub>t-1-q</sub>, where a, b are the fitted coefficients for autoregressive and moving average models, e is the unobserved error term, and p, q are the orders of autoregressive and moving models. If having differencing, the differenced time series (d times) is fitted.
-
-    -   Settings: all parameters (p, q, d) are determined via information criterion AICc.
-
-    -   <span id="OLE_LINK20" class="anchor"><span id="OLE_LINK21" class="anchor"></span></span>Implementation: package auto.arima {forecast} in R [16]
-
-7.  **Neural network auto-regression (NNA)**: feed-forward neural networks with a single hidden layer and past observations as inputs. 20 models are built and then averaged when making prediction.
-
-    -   Equation: neural network equations with past observations as inputs.
-
-    -   Settings: the optimal number of past observations is determined according to the AIC for a linear autoregressive model with order p model.
-
-    -   Implementation: package nnetar {forecast} in R [16]
-
-8.  **Support Vector Regression with external features (SVR.EF)**: Standard SVR with a modification of objective function (instances are weighted by their target value).
-
-    -   Equation: \(\operatorname{}{\frac{1}{2}w^{T}w + C\sum_{i = 1}^{N}{\frac{\mathbf{1}}{\mathbf{y}_{\mathbf{i}}}\xi_{\epsilon}}}(w;x_{i},y_{i})\)
-
-    -   Settings: External features include opinion polarity (number of positive/negative posts and comments on Facebook fan page), Google Trends (search-term popularity of drama’s keywords), Facebook fan page statistics (number of posts, comments, likes, shares).
-
-    -   Implementation: LIBLINEAR
+4.3 TWR settings and implementation
+-----------------------------------
 
 As for TWR, we have already described how it works in previous sections. Now we present its parameter settings and implementation as below:
 
@@ -368,27 +430,9 @@ As for TWR, we have already described how it works in previous sections. Now we 
 
     -   After tree is grown, it is pruned based on validation error.
 
--   Implementation: package rpart {rpart} in R [17]
+-   Implementation: package rpart {rpart} in R [16]
 
-We choose language R [12] as our implementation platform. For most models, we just use the published packages in the official R repository, so-called Comprehensive R Archive Network, CRAN. For models that don’t have published packages, they are implemented by ourselves.
-
-<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table . List of models
-
-| \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
-|-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| 1   | 1        | Previous period (PP)                                                                                                            | <span id="OLE_LINK2" class="anchor"><span id="OLE_LINK3" class="anchor"></span></span>Guess value of the last period |
-| 2   | 1        | Past average (PA)                                                                                                               | Guess average of all the previous                                                                                    |
-| 3   | 2        | Simple Exponential Smoothing (SES)                                                                                              | Exponential weighted average                                                                                         |
-| 4   | 2        | Double Exponential Smoothing (DES)                                                                                              | SES with trend                                                                                                       |
-| 5   | 2        | <span id="OLE_LINK14" class="anchor"><span id="OLE_LINK15" class="anchor"></span></span>Exponential Smoothing State Space (ETS) | Best one from 30 state space models                                                                                  |
-| 6   | 2        | ARIMA                                                                                                                           | A model of autocorrelations                                                                                          |
-| 7   | 3        | <span id="OLE_LINK16" class="anchor"><span id="OLE_LINK17" class="anchor"></span></span>Neural network auto-regression (NNA)    | Feed-forward with a hidden layer                                                                                     |
-| 8   | 4        | TWR with no growth (TWR.N)                                                                                                      | It equals to no TWR at all.                                                                                          |
-| 9   | 4        | TWR with linear growth (TWR.L)                                                                                                  | g(x) = x                                                                                                             |
-| 10  | 4        | TWR with exponential growth (TWR.E)                                                                                             | g(x) = e<sup>x</sup>                                                                                                 |
-| 11  | 4        | TWR with e<sup>3x</sup> growth (TWR.E3)                                                                                         | g(x) = e<sup>3x</sup>                                                                                                |
-| 12  | 4        | TWR with auto-selected growth (TWR.A)                                                                                           | Pick growth with min validation error.                                                                               |
-| 13  | 4        | TWR.A with external features (T.A.EF)                                                                                           | Include opinion polarity features.                                                                                   |
+In order to illustrate the usefulness of TWR, we try 6 different settings of TWR in experiments, which are summarized in Table 2.
 
 4.4 Results
 -----------
@@ -403,7 +447,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution can be combined with external features.
 
-<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table . MAPE of TV ratings predictions
+<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -422,7 +466,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
 | T.A.EF | 0.2547 | 0.0755 | 0.0764 | 0.1063 | 0.1211 | 0.1134 | 0.1350 | 0.0911 | **0.1147** |
 
-<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table . MAE of TV ratings predictions
+<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -452,8 +496,8 @@ When applying TWR to our data set, experiment results show that different dramas
 
 Besides, our data set for experiments is small and specific. We consider collecting more data and testing TWR with more types of TV programs such as daily dramas.
 
-參考文獻
-========
+參考文獻 References
+===================
 
 1.  Death Of TV, [*http://www.businessinsider.com/category/death-of-tv*](http://www.businessinsider.com/category/death-of-tv)
 
@@ -467,29 +511,49 @@ Besides, our data set for experiments is small and specific. We consider collect
 
 6.  Yu-Yang Huang, Yu-An Yen, Ting-Wei Ku, Shou-De Lin, Wen-Tai Hsieh, Tsun Ku: A Weight-Sharing Gaussian Process Model Using Web-Based Information for Audience Rating Prediction. TAAI, LNAI 8916, pp. 198-208 (2014)
 
-7.  Yilei, Zheng: Audience Rating Prediction of New TV Programs Based on GM (1.1) Envelopment Model. IEEE International Conference on Grey Systems and Intelligent Services (2009)
+7.  C.Meek, D.M. Chichering, D. Heckerman: Autoregressive Tree Models for Time-Series Analysis. Proceedings of the Second International SIAM Conference on Data Mining, pp. 229-244 (2002)
 
-8.  C.Meek, D.M. Chichering, D. Heckerman: Autoregressive Tree Models for Time-Series Analysis. Proceedings of the Second International SIAM Conference on Data Mining, pp. 229-244 (2002)
+8.  Leo Breiman: Bagging predictors. Machine Learning Volume 24, Issue 2, pp, 123-140 (1996)
 
-9.  Leo Breiman: Bagging predictors. Machine Learning Volume 24, Issue 2, pp, 123-140 (1996)
+9.  H Drucker: Improving regressors using boosting techniques. ICML (1997)
 
-10. H Drucker: Improving regressors using boosting techniques. ICML (1997)
+10. Brown, Robert G.: Exponential Smoothing for Predicting Demand. Cambridge, Massachusetts: Arthur D. Little Inc. p. 15 (1956)
 
-11. Brown, Robert G.: Exponential Smoothing for Predicting Demand. Cambridge, Massachusetts: Arthur D. Little Inc. p. 15 (1956)
+11. R Core Team. R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. R version 3.1.2. (2014)
 
-12. R Core Team. R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. R version 3.1.2. (2014)
+12. C. C. Holt: Forecasting trends and seasonals by exponentially weighted moving averages, ONR Research Memorandum, Carnegie Institute of Technology 52 (1957)
 
-13. C. C. Holt: Forecasting trends and seasonals by exponentially weighted moving averages, ONR Research Memorandum, Carnegie Institute of Technology 52 (1957)
+13. Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D: Forecasting with exponential smoothing: the state space approach, Springer-Verlag (2008)
 
-14. Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D: Forecasting with exponential smoothing: the state space approach, Springer-Verlag (2008)
+14. Box, George, Jenkins, Gwilym: Time series analysis: Forecasting and control. San Francisco: Holden-Day (1970)
 
-15. Box, George, Jenkins, Gwilym: Time series analysis: Forecasting and control. San Francisco: Holden-Day (1970)
+15. Hyndman, R.J. and Khandakar, Y.: Automatic time series forecasting: The forecast package for R. Journal of Statistical Software, 26(3). R package version 5.7. (2008)
 
-16. Hyndman, R.J. and Khandakar, Y.: Automatic time series forecasting: The forecast package for R. Journal of Statistical Software, 26(3). R package version 5.7. (2008)
+16. Terry Therneau, Beth Atkinson and Brian Ripley: rpart: Recursive Partitioning and Regression Trees. R package version 4.1-8. (2014)
 
-17. Terry Therneau, Beth Atkinson and Brian Ripley: rpart: Recursive Partitioning and Regression Trees. R package version 4.1-8. (2014)
+<span id="_Toc409722041" class="anchor"><span id="_Ref411851153" class="anchor"></span></span>附錄 Appendix
+===========================================================================================================
 
-附錄
-====
+A: Equations of 30 state space models for ETS
+---------------------------------------------
 
-N/A
+![](media/image3.png)
+
+B: Equations of neural network auto-regression
+----------------------------------------------
+
+Assume that a fully-connected feed-forward neural network has 3 layers:
+
+-   Input layer with n neurons for inputs plus 1 bias neuron
+
+-   Hidden layer with k neurons for inputs from input layer plus 1 bias neuron
+
+-   Output layer with 1 linear output neuron
+
+Equation of hidden layer output: z<sub>j</sub> = b<sub>j</sub> +\(\sum_{i = 1}^{n}(\)w<sub>i,j</sub>x<sub>i</sub>)
+
+Equation of output layer output: z = b +\(\sum_{i = 1}^{k}(\)w<sub>i</sub>z<sub>i</sub>)
+
+Where z is the outputs of hidden neurons and output neuron, b is parameters of bias neurons, w is parameters of connections, and x is the inputs from the input layer.
+
+The tuning of auto-regression is just using lagged values of time series as inputs for input layer.
