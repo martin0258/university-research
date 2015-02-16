@@ -58,7 +58,7 @@ On the other hand, in our data set, all TV programs are weekly dramas that have 
     - 4 weekly dramas (78 ratings) broadcast in TW
 
 #### Key difference between they and us
-We only use historical ratings as features, i.e., no external features at all.
+They focus on usefulness of external features, while we focus on usefulness of model (TWR) using only historical ratings as features.
 
 ### TV Ratings Prediction (3/3)
 - A weight-sharing gaussian process model using web-based information for audience rating prediction \newline (TAAI 2014, Huang et al.)
@@ -67,8 +67,19 @@ We only use historical ratings as features, i.e., no external features at all.
     - 4 daily dramas (336 ratings) broadcast in TW
 
 #### Key difference between they and us
-We only use historical ratings as features, i.e., no external features at all. \newline
-Besides, we only focus on weekly dramas broadcast in TW.
+They focus on long daily dramas, while we focus on short weekly dramas.
+
+## 8 models compared to TWR in experiments
+### 8 models compared to TWR in experiments
+We compare our solution with 8 models:
+
+- Previous period (PP)
+- Past average (PA)
+- Simple Exponential Smoothing (SES)
+- Double Exponential Smoothing (DES)
+- Exponential Smoothing State Space (ETS)
+- Autoregressive Integrated Moving Average (ARIMA)
+- Neural network auto-regression (NNA)
 
 # Solution: Time Weighting Based Regression (TWR)
 
@@ -181,34 +192,7 @@ D8 | 23 | 2012/7/22 | 3.47 | 0.56
 Two commonly used metrics in literature of TV ratings prediction:
 
 - MAPE = avg(|actual-predicted| / actual)
-- MAE = |actual-predicted| / actual
-
-## Competitors (Other Models)
-### Competitors (Other Models)
-We compare our solution with 8 models:
-
-- Previous period (PP)
-- Past average (PA)
-- Simple Exponential Smoothing (SES)
-- Double Exponential Smoothing (DES)
-- Exponential Smoothing State Space (ETS)
-- Autoregressive Integrated Moving Average (ARIMA)
-- Neural network auto-regression (NNA)
-- Support Vector Regression with external features (SVR.EF)
-
-\note{
-SVR's internal features include:
-- Ratings of previous three episodes
-- Ratings of the 1st episode
-
-SVR's external features include:
-- opinion of posts and comments on Facebook fan page
-- dramas related search-term index from Google Trends
-- number of shares, posts, likes, comments on Facebook fan page
-
-Feature selection was done to find the best feature combination.
-Data from other dramas were also included.
-}
+- MAE = |actual-predicted|
 
 ## Our Models with Different Settings
 ### Our Models with Different Settings
@@ -237,20 +221,12 @@ External features include:
 | ETS    | 40.39  | 9.12  | 6.49  | 10.67 | 12.22 | 13.50 | 13.30 | 8.94  | 13.02     |
 | ARIMA  | 34.12  | 8.34  | 7.18  | 10.72 | 13.02 | 13.01 | 13.58 | 9.58  | 12.64     |
 | NNA    | 55.36  | 9.22  | 7.65  | 12.52 | 12.46 | 13.78 | 11.71 | 10.81 | 14.78     |
-| SVR.EF | NA     | 6.34  | 6.69  | 11.72 | NA    | 11.75 | 12.14 | 11.79 | NA        |
 | TWR.N  | 56.93  | 14.75 | 6.49  | 12.82 | 13.43 | 17.61 | 36.59 | 11.51 | 19.72     |
 | TWR.L  | 44.23  | 11.30 | 6.61  | 11.88 | 12.41 | 15.43 | 27.51 | 11.12 | 16.35     |
 | TWR.E  | 25.60  | 7.65  | 7.91  | 11.93 | 11.22 | 12.69 | 15.88 | 8.52  | 11.97     |
 | TWR.E3 | 24.28  | 8.39  | 8.42  | 13.58 | 12.55 | 12.63 | 13.34 | 8.84  | 12.09     |
 | TWR.A  | 25.47  | 7.86  | 7.59  | 10.81 | 12.11 | 11.67 | 13.44 | 8.97  | **11.54** |
 | T.A.EF | 25.47  | 7.55  | 7.64  | 10.63 | 12.11 | 11.34 | 13.50 | 9.11  | **11.47** | 
-
-Average MAPE of 6 dramas: SVR.EF is 10.07; TWR.A is **10.06**.
-
-\note{
-- The results of SVR.ER are from Yu-An's 2014 defense slides put on mslab's wiki.
-- No external features for D5 due to missing values.
-}
 
 ### Results (MAE)
 \scriptsize{}
