@@ -109,26 +109,28 @@ In this thesis, the primary contribution is proposing a simple and experimentall
 
 Keywords: time series prediction, TV ratings prediction, regression.
 
-<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"><span id="_Toc409722018" class="anchor"></span></span></span>目錄
-=================================================================================================================================================
+<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"><span id="_Toc409722018" class="anchor"><span id="_Toc411856337" class="anchor"></span></span></span></span>目錄
+================================================================================================================================================================================================
 
-<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"><span id="_Toc409722019" class="anchor"></span></span></span>圖目錄
-===================================================================================================================================================
+<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"><span id="_Toc409722019" class="anchor"><span id="_Toc411856338" class="anchor"></span></span></span></span>圖目錄
+==================================================================================================================================================================================================
 
-[*Figure 1. Time series plot for ratings of dramas* 13](#_Toc409634079)
+[*Figure 1. Activity diagram of TWR* 13](#_Toc411856365)
 
-[*Figure 2. Box plots for ratings of dramas* 13](#_Toc409634080)
+[*Figure 2. Time series plot for ratings of dramas* 17](#_Toc411856366)
 
-<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"><span id="_Toc409722020" class="anchor"></span></span></span>表目錄
-===================================================================================================================================================
+[*Figure 3. Box plots for ratings of dramas* 17](#_Toc411856367)
 
-[*Table 1. Basic information about dramas* 12](#_Toc409634137)
+<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"><span id="_Toc409722020" class="anchor"><span id="_Toc411856339" class="anchor"></span></span></span></span>表目錄
+==================================================================================================================================================================================================
 
-[*Table 2. List of models* 15](#_Toc409634138)
+[*Table 1. List of models* 11](#_Toc411856540)
 
-[*Table 3. MAPE of TV ratings predictions* 16](#_Toc409634139)
+[*Table 2. Basic information about dramas* 16](#_Toc411856541)
 
-[*Table 4. MAE of TV ratings predictions* 16](#_Toc409634140)
+[*Table 3. MAPE of TV ratings predictions* 19](#_Toc411856542)
+
+[*Table 4. MAE of TV ratings predictions* 20](#_Toc411856543)
 
 第一章 Introduction
 ===================
@@ -222,9 +224,9 @@ In this section, we briefly describe 5 related works of TV ratings prediction ch
 2.2 Models compared to TWR in experiments
 -----------------------------------------
 
-We compare our solution with 7 models which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in Table 2. In Table 2, the 4<sup>th</sup> category is our solution with different settings.
+We compare our solution with 7 models which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in <span id="OLE_LINK1" class="anchor"><span id="OLE_LINK4" class="anchor"></span></span>Table 1. In Table 1, the 4<sup>th</sup> category is our solution with different settings.
 
-<span id="_Ref409774726" class="anchor"><span id="_Toc409634138" class="anchor"></span></span>Table 2. List of models
+<span id="_Ref411856604" class="anchor"><span id="_Toc411856540" class="anchor"></span></span>Table 1. List of models
 
 | \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
 |-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -313,7 +315,7 @@ At stage of fitting, it consists of three main steps: (1) transforming a time se
 
 At stage of predicting, it makes a one-step forecast by providing trained model with input features from training data. Although multi-step forecasts are out of our problem scope, they can be computed recursively by treating forecasts as input features, e.g., taking one-step forecast as input to make the second-step forecast.
 
-Figure . Activity diagram of TWR
+<span id="_Toc411856365" class="anchor"></span>Figure 1. [*Activity diagram of TWR*](http://yuml.me/diagram/plain/activity/edit/(start)-%3e(Fitting%20step-1:/n%20Windowing%20transformation)-%3e(Fitting%20step-2:/n%20Weigh%20training%20instances)-%3e(Fitting%20step-3:/n%20Fit%20base%20model%20with%20weighted%20instances)-%3e(Predicting%20one-step)-%3e(end))
 
 ![](media/image1.png)
 
@@ -380,7 +382,7 @@ In this section, we describe data set, evaluation metric, models, and results.
 
 Our data set contains 8 weekly Idol dramas broadcasting in Taiwan. They are so-called Nielsen ratings, which is the most frequently used ratings in TV industry. Normally, the ratings are only available for Nielsen’s customers. Fortunately, some of them are announced in news and organized into Wikipedia, which is the case of all the dramas in our data set.
 
-Simple data analysis results are presented via Table 1, Figure 1 and Figure 2. From the time series plot (Figure 1), the following things are observed:
+Simple data analysis results are presented via Table 2, Figure 1 and Figure 2. From the time series plot (Figure 1), the following things are observed:
 
 -   D2 and D7 have clear increasing trend, while all the others don’t have any obvious increasing or decreasing trend.
 
@@ -390,11 +392,11 @@ Simple data analysis results are presented via Table 1, Figure 1 and Figure 2. F
 
 From the box plots (Figure 2), the following things are observed:
 
--   D2 and D7 has much wider ranges of ratings than all the other dramas. This is also reflected from the standard deviation of ratings in Table 1. It is likely that the wider the range of ratings, the more complex to predict ratings accurately.
+-   D2 and D7 has much wider ranges of ratings than all the other dramas. This is also reflected from the standard deviation of ratings in Table 2. It is likely that the wider the range of ratings, the more complex to predict ratings accurately.
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Ref409774398" class="anchor"><span id="_Toc409634137" class="anchor"><span id="_Ref409774385" class="anchor"></span></span></span>Table 1. Basic information about dramas
+<span id="_Ref411856652" class="anchor"><span id="_Toc411856541" class="anchor"></span></span>Table 2. Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -404,11 +406,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Toc409634079" class="anchor"><span id="_Ref409774502" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
+<span id="_Ref409774502" class="anchor"><span id="_Toc411856366" class="anchor"></span></span>Figure 2. Time series plot for ratings of dramas
 
 ![](media/image2.png)
 
-<span id="_Toc409634080" class="anchor"><span id="_Ref409774506" class="anchor"></span></span>Figure . Box plots for ratings of dramas
+<span id="_Ref409774506" class="anchor"><span id="_Toc411856367" class="anchor"></span></span>Figure 3. Box plots for ratings of dramas
 
 ![](media/image3.png)
 
@@ -436,40 +438,48 @@ As for TWR, we have already described how it works in previous sections. Now we 
 
 -   Implementation: package rpart {rpart} in R [16]
 
-In order to illustrate the usefulness of TWR, we try 6 different settings of TWR in experiments, which are summarized in Table 2.
+In order to illustrate the usefulness of TWR, we try 6 different settings of TWR in experiments, which are summarized in Table 1. Specifically, TWR.A.EF includes 16 opinion polarity features based on Facebook fan page of dramas:
+
+-   Day of drama: number of negative/positive posts and comments (4 dimensions)
+
+-   Yesterday (4 dimensions)
+
+-   2 days ago (4 dimensions)
+
+-   3 days ago (4 dimensions)
 
 4.4 Results
 -----------
 
-In this section, we show how well our solution and other competitive models predict ratings in terms of MAPE and MAE, via Table 3 and Table 4, respectively. Then provide our interpretation of the results.
+In this section, we show how well our solution and other competitive models predict ratings in terms of MAPE and MAE, via Table 3 and Table 4, respectively. Then we provide the interpretation of the results.
 
-Surprisingly, the most naïve and simplest model, PP, already performs pretty well. Among all competitors, it has the lowest overall MAPE of 12.18%, which sets a very challenging baseline. On the other hand, another naïve baseline, PA, perform pretty bad. It has much larger MAPE and MAE than all the other models. From results of two baselines, we can infer that ratings of last period is a good predictor, while ratings of older ratings are not, so what we need may be somewhere in between with more emphasis on recent ratings. In fact, Simple Exponential Smoothing (SES), one of our competitors from the 2<sup>nd</sup> category, is one way to capture this nature.
+Surprisingly, PP, the most naïve and simplest model, already performs pretty well. Among all competitors, it has the lowest overall MAPE of 12.18%, which sets a very challenging baseline. PA, another naïve baseline, performs badly. It has much larger MAPE and MAE than all the other models. From results of two baselines, we can infer that ratings of last period is a good predictor, while ratings of older ratings are not, so what we need should be somewhere in between with more emphasis on recent ratings. In fact, Simple Exponential Smoothing (SES), one of our competitors from the 2<sup>nd</sup> category, is one way to capture this nature.
 
 As for the models of the 2<sup>nd</sup> category, SES has the best overall performance in this category. Among all competitors, it has the 2<sup>nd</sup> lowest overall MAPE of 12.22% and the lowest overall MAE of 0.2893. Because SES is suitable for data with no trend or seasonal pattern, this result is as expected because from Figure 1 we already know that all dramas have no seasonal pattern, while only 2 out of 8 have trend pattern.
 
-As for NNA, the only model of the 3<sup>rd</sup> category, its performance is neither very good nor very bad. However, it is worth noting that it has the lowest MAPE and MAE for D7, probably the most difficult drama to be predicted well due to its widest range of ratings.
+As for NNA, the only model of the 3<sup>rd</sup> category, its performance is neither very good nor very bad. However, it is worth noting that it has the lowest MAPE and MAE for D7 for some reason, probably the most difficult drama to be predicted well due to its widest range of ratings.
 
-Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution can be combined with external features.
+Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution is extensible because it can be extended with external features.
 
-<span id="_Ref409774931" class="anchor"><span id="_Toc409634139" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
+<span id="_Ref409774931" class="anchor"><span id="_Toc411856542" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
 
-| M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
-|--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
-| PP     | 0.2427 | 0.0853 | 0.0859 | 0.1395 | 0.1265 | 0.1263 | 0.1307 | 0.0898 | 0.1218     |
-| PA     | 0.6017 | 0.1937 | 0.0647 | 0.1072 | 0.1398 | 0.2077 | 0.4609 | 0.1375 | 0.2248     |
-| SES    | 0.3247 | 0.0821 | 0.0633 | 0.1194 | 0.1235 | 0.1257 | 0.1307 | 0.0890 | 0.1222     |
-| DES    | 0.3016 | 0.0841 | 0.0688 | 0.1859 | 0.1515 | 0.1266 | 0.1215 | 0.1322 | 0.1377     |
-| ETS    | 0.4039 | 0.0912 | 0.0649 | 0.1067 | 0.1222 | 0.1350 | 0.1330 | 0.0894 | 0.1302     |
-| ARIMA  | 0.3412 | 0.0834 | 0.0718 | 0.1072 | 0.1302 | 0.1301 | 0.1358 | 0.0958 | 0.1264     |
-| NNA    | 0.5536 | 0.0922 | 0.0765 | 0.1252 | 0.1246 | 0.1378 | 0.1171 | 0.1081 | 0.1478     |
-| TWR.N  | 0.5693 | 0.1475 | 0.0649 | 0.1282 | 0.1343 | 0.1761 | 0.3659 | 0.1151 | 0.1972     |
-| TWR.L  | 0.4423 | 0.1130 | 0.0661 | 0.1188 | 0.1241 | 0.1543 | 0.2751 | 0.1112 | 0.1635     |
-| TWR.E  | 0.2560 | 0.0765 | 0.0791 | 0.1193 | 0.1122 | 0.1269 | 0.1588 | 0.0852 | 0.1197     |
-| TWR.E3 | 0.2428 | 0.0839 | 0.0842 | 0.1358 | 0.1255 | 0.1263 | 0.1334 | 0.0884 | 0.1209     |
-| TWR.A  | 0.2547 | 0.0786 | 0.0759 | 0.1081 | 0.1211 | 0.1167 | 0.1344 | 0.0897 | **0.1154** |
-| T.A.EF | 0.2547 | 0.0755 | 0.0764 | 0.1063 | 0.1211 | 0.1134 | 0.1350 | 0.0911 | **0.1147** |
+| M↓D→   | D1    | D2    | D3   | D4    | D5    | D6    | D7    | D8    | All       |
+|--------|-------|-------|------|-------|-------|-------|-------|-------|-----------|
+| PP     | 24.27 | 8.53  | 8.59 | 13.95 | 12.65 | 12.63 | 13.07 | 8.98  | 12.18     |
+| PA     | 60.17 | 19.37 | 6.47 | 10.72 | 13.98 | 20.77 | 46.09 | 13.75 | 22.48     |
+| SES    | 32.47 | 8.21  | 6.33 | 11.94 | 12.35 | 12.57 | 13.07 | 8.90  | 12.22     |
+| DES    | 30.16 | 8.41  | 6.88 | 18.59 | 15.15 | 12.66 | 12.15 | 13.22 | 13.77     |
+| ETS    | 40.39 | 9.12  | 6.49 | 10.67 | 12.22 | 13.50 | 13.30 | 8.94  | 13.02     |
+| ARIMA  | 34.12 | 8.34  | 7.18 | 10.72 | 13.02 | 13.01 | 13.58 | 9.58  | 12.64     |
+| NNA    | 55.36 | 9.22  | 7.65 | 12.52 | 12.46 | 13.78 | 11.71 | 10.81 | 14.78     |
+| TWR.N  | 56.93 | 14.75 | 6.49 | 12.82 | 13.43 | 17.61 | 36.59 | 11.51 | 19.72     |
+| TWR.L  | 44.23 | 11.30 | 6.61 | 11.88 | 12.41 | 15.43 | 27.51 | 11.12 | 16.35     |
+| TWR.E  | 25.60 | 7.65  | 7.91 | 11.93 | 11.22 | 12.69 | 15.88 | 8.52  | 11.97     |
+| TWR.E3 | 24.28 | 8.39  | 8.42 | 13.58 | 12.55 | 12.63 | 13.34 | 8.84  | 12.09     |
+| TWR.A  | 25.47 | 7.86  | 7.59 | 10.81 | 12.11 | 11.67 | 13.44 | 8.97  | **11.54** |
+| T.A.EF | 25.47 | 7.55  | 7.64 | 10.63 | 12.11 | 11.34 | 13.50 | 9.11  | **11.47** |
 
-<span id="_Ref409774935" class="anchor"><span id="_Toc409634140" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
+<span id="_Ref409774935" class="anchor"><span id="_Toc411856543" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
@@ -487,10 +497,19 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.A  | 0.0497 | 0.4429 | 0.1712 | 0.1756 | 0.2440 | 0.1173 | 0.6094 | 0.3248 | **0.2883** |
 | T.A.EF | 0.0497 | 0.4252 | 0.1723 | 0.1733 | 0.2440 | 0.1135 | 0.6119 | 0.3292 | **0.2860** |
 
+4.5 Discussion
+--------------
+
+TWR focuses on weighted instances based on time, but what if we also apply the same concept to weighted features just like SES? It is worth trying to understand whether the effect will be double, or the effect is equivalent.
+
+Another question is that the idea of weighted instances is so general that it should be possible to apply to all competitors. It would be interesting to re-design them with the concept of weighed instances and see how it affects performance.
+
+Currently, we have not explored the needs of predicting dramas that have not been previously broadcast yet. To solve this more challenging problem, the idea of weighted instances is not enough. We may need to leverage data from other dramas to predict it well.
+
 第五章 Conclusion
 =================
 
-In this thesis, we present a novel solution called TWR to the problem of TV ratings prediction problem. Experiment results show that the auto-selected growth version of TWR outperforms all the other models in terms of overall MAPE and MAE among all dramas. Thus, we conclude that weighing instances with growth function before fitting regression model largely helps improve predictions of next ratings for weekly dramas, and with high probability our only assumption on which TWR is based is valid.
+<span id="OLE_LINK5" class="anchor"></span>In this thesis, we present a novel solution called TWR to the problem of TV ratings prediction problem. Experiment results show that the auto-selected growth version of TWR outperforms all the other models in terms of overall MAPE and MAE among all dramas. Thus, we conclude that weighing instances with growth function before fitting regression model largely helps improve predictions of next ratings for weekly dramas, and with high probability our only assumption on which TWR is based is valid.
 
 第六章 Future Work
 ==================
@@ -534,7 +553,7 @@ Besides, our data set for experiments is small and specific. We consider collect
 
 16. Terry Therneau, Beth Atkinson and Brian Ripley: rpart: Recursive Partitioning and Regression Trees. R package version 4.1-8. (2014)
 
-<span id="_Toc409722041" class="anchor"><span id="_Ref411851153" class="anchor"></span></span>附錄 Appendix
+<span id="_Ref411851153" class="anchor"><span id="_Toc411856362" class="anchor"></span></span>附錄 Appendix
 ===========================================================================================================
 
 A: Equations of 30 state space models for ETS
