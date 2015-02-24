@@ -282,7 +282,7 @@ Each competitor works as below (recall that **x** is the time series of ratings)
 
 5.  **Exponential Smoothing State Space (ETS) [13]**: automatically select the best exponential smoothing model according to information criterion from 30 state space models. State is defined by the unobserved error, trend, and seasonal components. The possibilities for each component are: Error = {A, M}, Trend = {N, A, A<sub>d</sub>, M, M<sub>d</sub>} and Seasonal = {N, A, M}, where A is additive, M is multiplicative, N means no trend or seasonal component, and subscript d means damped trend.
 
-    -   Equation: Please refer to Appendix A.
+    -   Equation: Please refer to <span id="OLE_LINK10" class="anchor"><span id="OLE_LINK11" class="anchor"></span></span>Appendix A.
 
     -   Settings: all parameters are determined via information criterion AICc.
 
@@ -436,6 +436,8 @@ As for TWR, we have already described how it works in previous sections. Now we 
 
     -   After tree is grown, it is pruned based on validation error.
 
+-   Equation: Regression tree equations with bagging. Please refer to <span id="OLE_LINK7" class="anchor"><span id="OLE_LINK9" class="anchor"></span></span>Appendix C for detail.
+
 -   Implementation: package rpart {rpart} in R [16]
 
 In order to illustrate the usefulness of TWR, we try 6 different settings of TWR in experiments, which are summarized in Table 1. Specifically, TWR.A.EF includes 16 opinion polarity features based on Facebook fan page of dramas:
@@ -553,6 +555,8 @@ Besides, our data set for experiments is small and specific. We consider collect
 
 16. Terry Therneau, Beth Atkinson and Brian Ripley: rpart: Recursive Partitioning and Regression Trees. R package version 4.1-8. (2014)
 
+17. Terry M. Therneau, Elizabeth J. Atkinson, Mayo Foundation: An Introduction to Recursive Partitioning Using the RPART Routines. (2015)
+
 <span id="_Ref411851153" class="anchor"><span id="_Toc411856362" class="anchor"></span></span>附錄 Appendix
 ===========================================================================================================
 
@@ -561,8 +565,8 @@ A: Equations of 30 state space models for ETS
 
 ![](media/image4.png)
 
-B: Equations of neural network auto-regression
-----------------------------------------------
+<span id="_Toc411856364" class="anchor"><span id="OLE_LINK6" class="anchor"></span></span>B: Equations of neural network auto-regression
+----------------------------------------------------------------------------------------------------------------------------------------
 
 Assume that a fully-connected feed-forward neural network has 3 layers:
 
@@ -579,3 +583,14 @@ Equation of output layer output: z = b +\(\sum_{i = 1}^{k}(\)w<sub>i</sub>z<sub>
 Where z is the outputs of hidden neurons and output neuron, b is parameters of bias neurons, w is parameters of connections, and x is the inputs from the input layer.
 
 The tuning of auto-regression is just using lagged values of time series as inputs for input layer.
+
+C: Equations of TWR
+-------------------
+
+Assume that the base model of TWR is regression tree [17]:
+
+-   Splitting criterion: SS<sub>T</sub> − (<span id="OLE_LINK12" class="anchor"><span id="OLE_LINK13" class="anchor"></span></span>SS<sub>L</sub> + SS<sub>R</sub>), where SS<sub>T</sub> = \(\sum_{}^{}{}\)(y<sub>i</sub> − <span id="OLE_LINK18" class="anchor"><span id="OLE_LINK19" class="anchor"></span></span>\(\overset{\overline{}}{y}\))<sup>2</sup> is the sum of squares for the node, and SS<sub>L</sub>, SS<sub>R</sub> are the sums of squares for the left and right son, respectively. That is, it chooses the split to maximize the between-groups sum-of-squares in a simple analysis of variance.
+
+-   Prediction: \(\overset{\overline{}}{y}\), i.e., the mean of the node.
+
+
