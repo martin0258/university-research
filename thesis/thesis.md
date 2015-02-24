@@ -10,7 +10,7 @@ Master Thesis
 
 以基於時間比重之回歸預測電視收視率
 
-TV Ratings Prediction with Time Weighting Based Regression
+<span id="OLE_LINK20" class="anchor"><span id="OLE_LINK21" class="anchor"></span></span>TV Ratings Prediction with Time Weighting Based Regression
 
 顧廷緯
 
@@ -226,7 +226,7 @@ In this section, we briefly describe 5 related works of TV ratings prediction ch
 
 We compare our solution with 7 models which can be categorized into 3 categories: (1) naïve guess, (2) well-known time series models, and (3) advance regression model. All the competitors along with our solution are summarized in <span id="OLE_LINK1" class="anchor"><span id="OLE_LINK4" class="anchor"></span></span>Table 1. In Table 1, the 4<sup>th</sup> category is our solution with different settings.
 
-<span id="_Ref411856604" class="anchor"><span id="_Toc411856540" class="anchor"></span></span>Table 1. List of models
+<span id="_Ref411856604" class="anchor"><span id="_Toc411856540" class="anchor"></span></span>Table . List of models
 
 | \#  | Category | Name                                                                                                                            | Summary                                                                                                              |
 |-----|----------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -315,7 +315,7 @@ At stage of fitting, it consists of three main steps: (1) transforming a time se
 
 At stage of predicting, it makes a one-step forecast by providing trained model with input features from training data. Although multi-step forecasts are out of our problem scope, they can be computed recursively by treating forecasts as input features, e.g., taking one-step forecast as input to make the second-step forecast.
 
-<span id="_Toc411856365" class="anchor"></span>Figure 1. [*Activity diagram of TWR*](http://yuml.me/diagram/plain/activity/edit/(start)-%3e(Fitting%20step-1:/n%20Windowing%20transformation)-%3e(Fitting%20step-2:/n%20Weigh%20training%20instances)-%3e(Fitting%20step-3:/n%20Fit%20base%20model%20with%20weighted%20instances)-%3e(Predicting%20one-step)-%3e(end))
+<span id="_Toc411856365" class="anchor"></span>Figure . [*Activity diagram of TWR*](http://yuml.me/diagram/plain/activity/edit/(start)-%3e(Fitting%20step-1:/n%20Windowing%20transformation)-%3e(Fitting%20step-2:/n%20Weigh%20training%20instances)-%3e(Fitting%20step-3:/n%20Fit%20base%20model%20with%20weighted%20instances)-%3e(Predicting%20one-step)-%3e(end))
 
 ![](media/image1.png)
 
@@ -396,7 +396,7 @@ From the box plots (Figure 2), the following things are observed:
 
 -   There is only 1 outlier in D4 (the 5<sup>th</sup> episode).
 
-<span id="_Ref411856652" class="anchor"><span id="_Toc411856541" class="anchor"></span></span>Table 2. Basic information about dramas
+<span id="_Ref411856652" class="anchor"><span id="_Toc411856541" class="anchor"></span></span>Table . Basic information about dramas
 
 |               | D1      | D2       | D3      | D4     | D5       | D6       | D7       | D8       |
 |---------------|---------|----------|---------|--------|----------|----------|----------|----------|
@@ -406,11 +406,11 @@ From the box plots (Figure 2), the following things are observed:
 | Avg – ratings | 0.21    | 5.12     | 2.38    | 1.57   | 2.16     | 1.10     | 3.36     | 3.47     |
 | Std – ratings | 0.08    | 1.09     | 0.16    | 0.23   | 0.30     | 0.21     | 2.75     | 0.56     |
 
-<span id="_Ref409774502" class="anchor"><span id="_Toc411856366" class="anchor"></span></span>Figure 2. Time series plot for ratings of dramas
+<span id="_Ref409774502" class="anchor"><span id="_Toc411856366" class="anchor"></span></span>Figure . Time series plot for ratings of dramas
 
 ![](media/image2.png)
 
-<span id="_Ref409774506" class="anchor"><span id="_Toc411856367" class="anchor"></span></span>Figure 3. Box plots for ratings of dramas
+<span id="_Ref409774506" class="anchor"><span id="_Toc411856367" class="anchor"></span></span>Figure . Box plots for ratings of dramas
 
 ![](media/image3.png)
 
@@ -463,7 +463,7 @@ As for NNA, the only model of the 3<sup>rd</sup> category, its performance is ne
 
 Now it comes to the results of our solution. First, let’s compare the performance among 3 different growth functions: no growth (TWR.N), linear growth (TWR.L), and exponential growth (TWR.E). TWR.E has the best performance, followed by TWR.L and TWR.N. It shows that as more weights are put on the more recent training instances, the better performance we get. This evidence supports that our idea is valid. However, TWR has its limitation because TWR.E3 has mixed performance, i.e., performance of some dramas are improved, while some become worse. In fact, we observe that TWR.E3 is essentially same as PP. Thus, in order to automatically choose the best growth function, TWR.A is implemented. The results show that TWR.A outperforms all the other models in terms of overall MAPE (lowest 11.54%) and MAE (lowest 0.2883) among all dramas, which gives us more confidence that our idea is valid. Moreover, T.A.EF shows that our solution is extensible because it can be extended with external features.
 
-<span id="_Ref409774931" class="anchor"><span id="_Toc411856542" class="anchor"></span></span>Table 3. MAPE of TV ratings predictions
+<span id="_Ref409774931" class="anchor"><span id="_Toc411856542" class="anchor"></span></span>Table . MAPE of TV ratings predictions
 
 | M↓D→   | D1    | D2    | D3   | D4    | D5    | D6    | D7    | D8    | All       |
 |--------|-------|-------|------|-------|-------|-------|-------|-------|-----------|
@@ -481,7 +481,7 @@ Now it comes to the results of our solution. First, let’s compare the performa
 | TWR.A  | 25.47 | 7.86  | 7.59 | 10.81 | 12.11 | 11.67 | 13.44 | 8.97  | **11.54** |
 | T.A.EF | 25.47 | 7.55  | 7.64 | 10.63 | 12.11 | 11.34 | 13.50 | 9.11  | **11.47** |
 
-<span id="_Ref409774935" class="anchor"><span id="_Toc411856543" class="anchor"></span></span>Table 4. MAE of TV ratings predictions
+<span id="_Ref409774935" class="anchor"><span id="_Toc411856543" class="anchor"></span></span>Table . MAE of TV ratings predictions
 
 | M↓D→   | D1     | D2     | D3     | D4     | D5     | D6     | D7     | D8     | All        |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|------------|
