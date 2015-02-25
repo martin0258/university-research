@@ -20,8 +20,8 @@ Ting-Wei Ku
 
 Advisor: Shou-De Lin, Ph.D.
 
-中華民國104年1月
-Jan 2015
+中華民國104年2月
+Feb 2015
 
 國立臺灣大學電機資訊學院資訊工程學系
 
@@ -109,11 +109,11 @@ In this thesis, the primary contribution is proposing a simple and experimentall
 
 Keywords: time series prediction, TV ratings prediction, regression.
 
-<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"><span id="_Toc409722018" class="anchor"><span id="_Toc411856337" class="anchor"></span></span></span></span>目錄
-================================================================================================================================================================================================
+<span id="_Toc409633615" class="anchor"><span id="_Toc409633829" class="anchor"><span id="_Toc409722018" class="anchor"><span id="_Toc411856337" class="anchor"><span id="_Toc412542200" class="anchor"></span></span></span></span></span>目錄
+===============================================================================================================================================================================================================================================
 
-<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"><span id="_Toc409722019" class="anchor"><span id="_Toc411856338" class="anchor"></span></span></span></span>圖目錄
-==================================================================================================================================================================================================
+<span id="_Toc409633616" class="anchor"><span id="_Toc409633830" class="anchor"><span id="_Toc409722019" class="anchor"><span id="_Toc411856338" class="anchor"><span id="_Toc412542201" class="anchor"></span></span></span></span></span>圖目錄
+=================================================================================================================================================================================================================================================
 
 [*Figure 1. Activity diagram of TWR* 13](#_Toc411856365)
 
@@ -121,8 +121,8 @@ Keywords: time series prediction, TV ratings prediction, regression.
 
 [*Figure 3. Box plots for ratings of dramas* 17](#_Toc411856367)
 
-<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"><span id="_Toc409722020" class="anchor"><span id="_Toc411856339" class="anchor"></span></span></span></span>表目錄
-==================================================================================================================================================================================================
+<span id="_Toc409633617" class="anchor"><span id="_Toc409633831" class="anchor"><span id="_Toc409722020" class="anchor"><span id="_Toc411856339" class="anchor"><span id="_Toc412542202" class="anchor"></span></span></span></span></span>表目錄
+=================================================================================================================================================================================================================================================
 
 [*Table 1. List of models* 11](#_Toc411856540)
 
@@ -282,7 +282,7 @@ Each competitor works as below (recall that **x** is the time series of ratings)
 
 5.  **Exponential Smoothing State Space (ETS) [13]**: automatically select the best exponential smoothing model according to information criterion from 30 state space models. State is defined by the unobserved error, trend, and seasonal components. The possibilities for each component are: Error = {A, M}, Trend = {N, A, A<sub>d</sub>, M, M<sub>d</sub>} and Seasonal = {N, A, M}, where A is additive, M is multiplicative, N means no trend or seasonal component, and subscript d means damped trend.
 
-    -   Equation: Please refer to <span id="OLE_LINK10" class="anchor"><span id="OLE_LINK11" class="anchor"></span></span>Appendix A.
+    -   Equation: Please refer to <span id="OLE_LINK10" class="anchor"><span id="OLE_LINK11" class="anchor"></span></span>附錄 Appendix.
 
     -   Settings: all parameters are determined via information criterion AICc.
 
@@ -298,7 +298,7 @@ Each competitor works as below (recall that **x** is the time series of ratings)
 
 7.  **Neural network auto-regression (NNA)**: feed-forward neural networks with a single hidden layer and past observations as inputs. 20 models are built and then averaged when making prediction.
 
-    -   Equation: Neural network equations with past observations as inputs. Please refer to Appendix B for detail.
+    -   Equation: Neural network equations with past observations as inputs. Please refer to 附錄 Appendix for detail.
 
     -   Settings: the optimal number of past observations is determined according to the AIC for a linear autoregressive model with order p model.
 
@@ -382,7 +382,7 @@ In this section, we describe data set, evaluation metric, models, and results.
 
 Our data set contains 8 weekly Idol dramas broadcasting in Taiwan. They are so-called Nielsen ratings, which is the most frequently used ratings in TV industry. Normally, the ratings are only available for Nielsen’s customers. Fortunately, some of them are announced in news and organized into Wikipedia, which is the case of all the dramas in our data set.
 
-Simple data analysis results are presented via Table 2, Figure 1 and Figure 2. From the time series plot (Figure 1), the following things are observed:
+Simple data analysis results are presented via Table 2, Figure 2 and Figure 3. From the time series plot (Figure 2), the following things are observed:
 
 -   D2 and D7 have clear increasing trend, while all the others don’t have any obvious increasing or decreasing trend.
 
@@ -390,7 +390,7 @@ Simple data analysis results are presented via Table 2, Figure 1 and Figure 2. F
 
 -   D1 has the lowest ratings over the time. In fact, its ratings are close to zero.
 
-From the box plots (Figure 2), the following things are observed:
+From the box plots (Figure 3), the following things are observed:
 
 -   D2 and D7 has much wider ranges of ratings than all the other dramas. This is also reflected from the standard deviation of ratings in Table 2. It is likely that the wider the range of ratings, the more complex to predict ratings accurately.
 
@@ -436,7 +436,7 @@ As for TWR, we have already described how it works in previous sections. Now we 
 
     -   After tree is grown, it is pruned based on validation error.
 
--   Equation: Regression tree equations with bagging. Please refer to <span id="OLE_LINK7" class="anchor"><span id="OLE_LINK9" class="anchor"></span></span>Appendix C for detail.
+-   Equation: Regression tree equations with bagging. Please refer to <span id="OLE_LINK7" class="anchor"><span id="OLE_LINK9" class="anchor"></span></span>附錄 Appendix for detail.
 
 -   Implementation: package rpart {rpart} in R [16]
 
@@ -457,7 +457,7 @@ In this section, we show how well our solution and other competitive models pred
 
 Surprisingly, PP, the most naïve and simplest model, already performs pretty well. Among all competitors, it has the lowest overall MAPE of 12.18%, which sets a very challenging baseline. PA, another naïve baseline, performs badly. It has much larger MAPE and MAE than all the other models. From results of two baselines, we can infer that ratings of last period is a good predictor, while ratings of older ratings are not, so what we need should be somewhere in between with more emphasis on recent ratings. In fact, Simple Exponential Smoothing (SES), one of our competitors from the 2<sup>nd</sup> category, is one way to capture this nature.
 
-As for the models of the 2<sup>nd</sup> category, SES has the best overall performance in this category. Among all competitors, it has the 2<sup>nd</sup> lowest overall MAPE of 12.22% and the lowest overall MAE of 0.2893. Because SES is suitable for data with no trend or seasonal pattern, this result is as expected because from Figure 1 we already know that all dramas have no seasonal pattern, while only 2 out of 8 have trend pattern.
+As for the models of the 2<sup>nd</sup> category, SES has the best overall performance in this category. Among all competitors, it has the 2<sup>nd</sup> lowest overall MAPE of 12.22% and the lowest overall MAE of 0.2893. Because SES is suitable for data with no trend or seasonal pattern, this result is as expected because from Figure 2 we already know that all dramas have no seasonal pattern, while only 2 out of 8 have trend pattern.
 
 As for NNA, the only model of the 3<sup>rd</sup> category, its performance is neither very good nor very bad. However, it is worth noting that it has the lowest MAPE and MAE for D7 for some reason, probably the most difficult drama to be predicted well due to its widest range of ratings.
 
@@ -557,7 +557,7 @@ Besides, our data set for experiments is small and specific. We consider collect
 
 17. Terry M. Therneau, Elizabeth J. Atkinson, Mayo Foundation: An Introduction to Recursive Partitioning Using the RPART Routines. (2015)
 
-<span id="_Ref411851153" class="anchor"><span id="_Toc411856362" class="anchor"></span></span>附錄 Appendix
+<span id="_Ref411851153" class="anchor"><span id="_Toc412542226" class="anchor"></span></span>附錄 Appendix
 ===========================================================================================================
 
 A: Equations of 30 state space models for ETS
@@ -565,7 +565,7 @@ A: Equations of 30 state space models for ETS
 
 ![](media/image4.png)
 
-<span id="_Toc411856364" class="anchor"><span id="OLE_LINK6" class="anchor"></span></span>B: Equations of neural network auto-regression
+<span id="_Toc412542228" class="anchor"><span id="OLE_LINK6" class="anchor"></span></span>B: Equations of neural network auto-regression
 ----------------------------------------------------------------------------------------------------------------------------------------
 
 Assume that a fully-connected feed-forward neural network has 3 layers:
