@@ -108,6 +108,12 @@ gradualTSRegression <- function(x,
       next
     }
     
+    # print fitting model for analysis
+#     if (nrow(model$fits[[1]]$frame) > 1)
+#     {
+#       print(model$fits[[1]])
+#     }
+    
     # Testing phase
     if (model_type == 'regression') {
       predictTrain <- predict(model, wData[trainIndex, ])

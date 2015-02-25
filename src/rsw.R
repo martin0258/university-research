@@ -44,19 +44,26 @@ rsw <- function (x = NULL, xreg = NULL,
     r_data <- data.frame(r_data)
     num_cases <- nrow(r_data)
     
-    # Align column names with training formula
-    names(r_data) <- paste("X", seq(1, ncol(r_data)), sep="")
-    names(r_data)[ncol(r_data)] <- "Y"
-    
     # bind external regressors if any
     if (!is.null(xreg)) {
       xreg <- data.frame(xreg)
-      stopifnot(length(x) != nrow(xreg))
+      
+      # hot fix: get first length(x) instances of features
+      stopifnot(length(x) <= nrow(xreg))
+      xreg <- head(xreg, length(x))
+      
       r_data <- cbind(tail(xreg, num_cases), r_data)
     }
+    
+    # Align column names with training formula
+    names(r_data) <- paste("X", seq(1, ncol(r_data)), sep="")
+    names(r_data)[ncol(r_data)] <- "Y"
   } else {
     stop('Either x or (formula, data) must not be null.')
   }
+  
+  # Ref: http://stackoverflow.com/a/13217491
+  response_name <- all.vars(model_formula)[1]
   
   # Give more weights for newer cases
   # Options: linear increase, exponential increase
@@ -86,12 +93,19 @@ rsw <- function (x = NULL, xreg = NULL,
                  method=method, ...)
       fits_type[[length(fits_type) + 1]] <- fit
       prediction <- predict(fit, new_data=val_data)
-      val_error <- error_fun(prediction, val_data[, 'Y'])
+      val_error <- error_fun(prediction, val_data[, response_name])
       val_errors <- c(val_errors, val_error)
     }
-    fit <- rsw(x=x,
-               weight_type=weight_types[which.min(val_errors)],
-               method=method, ...)
+    best_weight_type <- weight_types[which.min(val_errors)]
+    if (is.null(x)) {
+      fit <- rsw(formula=model_formula, data=r_data,
+                 weight_type=best_weight_type,
+                 method=method, ...)
+    } else {
+      fit <- rsw(x=x, xreg=xreg,
+                 weight_type=best_weight_type,
+                 method=method, ...)
+    }
     return (fit)
   }
   
@@ -144,13 +158,13 @@ predict.rsw <- function (object, n.ahead = 1, newxreg = NULL,
     }
     final_predictions <- colMeans(predictions)
   } else {
-    num_features <- object$window_len - 1
-    last_case_x <- tail(object$x, num_features)
+    num_internal_features <- object$window_len - 1
+    last_case_x <- tail(object$x, num_internal_features)
     last_case_x <- data.frame(matrix(last_case_x, nrow=1))
-    names(last_case_x) <- paste('X', seq(1, num_features), sep='')
     if (!is.null(newxreg)) {
       last_case_x <- cbind(newxreg, last_case_x)
     }
+    names(last_case_x) <- paste('X', seq(1, length(last_case_x)), sep='')
     test_data <- last_case_x
     
     predictions <- c()
