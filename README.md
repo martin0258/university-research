@@ -1,7 +1,7 @@
-ntu-research
+university-research
 ============
 
-My research work at NTU CSIE master.
+university research work
 
 # Run
 To run R codes, you need to install all the R packages used.  
